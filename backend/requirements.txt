@@ -1,0 +1,11 @@
+Django==6.0.1
+djangorestframework==3.16.1
+djangorestframework_simplejwt==5.5.1
+djoser==2.3.3
+django-cors-headers==4.9.0
+python-dotenv==1.2.2
+celery==5.6.2
+redis==7.3.0
+selenium==4.41.0
+webdriver-manager==4.0.2
+gunicorn==23.0.0

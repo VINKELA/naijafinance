@@ -1,0 +1,11 @@
+.env
+db.sqlite3
+sent_emails/
+staticfiles/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+cscs_fatal_error.png

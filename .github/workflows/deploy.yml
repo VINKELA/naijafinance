@@ -1,0 +1,38 @@
+name: Deploy Finance App to Mac Mini
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Pull and Deploy Finance Containers
+        shell: zsh -e {0}
+        env:
+          DEPLOY_DIR: /Users/kalu/finance-app
+          REPO_URL: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+        run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+          mkdir -p "$DEPLOY_DIR"
+          cd "$DEPLOY_DIR"
+
+          if [ ! -d ".git" ]; then
+            git init
+            git remote add origin "$REPO_URL"
+          fi
+
+          git remote set-url origin "$REPO_URL"
+          git fetch --all
+          git reset --hard origin/main
+
+          if [ -n "$PRODUCTION_ENV" ]; then
+            printf "%s\n" "$PRODUCTION_ENV" > .env
+          fi
+
+          colima ssh -- sh -lc "cd '$DEPLOY_DIR' && docker compose up -d --build"

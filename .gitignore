@@ -1,0 +1,17 @@
+venv/
+backend/.env
+backend/db.sqlite3
+backend/sent_emails/
+backend/staticfiles/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/cscs_fatal_error.png
+
+frontend/naija-finance/node_modules/
+frontend/naija-finance/dist/
+frontend/naija-finance/.angular/
+frontend/naija-finance/*.log
+
+.env
+.DS_Store
+Thumbs.db

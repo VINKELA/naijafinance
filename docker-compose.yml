@@ -1,0 +1,100 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      DJANGO_CORS_ALLOWED_ORIGINS: "${DJANGO_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      SQLITE_PATH: "/app/data/db.sqlite3"
+      STATIC_ROOT: "/app/staticfiles"
+      CSCS_USERNAME: "${CSCS_USERNAME:-}"
+      CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
+      CSCS_TARGET_URL: "${CSCS_TARGET_URL:-}"
+      CSCS_ACTIVE_JOB_STALE_HOURS: "${CSCS_ACTIVE_JOB_STALE_HOURS:-20}"
+      CSCS_HEADLESS: "${CSCS_HEADLESS:-True}"
+      CHROME_BINARY_PATH: "/usr/bin/chromium"
+      CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
+    volumes:
+      - sqlite_data:/app/data
+      - django_static:/app/staticfiles
+    depends_on:
+      - redis
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      SQLITE_PATH: "/app/data/db.sqlite3"
+      CSCS_USERNAME: "${CSCS_USERNAME:-}"
+      CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
+      CSCS_TARGET_URL: "${CSCS_TARGET_URL:-}"
+      CSCS_ACTIVE_JOB_STALE_HOURS: "${CSCS_ACTIVE_JOB_STALE_HOURS:-20}"
+      CSCS_HEADLESS: "${CSCS_HEADLESS:-True}"
+      CHROME_BINARY_PATH: "/usr/bin/chromium"
+      CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
+    volumes:
+      - sqlite_data:/app/data
+    depends_on:
+      - redis
+      - backend
+    command: celery -A backend worker --loglevel=info
+
+  beat:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      CSCS_DAILY_UPDATE_ENABLED: "${CSCS_DAILY_UPDATE_ENABLED:-True}"
+      CSCS_DAILY_UPDATE_HOUR: "${CSCS_DAILY_UPDATE_HOUR:-18}"
+      CSCS_DAILY_UPDATE_MINUTE: "${CSCS_DAILY_UPDATE_MINUTE:-30}"
+      CELERY_TIMEZONE: "${CELERY_TIMEZONE:-Africa/Lagos}"
+    volumes:
+      - celerybeat_data:/app/celerybeat
+    depends_on:
+      - redis
+      - backend
+    command: celery -A backend beat --loglevel=info --schedule /app/celerybeat/celerybeat-schedule
+
+  frontend:
+    build:
+      context: ./frontend/naija-finance
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    volumes:
+      - django_static:/usr/share/nginx/static:ro
+    depends_on:
+      - backend
+
+volumes:
+  redis_data:
+  sqlite_data:
+  django_static:
+  celerybeat_data:
