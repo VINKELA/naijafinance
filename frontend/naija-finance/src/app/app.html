@@ -1,17 +1,24 @@
-<header>
-  <h1>Naija Finance — Free Data Layer (Sprint 1)</h1>
-  <nav>
-    <a routerLink="/market">Market Overview</a>
-    <a routerLink="/bonds">Bonds &amp; Auctions</a>
-    <a routerLink="/funds">Mutual Funds</a>
-    <a routerLink="/fx">CBN FX</a>
-    <a routerLink="/companies">Companies</a>
-    <a routerLink="/alerts">Alerts</a>
-  </nav>
-</header>
-<main>
-  <router-outlet />
-</main>
-<footer>
-  <p>Naija Finance free-data demo. Information only — not investment advice. Data shown is illustrative public data.</p>
-</footer>
+<div class="app-shell">
+  <header class="app-topbar">
+    <div class="app-topbar-inner">
+      <span class="brand"><span class="logo-dot"></span> Naija Finance
+        <small>Free data layer · Sprint 1</small>
+      </span>
+      <nav class="app-nav">
+        <a routerLink="/market" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Market</a>
+        <a routerLink="/bonds" routerLinkActive="active">Bonds</a>
+        <a routerLink="/funds" routerLinkActive="active">Funds</a>
+        <a routerLink="/fx" routerLinkActive="active">FX</a>
+        <a routerLink="/companies" routerLinkActive="active">Companies</a>
+        <a routerLink="/alerts" routerLinkActive="active">Alerts</a>
+      </nav>
+    </div>
+  </header>
+  <main class="page">
+    <router-outlet />
+  </main>
+  <footer class="app-footer">
+    <span>Naija Finance free-data demo. Information only — not investment advice.</span>
+    <span>Data shown is illustrative mock data until the NGX licensed feed decision is finalised.</span>
+  </footer>
+</div>

@@ -8,42 +8,44 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
   selector: 'app-market',
   imports: [CommonModule],
   template: `
-    <h2>Market Overview (F-01/F-02/F-03)</h2>
-    <p><em>{{ disclaimer }}</em></p>
+    <h2>Market Overview</h2>
+    <p class="sub">Indices, movers and headlines across the Nigerian market.</p>
+    <p class="disclaimer">{{ disclaimer }}</p>
 
-    <h3>Indices</h3>
-    <table>
-      <thead><tr><th>Index</th><th>Value</th><th>Change</th><th>%</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let i of indexes">
-          <td>{{ i.symbol }} — {{ i.name }}</td>
-          <td>{{ i.current_price }}</td>
-          <td [style.color]="i.isUp ? '#188038' : '#c5221f'">{{ i.point_change }}</td>
-          <td [style.color]="i.isUp ? '#188038' : '#c5221f'">{{ i.percent_change }}%</td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="indexes.length === 0">Loading indices…</p>
+    <div class="stat-grid">
+      <div class="stat-tile" *ngFor="let i of indexes">
+        <div class="label">{{ i.symbol }}</div>
+        <div class="value">{{ i.current_price }}</div>
+        <div class="delta" [class.up]="i.isUp" [class.down]="!i.isUp">
+          {{ i.isUp ? '▲' : '▼' }} {{ i.point_change }} ({{ i.percent_change }}%)
+        </div>
+      </div>
+    </div>
+    <p class="loading" *ngIf="indexes.length === 0">Loading indices…</p>
 
-    <h3>Top movers</h3>
-    <table>
-      <thead><tr><th>Symbol</th><th>Name</th><th>Price</th><th>Change</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let m of movers">
-          <td>{{ m.symbol }}</td><td>{{ m.name }}</td><td>{{ m.price }}</td>
-          <td [style.color]="m.isUp ? '#188038' : '#c5221f'">{{ m.change }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="movers.length === 0">Loading movers…</p>
+    <div class="table-wrap">
+      <h3>Top movers</h3>
+      <table class="data">
+        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Price</th><th class="num">Change</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let m of movers">
+            <td class="sym">{{ m.symbol }}</td><td class="muted">{{ m.name }}</td>
+            <td class="num">{{ m.price }}</td>
+            <td class="num"><span class="pill" [class.up]="m.isUp" [class.down]="!m.isUp">{{ m.change }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="movers.length === 0">Loading movers…</p>
+    </div>
 
-    <h3>Headlines</h3>
-    <ul>
-      <li *ngFor="let n of news"><strong>{{ n.source }}</strong> — {{ n.title }}</li>
-    </ul>
-    <p *ngIf="news.length === 0">Loading news…</p>
+    <div class="table-wrap">
+      <h3>Headlines</h3>
+      <ul class="news-list">
+        <li *ngFor="let n of news"><span class="src">{{ n.source }}</span><span>{{ n.title }}</span></li>
+      </ul>
+      <p class="loading" *ngIf="news.length === 0">Loading news…</p>
+    </div>
   `,
-  styles: ['table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; } td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }']
 })
 export class MarketPage implements OnInit {
   disclaimer = DISCLAIMER;

@@ -9,45 +9,51 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-alerts',
   imports: [CommonModule, FormsModule],
   template: `
-    <h2>Threshold Alerts (F-08)</h2>
-    <p>Create alerts; a triggered flag is set by <code>python manage.py run_alert_eval</code>. <em>{{ disclaimer }}</em></p>
+    <h2>Threshold Alerts</h2>
+    <p class="sub">Create alerts; a triggered flag is set by <code>run_alert_eval</code>.</p>
+    <p class="disclaimer">{{ disclaimer }}</p>
 
-    <form (ngSubmit)="create()">
-      <select [(ngModel)]="form.alert_type" name="alert_type" required>
-        <option value="PRICE">Price</option>
-        <option value="YIELD">Yield</option>
-        <option value="NAV">NAV</option>
-      </select>
-      <select [(ngModel)]="form.instrument" name="instrument" *ngIf="form.alert_type !== 'NAV'">
-        <option *ngFor="let b of bonds" [ngValue]="b.id">{{ b.symbol }}</option>
-      </select>
-      <select [(ngModel)]="form.fund" name="fund" *ngIf="form.alert_type === 'NAV'">
-        <option *ngFor="let f of funds" [ngValue]="f.id">{{ f.name }}</option>
-      </select>
-      <input type="number" step="any" placeholder="threshold" [(ngModel)]="form.threshold" name="threshold" required>
-      <select [(ngModel)]="form.direction" name="direction">
-        <option value="ABOVE">above</option>
-        <option value="BELOW">below</option>
-      </select>
-      <button type="submit">Create alert</button>
-    </form>
+    <div class="card" style="margin-bottom: 20px;">
+      <form class="form-row" (ngSubmit)="create()">
+        <select [(ngModel)]="form.alert_type" name="alert_type" required>
+          <option value="PRICE">Price</option>
+          <option value="YIELD">Yield</option>
+          <option value="NAV">NAV</option>
+        </select>
+        <select [(ngModel)]="form.instrument" name="instrument" *ngIf="form.alert_type !== 'NAV'">
+          <option *ngFor="let b of bonds" [ngValue]="b.id">{{ b.symbol }}</option>
+        </select>
+        <select [(ngModel)]="form.fund" name="fund" *ngIf="form.alert_type === 'NAV'">
+          <option *ngFor="let f of funds" [ngValue]="f.id">{{ f.name }}</option>
+        </select>
+        <input type="number" step="any" placeholder="threshold" [(ngModel)]="form.threshold" name="threshold" required>
+        <select [(ngModel)]="form.direction" name="direction">
+          <option value="ABOVE">above</option>
+          <option value="BELOW">below</option>
+        </select>
+        <button type="submit">Create alert</button>
+      </form>
+    </div>
 
-    <table>
-      <thead><tr><th>Type</th><th>Target</th><th>Threshold</th><th>Direction</th><th>Triggered</th><th>Last value</th><th></th></tr></thead>
-      <tbody>
-        <tr *ngFor="let a of alerts">
-          <td>{{ a.alert_type_display }}</td>
-          <td>{{ a.instrument_symbol ?? a.fund_name }}</td>
-          <td>{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
-          <td>{{ a.triggered ? '✅' : '—' }}</td>
-          <td>{{ a.last_value ?? '—' }}</td>
-          <td><button (click)="remove(a.id!)">Delete</button></td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="error" style="color:#b3261e">{{ error }}</p>
+    <div class="table-wrap">
+      <h3>Your alerts</h3>
+      <table class="data">
+        <thead><tr><th>Type</th><th>Target</th><th class="num">Threshold</th><th>Direction</th><th>Triggered</th><th class="num">Last value</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let a of alerts">
+            <td>{{ a.alert_type_display }}</td>
+            <td class="sym">{{ a.instrument_symbol ?? a.fund_name }}</td>
+            <td class="num">{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
+            <td><span class="pill" [class.up]="a.triggered" [class.down]="!a.triggered">{{ a.triggered ? 'Triggered' : 'Active' }}</span></td>
+            <td class="num muted">{{ a.last_value ?? '—' }}</td>
+            <td><button class="ghost" (click)="remove(a.id!)">Delete</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="alerts.length === 0 && !error">No alerts yet — create one above.</p>
+    </div>
+    <p class="error" *ngIf="error">{{ error }}</p>
   `,
-  styles: ['form { margin: 1rem 0; display: flex; gap: 8px; flex-wrap: wrap; } table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }']
 })
 export class AlertsPage implements OnInit {
   disclaimer = DISCLAIMER;

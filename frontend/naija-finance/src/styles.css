@@ -1,1 +1,94 @@
-/* You can add global styles to this file, and also import other style files */
+/* ============ Naija Finance — Design System (dark, trading-grade) ============ */
+:root {
+  --bg: #0a0f1c;
+  --bg-soft: #0e1526;
+  --surface: #121a2e;
+  --surface-2: #182240;
+  --border: #223053;
+  --text: #e8eef9;
+  --text-muted: #93a4c8;
+  --accent: #5b8dff;
+  --accent-soft: rgba(91, 141, 255, 0.14);
+  --up: #2fd476;
+  --up-bg: rgba(47, 212, 118, 0.12);
+  --down: #ff6b6b;
+  --down-bg: rgba(255, 107, 107, 0.12);
+  --warning: #fbbf24;
+  --radius: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout shell */
+.app-shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 3rem; }
+.app-topbar { position: sticky; top: 0; z-index: 50; background: rgba(10,15,28,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+.app-topbar-inner { max-width: 1180px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+.brand { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.brand .logo-dot { width: 10px; height: 10px; border-radius: 3px; background: linear-gradient(135deg, var(--up), var(--accent)); box-shadow: 0 0 12px rgba(47,212,118,0.5); }
+.brand small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.02em; }
+
+nav.app-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+nav.app-nav a { color: var(--text-muted); text-decoration: none; font-size: 13.5px; font-weight: 600; padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; transition: all 0.15s ease; }
+nav.app-nav a:hover { color: var(--text); background: var(--accent-soft); }
+nav.app-nav a.active { color: var(--text); background: var(--surface-2); border-color: var(--border); }
+
+.page { padding-top: 26px; }
+.page h2 { font-size: 21px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+.page .sub { color: var(--text-muted); font-size: 13.5px; margin: 0 0 20px; }
+.disclaimer { color: var(--text-muted); font-size: 12px; background: var(--accent-soft); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin: 0 0 22px; }
+
+/* Cards / stat tiles */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.stat-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.stat-tile .label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
+.stat-tile .value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-tile .delta { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; }
+
+/* Tables */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 22px; }
+.table-wrap h3 { font-size: 14px; font-weight: 700; margin: 0; padding: 13px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.data th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 600; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+table.data td { padding: 11px 16px; border-bottom: 1px solid rgba(34,48,83,0.5); font-variant-numeric: tabular-nums; }
+table.data tbody tr:last-child td { border-bottom: none; }
+table.data tbody tr:hover { background: rgba(91,141,255,0.05); }
+table.data td.num, table.data th.num { text-align: right; }
+td.sym { font-weight: 700; color: var(--text); }
+td.muted { color: var(--text-muted); }
+
+/* Up / down / flat */
+.up { color: var(--up); }
+.down { color: var(--down); }
+.pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pill.up { background: var(--up-bg); color: var(--up); }
+.pill.down { background: var(--down-bg); color: var(--down); }
+
+/* Lists */
+.news-list { list-style: none; margin: 0; padding: 4px 0; }
+.news-list li { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid rgba(34,48,83,0.5); font-size: 13.5px; }
+.news-list li:last-child { border-bottom: none; }
+.news-list .src { flex: 0 0 130px; color: var(--accent); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Forms (alerts) */
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+input, select { background: var(--bg-soft); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; font-family: var(--font); outline: none; }
+input:focus, select:focus { border-color: var(--accent); }
+button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 9px 16px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: var(--font); transition: filter 0.15s ease; }
+button:hover { filter: brightness(1.12); }
+button.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 5px 10px; border-radius: 6px; font-size: 12.5px; }
+button.ghost:hover { color: var(--down); border-color: var(--down); }
+.error { color: var(--down); font-size: 13px; margin-top: 10px; }
+
+.app-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.loading { color: var(--text-muted); font-size: 13px; padding: 18px 16px; font-style: italic; }

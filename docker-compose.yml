@@ -12,7 +12,7 @@ services:
     environment:
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
       DJANGO_DEBUG: "False"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
       DJANGO_CORS_ALLOWED_ORIGINS: "${DJANGO_CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}"
       DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
@@ -43,7 +43,7 @@ services:
     environment:
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
       DJANGO_DEBUG: "False"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       SQLITE_PATH: "/app/data/db.sqlite3"
@@ -68,7 +68,7 @@ services:
     environment:
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
       DJANGO_DEBUG: "False"
-      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}"
+      DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
       CSCS_DAILY_UPDATE_ENABLED: "${CSCS_DAILY_UPDATE_ENABLED:-False}"  # G3: CSCS login scraping retired

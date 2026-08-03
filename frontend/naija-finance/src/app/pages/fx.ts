@@ -8,19 +8,19 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-fx',
   imports: [CommonModule],
   template: `
-    <h2>CBN FX Rates (F-06)</h2>
-    <p>Official published exchange rates. <em>{{ disclaimer }}</em></p>
-    <table>
-      <thead><tr><th>Pair</th><th>Rate</th><th>Date</th><th>Source</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let r of rates">
-          <td>{{ r.pair }}</td><td>{{ r.rate }}</td><td>{{ r.date }}</td><td>{{ r.source }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="rates.length === 0">Loading rates…</p>
+    <h2>CBN FX Rates</h2>
+    <p class="sub">Official published exchange rates.</p>
+    <p class="disclaimer">{{ disclaimer }}</p>
+
+    <div class="stat-grid">
+      <div class="stat-tile" *ngFor="let r of rates">
+        <div class="label">{{ r.pair }}</div>
+        <div class="value">{{ r.rate }}</div>
+        <div class="delta muted">{{ r.date }} · {{ r.source }}</div>
+      </div>
+    </div>
+    <p class="loading" *ngIf="rates.length === 0">Loading rates…</p>
   `,
-  styles: ['table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }']
 })
 export class FxPage implements OnInit {
   disclaimer = DISCLAIMER;

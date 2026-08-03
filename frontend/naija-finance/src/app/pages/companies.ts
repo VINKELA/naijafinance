@@ -8,21 +8,25 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-companies',
   imports: [CommonModule],
   template: `
-    <h2>Company Profiles &amp; Fundamentals (F-07)</h2>
-    <p>Public company profiles with key fundamentals, for display only. <em>{{ disclaimer }}</em></p>
-    <table>
-      <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th>EPS</th><th>P/E</th><th>Book value</th><th>Market cap (₦)</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let c of companies">
-          <td>{{ c.symbol }}</td><td>{{ c.name }}</td><td>{{ c.sector ?? '—' }}</td>
-          <td>{{ c.eps ?? '—' }}</td><td>{{ c.pe_ratio ?? '—' }}</td>
-          <td>{{ c.book_value ?? '—' }}</td><td>{{ c.market_cap ?? '—' }}</td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="companies.length === 0">Loading profiles…</p>
+    <h2>Company Profiles &amp; Fundamentals</h2>
+    <p class="sub">Public company profiles with key fundamentals, for display only.</p>
+    <p class="disclaimer">{{ disclaimer }}</p>
+
+    <div class="table-wrap">
+      <h3>Profiles</h3>
+      <table class="data">
+        <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th class="num">EPS</th><th class="num">P/E</th><th class="num">Book value</th><th class="num">Market cap (₦)</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let c of companies">
+            <td class="sym">{{ c.symbol }}</td><td>{{ c.name }}</td><td class="muted">{{ c.sector ?? '—' }}</td>
+            <td class="num">{{ c.eps ?? '—' }}</td><td class="num">{{ c.pe_ratio ?? '—' }}</td>
+            <td class="num">{{ c.book_value ?? '—' }}</td><td class="num">{{ c.market_cap ?? '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="companies.length === 0">Loading profiles…</p>
+    </div>
   `,
-  styles: ['table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }']
 })
 export class CompaniesPage implements OnInit {
   disclaimer = DISCLAIMER;
