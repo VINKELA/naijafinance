@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from .models import (
     Region, Currency, Market, Exchange, Issuer, Instrument,
     AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert,
-    ScrapeExecution,
+    ScrapeExecution, PriceHistory, MarketIndex, NewsArticle, EarningsCalendar,
 )
 from .tasks import start_daily_cscs_update, run_stateful_scrape, CSCS_SCRAPER_RETIRED_MESSAGE
 
@@ -294,3 +294,62 @@ class SeedCommandTests(TestCase):
         count_before = CompanyProfile.objects.count()
         call_command('seed_public_data')
         self.assertEqual(CompanyProfile.objects.count(), count_before)
+
+
+class MockMarketDataTests(TestCase):
+    """F-01/F-02/F-03 demo layer: deterministic mock seed + public market endpoints."""
+
+    def setUp(self):
+        self.client = APIClient()
+        call_command('seed_mock_market_data')
+
+    def test_mock_seed_creates_equities_history_indexes_news(self):
+        self.assertGreater(Instrument.objects.filter(asset_class='EQUITY').count(), 0)
+        self.assertGreater(PriceHistory.objects.count(), 0)
+        self.assertGreater(MarketIndex.objects.count(), 0)
+        self.assertGreater(NewsArticle.objects.count(), 0)
+        self.assertGreater(EarningsCalendar.objects.count(), 0)
+
+    def test_mock_seed_is_idempotent(self):
+        before = PriceHistory.objects.count()
+        call_command('seed_mock_market_data')
+        self.assertEqual(PriceHistory.objects.count(), before)
+
+    def test_mock_seed_deterministic_last_price(self):
+        inst = Instrument.objects.get(symbol='MTNN', asset_class='EQUITY')
+        self.assertGreater(inst.last_price, 0)
+
+    def test_movers_returns_rows(self):
+        resp = self.client.get('/api/stocks/movers/?limit=5')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(len(resp.json()), 1)
+        row = resp.json()[0]
+        for key in ('symbol', 'price', 'changePct', 'isUp'):
+            self.assertIn(key, row)
+
+    def test_market_overview_returns_counts(self):
+        resp = self.client.get('/api/overview/')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertGreater(body['instrumentCount'], 0)
+        self.assertIn('topGainers', body)
+
+    def test_indexes_public(self):
+        resp = self.client.get('/api/indexes/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreater(len(resp.json()), 0)
+
+    def test_stock_detail_has_chart_data(self):
+        resp = self.client.get('/api/stock/MTNN/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreater(len(resp.json()['chart_data']), 1)
+
+    def test_news_public(self):
+        resp = self.client.get('/api/news/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreater(len(resp.json()), 0)
+
+    def test_earnings_public(self):
+        resp = self.client.get('/api/earnings/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertGreaterEqual(len(resp.json()), 1)
