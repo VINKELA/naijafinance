@@ -54,11 +54,11 @@ a{color:var(--blue);text-decoration:none}
 
 /* ── Section headers (title color per mockup) ── */
 .secHead{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
-.secHead h2{font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--txt)}
+.secHead h2{font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--accent)}
 .secHead .link{font-size:12px;color:var(--accent);font-weight:600;cursor:pointer}
 
-/* Page titles — match mockup */
-.page h2.title{font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--txt);margin:0 0 4px}
+/* Page titles — match mockup (accent-colored like mockup branding) */
+.page h2.title,.page h2{font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--accent);margin:0 0 4px}
 .page .sub{color:var(--txt2);font-size:13.5px;margin:0 0 18px}
 
 /* ── Cards ── */
