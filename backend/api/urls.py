@@ -9,6 +9,13 @@ router.register(r'instruments', InstrumentViewSet, basename='instrument')
 router.register(r'portfolios', PortfolioViewSet, basename='portfolio')
 router.register(r'portfolio-items', PortfolioItemViewSet, basename='portfolio-item')
 router.register(r'watchlists', WatchlistViewSet, basename='watchlist')
+# Free Data Layer (Sprint 1: F-04..F-08)
+router.register(r'bonds', BondInstrumentViewSet, basename='bond')
+router.register(r'auctions', AuctionCalendarViewSet, basename='auction')
+router.register(r'funds', FundViewSet, basename='fund')
+router.register(r'fx-rates', FxRateViewSet, basename='fx-rate')
+router.register(r'companies', CompanyProfileViewSet, basename='company')
+router.register(r'alerts', AlertViewSet, basename='alert')
 
 urlpatterns = [
     # Auth Endpoints

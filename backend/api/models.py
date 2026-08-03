@@ -270,3 +270,144 @@ class ScrapeTargetSymbol(models.Model):
 
     def __str__(self):
         return f"{self.symbol} ({self.status})"
+
+
+# ==========================================
+# 8. FREE DATA LAYER (Sprint 1: F-04..F-08)
+# ==========================================
+# All models in this section are populated from public/free sources only
+# (DMO publications, CBN published FX rates, fund NAV publications, issuer
+# filings). No login-based scraping. Display data only — not investment advice.
+
+
+class AuctionCalendar(TimeStampedModel):
+    """FGN bond / T-bill auction calendar & results (public DMO data)."""
+    instrument = models.ForeignKey(
+        Instrument, on_delete=models.CASCADE, related_name='auctions',
+        limit_choices_to={'asset_class': 'BOND'},
+    )
+    auction_date = models.DateField(db_index=True)
+    tenor = models.CharField(max_length=50, help_text="e.g., 91-day, 182-day, 364-day, 10-year")
+    offer_size = models.DecimalField(
+        max_digits=20, decimal_places=2, null=True, blank=True,
+        help_text="Offer size in NGN (billions as published by DMO).",
+    )
+    stop_rate = models.DecimalField(
+        max_digits=8, decimal_places=4, null=True, blank=True,
+        help_text="Stop rate / marginal rate as published by DMO (percent).",
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['auction_date']
+        indexes = [models.Index(fields=['auction_date', 'is_active'])]
+
+    def __str__(self):
+        return f"{self.instrument.symbol} @ {self.auction_date}"
+
+
+class Fund(TimeStampedModel):
+    """A publicly offered mutual fund (Nigerian market)."""
+    ASSET_CLASSES = [
+        ('MONEY_MARKET', 'Money Market'),
+        ('FIXED_INCOME', 'Fixed Income'),
+        ('EQUITY', 'Equity'),
+        ('BALANCED', 'Balanced'),
+        ('ETHICAL', 'Ethical/Islamic'),
+        ('REAL_ESTATE', 'Real Estate'),
+        ('OTHER', 'Other'),
+    ]
+    name = models.CharField(max_length=255, unique=True)
+    manager = models.CharField(max_length=255, blank=True, null=True)
+    asset_class = models.CharField(max_length=20, choices=ASSET_CLASSES, default='OTHER')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class NavSnapshot(TimeStampedModel):
+    """Published Net Asset Value per share for a fund (public data)."""
+    fund = models.ForeignKey(Fund, on_delete=models.CASCADE, related_name='nav_snapshots')
+    date = models.DateField(db_index=True)
+    nav = models.DecimalField(max_digits=20, decimal_places=4)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ('fund', 'date')
+
+    def __str__(self):
+        return f"{self.fund.name} NAV {self.nav} @ {self.date}"
+
+
+class FxRate(TimeStampedModel):
+    """Official published exchange rate (CBN window / public release)."""
+    pair = models.CharField(max_length=20, db_index=True, help_text="e.g., USD/NGN, GBP/NGN, EUR/NGN")
+    rate = models.DecimalField(max_digits=20, decimal_places=4)
+    date = models.DateField(db_index=True)
+    source = models.CharField(max_length=50, default='CBN')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['pair', '-date']
+        unique_together = ('pair', 'date', 'source')
+
+    def __str__(self):
+        return f"{self.pair} {self.rate} ({self.source}, {self.date})"
+
+
+class CompanyProfile(TimeStampedModel):
+    """Public company profile + key fundamentals for display only."""
+    symbol = models.CharField(max_length=50, unique=True, db_index=True)
+    name = models.CharField(max_length=255)
+    sector = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    # Fundamentals — nullable display fields, NOT investment advice.
+    eps = models.DecimalField(max_digits=20, decimal_places=4, null=True, blank=True, help_text="Earnings per share")
+    pe_ratio = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True, help_text="Price/Earnings ratio")
+    book_value = models.DecimalField(max_digits=20, decimal_places=4, null=True, blank=True, help_text="Book value per share")
+    market_cap = models.DecimalField(max_digits=24, decimal_places=2, null=True, blank=True, help_text="Market capitalisation in NGN")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['symbol']
+
+    def __str__(self):
+        return f"{self.symbol} ({self.name})"
+
+
+class Alert(TimeStampedModel):
+    """User-defined threshold alert (Sprint 1: evaluation flag only, no notifications)."""
+    ALERT_TYPES = [
+        ('PRICE', 'Price'),
+        ('YIELD', 'Yield'),
+        ('NAV', 'NAV'),
+    ]
+    DIRECTIONS = [
+        ('ABOVE', 'Above threshold'),
+        ('BELOW', 'Below threshold'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='alerts')
+    instrument = models.ForeignKey(
+        Instrument, on_delete=models.CASCADE, null=True, blank=True, related_name='alerts'
+    )
+    fund = models.ForeignKey(Fund, on_delete=models.CASCADE, null=True, blank=True, related_name='alerts')
+    alert_type = models.CharField(max_length=10, choices=ALERT_TYPES)
+    threshold = models.DecimalField(max_digits=20, decimal_places=6)
+    direction = models.CharField(max_length=10, choices=DIRECTIONS, default='ABOVE')
+    active = models.BooleanField(default=True)
+    triggered = models.BooleanField(default=False)
+    triggered_at = models.DateTimeField(null=True, blank=True)
+    last_evaluated_at = models.DateTimeField(null=True, blank=True)
+    last_value = models.DecimalField(max_digits=20, decimal_places=6, null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user.email} {self.get_alert_type_display()} {self.direction} {self.threshold}"
