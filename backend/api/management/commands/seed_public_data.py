@@ -36,10 +36,12 @@ def _get_exchange():
 
 
 def _get_or_create_bond(exchange, currency, symbol, name, maturity, coupon):
-    issuer, _ = Issuer.objects.get_or_create(
-        region__iso_code='NGA',
-        defaults={'region': Region.objects.get(iso_code='NGA'), 'name': 'Federal Government of Nigeria'},
-    )
+    issuer = Issuer.objects.filter(region__iso_code='NGA', name='Federal Government of Nigeria').first()
+    if issuer is None:
+        issuer = Issuer.objects.create(
+            region=Region.objects.get(iso_code='NGA'),
+            name='Federal Government of Nigeria',
+        )
     instrument, created = Instrument.objects.get_or_create(
         exchange=exchange, symbol=symbol,
         defaults={

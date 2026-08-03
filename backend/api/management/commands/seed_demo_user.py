@@ -1,105 +1,49 @@
-"""Seed a demo user with watchlist, portfolio positions and alerts.
-
-So the F-01/F-08/F-09 tabs (which are JWT user-scoped) show populated data
-immediately in the demo, without requiring the viewer to register.
-
-Usage:
-    python manage.py seed_demo_user
-"""
-from decimal import Decimal
-
-from django.contrib.auth import get_user_model
+"""Seed a demo user with sample watchlist, portfolio and alerts for testing."""
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.contrib.auth import get_user_model
+from decimal import Decimal
 
-from api.models import Instrument, Fund, Portfolio, PortfolioItem, Watchlist, Alert
+from api.models import Watchlist, Portfolio, PortfolioItem, Alert, Instrument
 
 User = get_user_model()
-
-DEMO_EMAIL = "demo@naijafinance.com"
-DEMO_PASSWORD = "demo1234"
-
-WATCHLIST_SYMBOLS = ["MTNN", "DANGCEM", "GTCO", "ZENITHBANK", "UBA", "SEPLAT"]
-
-PORTFOLIO = [
-    # symbol, quantity, purchase price
-    ("MTNN", "120", "210.00"),
-    ("DANGCEM", "60", "480.50"),
-    ("GTCO", "400", "44.20"),
-    ("ZENITHBANK", "350", "38.75"),
-    ("UBA", "500", "26.40"),
-]
-
-ALERTS = [
-    # alert_type, symbol-or-fund, threshold, direction
-    ("PRICE", "MTNN", "250.00", "ABOVE"),
-    ("PRICE", "DANGCEM", "450.00", "BELOW"),
-    ("PRICE", "GTCO", "60.00", "ABOVE"),
-    ("NAV", "ARM Money Market Fund", "2.0000", "BELOW"),
-]
+EMAIL = 'demo@atamatech.com'
+PASSWORD = 'DemoPass123!'
 
 
 class Command(BaseCommand):
-    help = "Seed demo user with watchlist, portfolio and alerts for the demo."
+    help = 'Create demo user with sample watchlist/portfolio/alerts (testing only).'
 
     @transaction.atomic
     def handle(self, *args, **options):
-        user, created = User.objects.get_or_create(
-            email=DEMO_EMAIL,
-            defaults={"first_name": "Demo", "last_name": "User"},
-        )
+        user, created = User.objects.get_or_create(email=EMAIL)
         if created:
-            user.set_password(DEMO_PASSWORD)
+            user.set_password(PASSWORD)
+            user.is_active = True
             user.save()
+            self.stdout.write(f'Created demo user {EMAIL}')
+        else:
+            self.stdout.write(f'Demo user exists: {EMAIL}')
 
-        # F-01: default watchlist
-        watchlist, _ = Watchlist.objects.get_or_create(user=user, name="My Watchlist")
-        added = 0
-        for symbol in WATCHLIST_SYMBOLS:
-            inst = Instrument.objects.filter(symbol=symbol, is_active=True).first()
-            if inst and not watchlist.instruments.filter(id=inst.id).exists():
-                watchlist.instruments.add(inst)
-                added += 1
+        wl, _ = Watchlist.objects.get_or_create(user=user, name='Default')
+        symbols = ['DANGCEM', 'MTNN', 'GTCO', 'ZENITHBANK']
+        for sym in symbols:
+            inst = Instrument.objects.filter(symbol=sym).first()
+            if inst and inst not in wl.instruments.all():
+                wl.instruments.add(inst)
 
-        # F-09: portfolio + positions
-        portfolio, _ = Portfolio.objects.get_or_create(user=user, name="Growth")
-        positions = 0
-        for symbol, qty, price in PORTFOLIO:
-            inst = Instrument.objects.filter(symbol=symbol, is_active=True).first()
-            if not inst:
-                continue
-            _, pos_created = PortfolioItem.objects.get_or_create(
-                portfolio=portfolio,
-                instrument=inst,
-                defaults={"quantity": Decimal(qty), "purchase_price": Decimal(price)},
-            )
-            if pos_created:
-                positions += 1
+        pf, _ = Portfolio.objects.get_or_create(user=user, name='Demo Portfolio')
+        holdings = {'DANGCEM': (400, '412.00'), 'MTNN': (2000, '198.50')}
+        for sym, (qty, price) in holdings.items():
+            inst = Instrument.objects.filter(symbol=sym).first()
+            if inst and not PortfolioItem.objects.filter(portfolio=pf, instrument=inst).exists():
+                PortfolioItem.objects.create(portfolio=pf, instrument=inst, quantity=qty, purchase_price=Decimal(price))
 
-        # F-08: alerts
-        alerts = 0
-        for alert_type, target, threshold, direction in ALERTS:
-            if alert_type == "NAV":
-                fund = Fund.objects.filter(name=target, is_active=True).first()
-                if not fund:
-                    continue
-                _, a_created = Alert.objects.get_or_create(
-                    user=user, alert_type=alert_type, fund=fund,
-                    defaults={"threshold": Decimal(threshold), "direction": direction, "active": True},
-                )
-            else:
-                inst = Instrument.objects.filter(symbol=target, is_active=True).first()
-                if not inst:
-                    continue
-                _, a_created = Alert.objects.get_or_create(
-                    user=user, alert_type=alert_type, instrument=inst,
-                    defaults={"threshold": Decimal(threshold), "direction": direction, "active": True},
-                )
-            if a_created:
-                alerts += 1
+        for sym, threshold, direction in [('MTNN', '225', 'ABOVE'), ('DANGCEM', '500', 'ABOVE')]:
+            inst = Instrument.objects.filter(symbol=sym).first()
+            if inst and not Alert.objects.filter(user=user, instrument=inst, alert_type='PRICE').exists():
+                Alert.objects.create(user=user, instrument=inst, alert_type='PRICE',
+                                     threshold=Decimal(threshold), direction=direction, active=True)
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Demo user {DEMO_EMAIL} ({'created' if created else 'exists'}): "
-            f"{added} watchlist, {positions} positions, {alerts} alerts. "
-            f"Password: {DEMO_PASSWORD}"
-        ))
+        self.stdout.write(self.style.SUCCESS('Demo data ready: watchlist, portfolio, alerts'))
+        self.stdout.write(f'Login: {EMAIL} / {PASSWORD}')

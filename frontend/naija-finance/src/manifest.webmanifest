@@ -1,0 +1,15 @@
+{
+  "name": "Naija Finance — Nigerian Markets Dashboard",
+  "short_name": "NaijaFinance",
+  "description": "Nigerian equities, bonds, funds and FX — market data and insights for Nigerian investors.",
+  "start_url": "/market",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0e14",
+  "theme_color": "#0a0e14",
+  "lang": "en-NG",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

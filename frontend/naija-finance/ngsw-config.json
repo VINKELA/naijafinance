@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "resources": {
+        "files": ["/index.html", "/manifest.webmanifest", "/*.css", "/*.js", "/icons/*.png", "/favicon.ico"]
+      }
+    },
+    {
+      "name": "fonts",
+      "installMode": "lazy",
+      "resources": {
+        "urls": ["https://fonts.googleapis.com/**", "https://fonts.gstatic.com/**"]
+      }
+    }
+  ]
+}

@@ -90,10 +90,13 @@ class Command(BaseCommand):
         equities_created = 0
         history_rows = 0
         for symbol, base_price, vol in EQUITIES:
-            issuer, _ = Issuer.objects.get_or_create(
-                name=symbol,
-                defaults={'region': region, 'industry_sector': 'Equities (mock)'},
-            )
+            issuer = Issuer.objects.filter(name=symbol).order_by('id').first()
+            if issuer is None:
+                issuer = Issuer.objects.create(
+                    name=symbol,
+                    region=region,
+                    industry_sector='Equities (mock)',
+                )
             instrument, created = Instrument.objects.update_or_create(
                 exchange=exchange,
                 symbol=symbol,

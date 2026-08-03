@@ -1,34 +1,32 @@
-<div class="app-shell">
-  <header class="app-topbar">
-    <div class="app-topbar-inner">
-      <a routerLink="/market" class="brand">
-        <span class="brand-mark">NG</span>
-        <span class="brand-text">Naija Finance
-          <small>Nigerian markets · live dashboard</small>
-        </span>
-      </a>
-      <div class="mkt-status" [class.open]="marketOpen" title="Nigerian Exchange trading hours (Lagos)">
-        <span class="mkt-dot"></span>
-        <span class="mkt-label">{{ marketOpen ? 'Market open' : 'Market closed' }}</span>
-        <span class="mkt-clock">{{ lagosTime }}</span>
-      </div>
-      <nav class="app-nav">
-        <a routerLink="/market" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Market</a>
-        <a routerLink="/bonds" routerLinkActive="active">Bonds</a>
-        <a routerLink="/funds" routerLinkActive="active">Funds</a>
-        <a routerLink="/fx" routerLinkActive="active">FX</a>
-        <a routerLink="/companies" routerLinkActive="active">Companies</a>
-        <a routerLink="/alerts" routerLinkActive="active">Alerts</a>
-        <a routerLink="/portfolio" routerLinkActive="active">Portfolio</a>
-        <a routerLink="/account" routerLinkActive="active">Account</a>
-      </nav>
-    </div>
-  </header>
-  <main class="page">
+<header class="topbar">
+  <a routerLink="/market" class="logo"><span class="mark">🇳🇬</span><span>Naija <b>Finance</b></span></a>
+  <div class="status"><i></i> Market data · 30-min delayed · NGX live</div>
+  <div class="search"><input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM"></div>
+  <button class="langBtn" (click)="toggleLang()">{{ langLabel }}</button>
+  <button class="langBtn" (click)="toggleTheme()" title="Toggle light/dark theme">{{ themeLabel }}</button>
+  <div class="avatar">AK</div>
+</header>
+
+<div class="tape">
+  <div class="item" *ngFor="let t of tape"><span class="s">{{ t.s }}</span><span class="p">{{ t.p }}</span><span class="ch" [class.up]="t.up" [class.down]="!t.up && t.up !== null" [class.flat]="t.up === null">{{ t.ch }}</span></div>
+</div>
+
+<div class="wrap">
+  <main class="main">
     <router-outlet />
   </main>
-  <footer class="app-footer">
-    <span>Naija Finance — data for information &amp; education only, not investment advice.</span>
-    <span>Illustrative mock data until the NGX licensed feed is finalised.</span>
-  </footer>
 </div>
+
+<footer class="app-footer">
+  <span>⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing here is investment advice. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.</span>
+</footer>
+
+<nav class="mnav">
+  <div class="in">
+    <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>Home</a>
+    <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>Markets</a>
+    <a routerLink="/watchlist" routerLinkActive="on"><span class="e">⭐</span>Watch</a>
+    <a routerLink="/portfolio" routerLinkActive="on"><span class="e">💼</span>Portfolio</a>
+    <a routerLink="/symbol" routerLinkActive="on"><span class="e">🔍</span>Quote</a>
+  </div>
+</nav>
