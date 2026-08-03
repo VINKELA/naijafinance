@@ -5,6 +5,10 @@ import { FxPage } from './pages/fx';
 import { CompaniesPage } from './pages/companies';
 import { AlertsPage } from './pages/alerts';
 import { MarketPage } from './pages/market';
+import { WatchlistPage } from './pages/watchlist';
+import { PortfolioPage } from './pages/portfolio';
+import { SymbolPage } from './pages/symbol';
+import { AuthPage } from './pages/auth';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -14,4 +18,8 @@ export const routes: Routes = [
   { path: 'fx', component: FxPage, title: 'CBN FX Rates' },
   { path: 'companies', component: CompaniesPage, title: 'Company Profiles' },
   { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },
+  { path: 'watchlist', component: WatchlistPage, title: 'Watchlist' },
+  { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
+  { path: 'symbol', component: SymbolPage, title: 'Symbol & Chart' },
+  { path: 'account', component: AuthPage, title: 'Account' },
 ];

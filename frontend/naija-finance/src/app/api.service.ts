@@ -41,4 +41,26 @@ export class ApiService {
   overview(): Observable<any> { return this.http.get<any>(`${API_BASE}/overview/`); }
   news(limit = 10): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/news/?limit=${limit}`); }
   stockDetail(symbol: string): Observable<any> { return this.http.get<any>(`${API_BASE}/stock/${symbol}/`); }
+  // ---- Auth (F-09) ----
+  register(payload: any): Observable<any> { return this.http.post(`${API_BASE}/auth/register/`, payload); }
+  login(email: string, password: string): Observable<any> { return this.http.post(`${API_BASE}/auth/login/`, { email, password }); }
+  saveTokens(tokens: any) { if (tokens?.access) localStorage.setItem('nf_access', tokens.access); if (tokens?.refresh) localStorage.setItem('nf_refresh', tokens.refresh); }
+  clearTokens() { localStorage.removeItem('nf_access'); localStorage.removeItem('nf_refresh'); }
+  get token() { return localStorage.getItem('nf_access'); }
+  get isAuthed() { return !!this.token; }
+  private authHeaders(): Record<string, string> { return this.token ? { Authorization: `Bearer ${this.token}` } : {}; }
+
+  // ---- F-01 Watchlists ----
+  watchlists(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/watchlists/`, { headers: this.authHeaders() }); }
+  defaultWatchlist(): Observable<any> { return this.http.get<any>(`${API_BASE}/watchlist/default/`, { headers: this.authHeaders() }); }
+  toggleWatchlist(symbol: string): Observable<any> { return this.http.post<any>(`${API_BASE}/watchlist/toggle/`, { symbol }, { headers: this.authHeaders() }); }
+
+  // ---- F-09 Portfolios ----
+  portfolios(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/`, { headers: this.authHeaders() }); }
+  createPortfolio(name: string): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/`, { name }, { headers: this.authHeaders() }); }
+  addPortfolioItem(portfolioId: number, symbol: string, quantity: number, purchasePrice: number): Observable<any> {
+    return this.http.post<any>(`${API_BASE}/portfolio-items/add-by-symbol/`, { portfolio_id: portfolioId, symbol, quantity, purchase_price: purchasePrice }, { headers: this.authHeaders() });
+  }
+  portfolioInsights(): Observable<any> { return this.http.get<any>(`${API_BASE}/portfolio-insights/`, { headers: this.authHeaders() }); }
+  searchStocks(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/stocks/search/?q=${encodeURIComponent(q)}`); }
 }
