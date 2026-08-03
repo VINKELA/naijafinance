@@ -103,7 +103,7 @@ export class MarketPage implements OnInit {
   }
 
   sparkline(idx: any): string {
-    const seed = (idx.symbol || 'NGX').split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const seed = (idx.symbol || 'NGX').split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0);
     let v = seed % 97;
     const pts: number[] = [];
     const n = 14;
