@@ -269,6 +269,14 @@ class G3ComplianceTests(TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertIn('retired', resp.json()['detail'].lower())
 
+    def test_g3_run_stateful_scrape_rejects_google_finance(self):
+        execution = ScrapeExecution.objects.create(target_url='https://www.google.com/finance/quote/AFRIPRUD:NGX')
+        result = run_stateful_scrape(execution.id)
+        execution.refresh_from_db()
+        self.assertEqual(execution.status, 'FAILED')
+        self.assertIn('retired', execution.error_message.lower())
+        self.assertEqual(result['started'], False)
+
     def test_g3_beat_schedule_has_no_cscs_entry(self):
         from django.conf import settings
         self.assertNotIn('cscs-daily-data-update', settings.CELERY_BEAT_SCHEDULE)
