@@ -1,0 +1,86 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ApiService, Alert, Bond, Fund } from '../api.service';
+
+const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
+
+@Component({
+  selector: 'app-alerts',
+  imports: [CommonModule, FormsModule],
+  template: `
+    <h2>Threshold Alerts (F-08)</h2>
+    <p>Create alerts; a triggered flag is set by <code>python manage.py run_alert_eval</code>. <em>{{ disclaimer }}</em></p>
+
+    <form (ngSubmit)="create()">
+      <select [(ngModel)]="form.alert_type" name="alert_type" required>
+        <option value="PRICE">Price</option>
+        <option value="YIELD">Yield</option>
+        <option value="NAV">NAV</option>
+      </select>
+      <select [(ngModel)]="form.instrument" name="instrument" *ngIf="form.alert_type !== 'NAV'">
+        <option *ngFor="let b of bonds" [ngValue]="b.id">{{ b.symbol }}</option>
+      </select>
+      <select [(ngModel)]="form.fund" name="fund" *ngIf="form.alert_type === 'NAV'">
+        <option *ngFor="let f of funds" [ngValue]="f.id">{{ f.name }}</option>
+      </select>
+      <input type="number" step="any" placeholder="threshold" [(ngModel)]="form.threshold" name="threshold" required>
+      <select [(ngModel)]="form.direction" name="direction">
+        <option value="ABOVE">above</option>
+        <option value="BELOW">below</option>
+      </select>
+      <button type="submit">Create alert</button>
+    </form>
+
+    <table>
+      <thead><tr><th>Type</th><th>Target</th><th>Threshold</th><th>Direction</th><th>Triggered</th><th>Last value</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let a of alerts">
+          <td>{{ a.alert_type_display }}</td>
+          <td>{{ a.instrument_symbol ?? a.fund_name }}</td>
+          <td>{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
+          <td>{{ a.triggered ? '✅' : '—' }}</td>
+          <td>{{ a.last_value ?? '—' }}</td>
+          <td><button (click)="remove(a.id!)">Delete</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="error" style="color:#b3261e">{{ error }}</p>
+  `,
+  styles: ['form { margin: 1rem 0; display: flex; gap: 8px; flex-wrap: wrap; } table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }']
+})
+export class AlertsPage implements OnInit {
+  disclaimer = DISCLAIMER;
+  alerts: Alert[] = [];
+  bonds: Bond[] = [];
+  funds: Fund[] = [];
+  error = '';
+  form = { alert_type: 'PRICE', instrument: null as number | null, fund: null as number | null, threshold: '', direction: 'ABOVE' };
+
+  constructor(private api: ApiService) {}
+
+  ngOnInit() {
+    this.api.alerts().subscribe(a => this.alerts = a, () => this.error = 'Could not load alerts — are you logged in?');
+    this.api.bonds().subscribe(b => this.bonds = b);
+    this.api.funds().subscribe(f => this.funds = f);
+  }
+
+  create() {
+    const payload: Alert = {
+      alert_type: this.form.alert_type,
+      direction: this.form.direction,
+      threshold: this.form.threshold,
+      active: true,
+      instrument: this.form.alert_type === 'NAV' ? null : this.form.instrument,
+      fund: this.form.alert_type === 'NAV' ? this.form.fund : null,
+    };
+    this.api.createAlert(payload).subscribe(() => {
+      this.error = '';
+      this.api.alerts().subscribe(a => this.alerts = a);
+    }, (e) => this.error = e?.error?.detail ?? JSON.stringify(e?.error ?? e));
+  }
+
+  remove(id: number) {
+    this.api.deleteAlert(id).subscribe(() => this.alerts = this.alerts.filter(a => a.id !== id));
+  }
+}

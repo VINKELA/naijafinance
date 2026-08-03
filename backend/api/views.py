@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from django.db.models import Q, Case, IntegerField, Value, When
+from django.db.models import Q, Case, IntegerField, Value, When, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import api_view, permission_classes
@@ -17,7 +17,8 @@ User = get_user_model()
 # Updated imports to match the new schema
 from .models import (
     Exchange, Instrument, Portfolio, PortfolioItem, Watchlist, 
-    MarketIndex, PriceHistory, NewsArticle, EarningsCalendar, ScrapeExecution
+    MarketIndex, PriceHistory, NewsArticle, EarningsCalendar, ScrapeExecution,
+    AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert
 )
 from .serializers import *
 from .tasks import run_stateful_scrape
@@ -542,6 +543,14 @@ def trigger_scrape(request):
     if not target_url:
         return Response({"detail": "target_url is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # G3 COMPLIANCE (2026-08-03): CSCS login scraping is retired. Reject
+    # any attempt to schedule a CSCS scrape regardless of env flags.
+    if 'cscs.ng' in (target_url or '').lower():
+        return Response(
+            {"detail": "CSCS login scraping is retired (G3 compliance). Public free data sources only."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     execution = ScrapeExecution.objects.create(target_url=target_url)
     try:
         run_stateful_scrape.delay(execution.id)
@@ -682,3 +691,89 @@ class MarketIndexDetailView(generics.RetrieveAPIView):
     queryset = MarketIndex.objects.all()
     serializer_class = MarketIndexSerializer
     lookup_field = 'symbol'
+
+# ==========================================
+# FREE DATA LAYER VIEWS (Sprint 1: F-04..F-08)
+# ==========================================
+# Public read endpoints below serve is_active rows only. User-scoped
+# endpoints use request.user. Data is display/education only and is never
+# investment advice.
+
+DISCLAIMER = (
+    "All data on this page is provided for information and education only "
+    "and does not constitute investment advice."
+)
+
+
+class BondInstrumentViewSet(viewsets.ReadOnlyModelViewSet):
+    """F-04: Public FGN bond / fixed-income instruments."""
+    serializer_class = InstrumentSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return Instrument.objects.filter(asset_class='BOND', is_active=True)
+
+
+class AuctionCalendarViewSet(viewsets.ReadOnlyModelViewSet):
+    """F-04: Public DMO auction calendar & results."""
+    serializer_class = AuctionCalendarSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        qs = AuctionCalendar.objects.filter(is_active=True).select_related('instrument')
+        instrument = self.request.query_params.get('instrument')
+        if instrument:
+            qs = qs.filter(instrument_id=instrument)
+        return qs
+
+
+class FundViewSet(viewsets.ReadOnlyModelViewSet):
+    """F-05: Public mutual fund list + published NAV snapshots."""
+    serializer_class = FundSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return Fund.objects.filter(is_active=True).prefetch_related('nav_snapshots')
+
+
+class FxRateViewSet(viewsets.ReadOnlyModelViewSet):
+    """F-06: Public CBN published FX rates."""
+    serializer_class = FxRateSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        qs = FxRate.objects.filter(is_active=True)
+        pair = self.request.query_params.get('pair')
+        if pair:
+            qs = qs.filter(pair__iexact=pair)
+        if self.request.query_params.get('latest') in ('1', 'true', 'True'):
+            latest_dates = FxRate.objects.filter(pair=OuterRef('pair')).order_by('-date')
+            qs = qs.filter(date=Subquery(latest_dates.values('date')[:1]))
+        return qs
+
+
+class CompanyProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    """F-07: Public company profiles + fundamentals (display only)."""
+    serializer_class = CompanyProfileSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return CompanyProfile.objects.filter(is_active=True)
+
+
+class AlertViewSet(viewsets.ModelViewSet):
+    """F-08: User-scoped threshold alerts (CRUD)."""
+    serializer_class = AlertSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        return Alert.objects.filter(user=self.request.user).select_related('instrument', 'fund')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        # Ensure users can never retarget someone else's alert via update.
+        if self.get_object().user != self.request.user:
+            raise PermissionDenied("You can only update your own alerts.")
+        serializer.save()

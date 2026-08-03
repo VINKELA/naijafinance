@@ -55,3 +55,35 @@ On push to `main`, the workflow pulls the repository into `/Users/kalu/finance-a
 ```sh
 docker compose up -d --build
 ```
+
+## Sprint 1 Free Data Layer (branch: feat/sprint1-free-data-layer)
+
+New public data endpoints (all read-only, `is_active` only, no auth):
+
+| Feature | Endpoint | Model |
+|---|---|---|
+| F-04 Bonds & DMO auctions | `/api/bonds/`, `/api/auctions/` | `Instrument` (BOND), `AuctionCalendar` |
+| F-05 Funds & NAVs | `/api/funds/` | `Fund`, `NavSnapshot` |
+| F-06 CBN FX rates | `/api/fx-rates/?latest=1` | `FxRate` |
+| F-07 Company profiles | `/api/companies/` | `CompanyProfile` |
+| F-08 Alerts (JWT user-scoped) | `/api/alerts/` | `Alert` |
+
+Ops commands:
+
+```sh
+python manage.py migrate
+python manage.py seed_public_data      # idempotent seed from public DMO/CBN/fund/company info
+python manage.py run_alert_eval        # sets triggered flag on active alerts (no notifications yet)
+```
+
+### G3 compliance (2026-08-03)
+
+Login-based CSCS scraping is **retired**. The beat schedule entry was removed,
+the scraper tasks are inert unless `CSCS_SCRAPER_ENABLED=true` is explicitly
+set (default off), and `trigger_scrape` rejects `cscs.ng` URLs (HTTP 403).
+Google Finance public parse and the free data layer remain active.
+Do not reintroduce the CSCS login path.
+
+Frontend: minimal Angular demo app under `frontend/naija-finance/` with one
+page per feature and "not investment advice" disclaimers. Dev API base is
+`http://localhost:8000/api` (CORS enabled for `localhost:4200`).

@@ -44,7 +44,8 @@ class InstrumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instrument
         # Replaced 'sector' with asset_type since Instrument handles bonds, forex, etc.
-        fields = ['id', 'symbol', 'name', 'last_price', 'exchange_code', 'exchange_name', 'asset_type', 'sector']
+        fields = ['id', 'symbol', 'name', 'last_price', 'exchange_code', 'exchange_name', 'asset_type', 'sector',
+                  'maturity_date', 'coupon_rate']
 
     def get_name(self, obj):
         return display_instrument_name(obj)
@@ -130,3 +131,88 @@ class MarketIndexSerializer(serializers.ModelSerializer):
 
     def get_history(self, obj):
         return []
+
+
+# --- Free Data Layer Serializers (F-04..F-08) ---
+from .models import AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert
+
+DISCLAIMER = (
+    "All data on this page is provided for information and education only "
+    "and does not constitute investment advice."
+)
+
+
+class AuctionCalendarSerializer(serializers.ModelSerializer):
+    instrument_symbol = serializers.CharField(source='instrument.symbol', read_only=True)
+    instrument_name = serializers.CharField(source='instrument.name', read_only=True)
+
+    class Meta:
+        model = AuctionCalendar
+        fields = [
+            'id', 'instrument', 'instrument_symbol', 'instrument_name',
+            'auction_date', 'tenor', 'offer_size', 'stop_rate', 'notes',
+        ]
+
+
+class NavSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NavSnapshot
+        fields = ['id', 'fund', 'date', 'nav']
+
+
+class FundSerializer(serializers.ModelSerializer):
+    asset_class_display = serializers.CharField(source='get_asset_class_display', read_only=True)
+    latest_nav = serializers.SerializerMethodField()
+    nav_history = NavSnapshotSerializer(many=True, read_only=True, source='nav_snapshots')
+
+    class Meta:
+        model = Fund
+        fields = ['id', 'name', 'manager', 'asset_class', 'asset_class_display', 'latest_nav', 'nav_history']
+
+    def get_latest_nav(self, obj):
+        latest = obj.nav_snapshots.order_by('-date').first()
+        return NavSnapshotSerializer(latest).data if latest else None
+
+
+class FxRateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FxRate
+        fields = ['id', 'pair', 'rate', 'date', 'source']
+
+
+class CompanyProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyProfile
+        fields = [
+            'id', 'symbol', 'name', 'sector', 'description',
+            'eps', 'pe_ratio', 'book_value', 'market_cap',
+        ]
+
+
+class AlertSerializer(serializers.ModelSerializer):
+    alert_type_display = serializers.CharField(source='get_alert_type_display', read_only=True)
+    direction_display = serializers.CharField(source='get_direction_display', read_only=True)
+    instrument_symbol = serializers.CharField(source='instrument.symbol', read_only=True, default=None)
+    fund_name = serializers.CharField(source='fund.name', read_only=True, default=None)
+
+    class Meta:
+        model = Alert
+        fields = [
+            'id', 'instrument', 'instrument_symbol', 'fund', 'fund_name',
+            'alert_type', 'alert_type_display', 'threshold', 'direction',
+            'direction_display', 'active', 'triggered', 'triggered_at',
+            'last_evaluated_at', 'last_value', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['triggered', 'triggered_at', 'last_evaluated_at', 'last_value']
+
+    def validate(self, attrs):
+        alert_type = attrs.get('alert_type', getattr(self.instance, 'alert_type', None))
+        instrument = attrs.get('instrument', getattr(self.instance, 'instrument', None))
+        fund = attrs.get('fund', getattr(self.instance, 'fund', None))
+        if alert_type == 'NAV':
+            if not fund:
+                raise serializers.ValidationError({'fund': 'NAV alerts require a fund.'})
+        else:  # PRICE / YIELD
+            if not instrument:
+                raise serializers.ValidationError({'instrument': f'{alert_type} alerts require an instrument.'})
+        return attrs

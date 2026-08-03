@@ -31,6 +31,29 @@ def env_int(name, default):
         return default
 
 
+# G3 COMPLIANCE (2026-08-03): Login-based CSCS scraping is RETIRED.
+# The scraper stays in the tree only so it can be cleanly removed later,
+# but it is inert unless CSCS_SCRAPER_ENABLED is explicitly set to true
+# (default: off). Do not enable this in production.
+CSCS_SCRAPER_RETIRED_MESSAGE = (
+    "CSCS login scraping is retired (G3 compliance). "
+    "Public free data sources only."
+)
+
+GOOGLE_FINANCE_RETIRED_MESSAGE = (
+    "Google Finance public-parse is retired (NF-5/6 NO-GO: exchange-licensed data "
+    "without an NGX licence; Google ToS anti-scraping clauses). Licensed NGX feeds only."
+)
+
+
+def cscs_scraping_enabled():
+    return env_bool('CSCS_SCRAPER_ENABLED', False)
+
+
+def google_finance_scraping_enabled():
+    return env_bool('GOOGLE_FINANCE_SCRAPER_ENABLED', False)
+
+
 def resolve_cscs_target_url(target_url=None):
     configured_url = (target_url or os.getenv('CSCS_TARGET_URL', '')).strip()
     if configured_url:
@@ -67,6 +90,11 @@ def build_chrome_driver():
 
 @shared_task
 def start_daily_cscs_update(target_url=None, force=False):
+    if not cscs_scraping_enabled():
+        return {
+            "started": False,
+            "reason": CSCS_SCRAPER_RETIRED_MESSAGE,
+        }
     resolved_url = resolve_cscs_target_url(target_url)
     if not resolved_url:
         return {
@@ -105,6 +133,17 @@ def start_daily_cscs_update(target_url=None, force=False):
 @shared_task
 def run_stateful_scrape(execution_id):
     execution = ScrapeExecution.objects.get(id=execution_id)
+    if not cscs_scraping_enabled():
+        execution.status = 'FAILED'
+        execution.error_message = CSCS_SCRAPER_RETIRED_MESSAGE
+        execution.save(update_fields=['status', 'error_message', 'updated_at'])
+        return {"started": False, "reason": CSCS_SCRAPER_RETIRED_MESSAGE}
+    url = execution.target_url or ''
+    if 'google.com' in url and '/finance' in url and not google_finance_scraping_enabled():
+        execution.status = 'FAILED'
+        execution.error_message = GOOGLE_FINANCE_RETIRED_MESSAGE
+        execution.save(update_fields=['status', 'error_message', 'updated_at'])
+        return {"started": False, "reason": GOOGLE_FINANCE_RETIRED_MESSAGE}
     execution.status = 'RUNNING'
     execution.save()
 

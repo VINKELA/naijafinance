@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from pathlib import Path
-from celery.schedules import crontab
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 
@@ -201,14 +200,12 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = os.getenv('CELERY_TIMEZONE', TIME_ZONE)
 CELERY_BEAT_SCHEDULE = {}
 
-if env_bool('CSCS_DAILY_UPDATE_ENABLED', False):
-    CELERY_BEAT_SCHEDULE['cscs-daily-data-update'] = {
-        'task': 'api.tasks.start_daily_cscs_update',
-        'schedule': crontab(
-            minute=env_int('CSCS_DAILY_UPDATE_MINUTE', 30),
-            hour=env_int('CSCS_DAILY_UPDATE_HOUR', 18),
-        ),
-    }
+# G3 COMPLIANCE (2026-08-03): Login-based scraping of CSCS is RETIRED.
+# The former `cscs-daily-data-update` beat entry has been removed. The
+# CSCS scraper tasks in api/tasks.py are gated off by default and return a
+# no-op until they are permanently deleted. Google Finance public parse and
+# all free-data-layer jobs (see api/management/commands) remain active.
+# Do NOT reintroduce a beat entry for CSCS login scraping.
 
 # Force Django to print emails to the terminal instead of sending them
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
