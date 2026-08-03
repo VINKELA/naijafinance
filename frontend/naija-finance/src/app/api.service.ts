@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 /** Django REST backend base URL (dev). CORS is enabled for localhost:4200. */
-export const API_BASE = 'http://localhost:8000/api';
+export const API_BASE = '/api'; // relative: nginx proxies /api/ to backend (staging + prod)
 
 export interface Bond { id: number; symbol: string; name: string; last_price: string; asset_type: string; sector?: string | null; maturity_date?: string | null; coupon_rate?: string | null; }
 export interface Auction { id: number; instrument_symbol: string; instrument_name: string; auction_date: string; tenor: string; offer_size: string | null; stop_rate: string | null; notes?: string | null; }
