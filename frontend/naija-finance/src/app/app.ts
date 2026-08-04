@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -15,7 +15,8 @@ export class App implements OnInit, OnDestroy {
   langLabel = '🇳🇬 Pidgin';
   themeLabel = '🌙';
   query = '';
-  tape: { s: string; p: string; ch: string; up: boolean | null }[] = [];
+  tape = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
+  tapeLoop = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
   private timer: any;
   private cdTimer: any;
 
@@ -67,13 +68,14 @@ export class App implements OnInit, OnDestroy {
     const items: { s: string; p: string; ch: string; up: boolean | null }[] = [];
     this.api.indexes().subscribe(idx => {
       for (const i of idx.slice(0, 3)) {
-        items.push({ s: i.symbol, p: i.current_price, ch: `▲ ${i.percent_change}%`, up: i.isUp });
+        items.push({ s: i.symbol, p: i.current_price, ch: `${i.percent_change}%`, up: i.isUp });
       }
       this.api.fxRates(true).subscribe(fx => {
         for (const f of fx.slice(0, 4)) {
-          items.push({ s: f.pair, p: f.rate, ch: '— 0.00%', up: null });
+          items.push({ s: f.pair, p: f.rate, ch: '0.00%', up: null });
         }
-        this.tape = items;
+        this.tape.set(items);
+        this.tapeLoop.set([...items, ...items]);
       });
     });
   }

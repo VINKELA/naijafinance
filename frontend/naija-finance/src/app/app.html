@@ -7,9 +7,9 @@
   <div class="avatar">AK</div>
 </header>
 
-<div class="tape">
-  <div class="item" *ngFor="let t of tape"><span class="s">{{ t.s }}</span><span class="p">{{ t.p }}</span><span class="ch" [class.up]="t.up" [class.down]="!t.up && t.up !== null" [class.flat]="t.up === null">{{ t.ch }}</span></div>
-</div>
+<div class="tape"><div class="tape-track">
+  <div class="item" *ngFor="let t of tapeLoop()"><span class="s">{{ t.s }}</span><span class="p">{{ t.p }}</span><span class="ch" [class.up]="t.up" [class.down]="!t.up && t.up !== null" [class.flat]="t.up === null"><span class="arrow" [class.up]="t.up" [class.down]="t.up === false">{{ t.up === true ? '▲' : t.up === false ? '▼' : '—' }}</span> {{ t.ch }}</span></div>
+</div></div>
 
 <div class="wrap">
   <main class="main">

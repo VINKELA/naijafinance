@@ -40,8 +40,16 @@ a{color:var(--blue);text-decoration:none}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
 
 /* ── Market tape ── */
-.tape{display:flex;border-bottom:1px solid var(--line);background:var(--bg2);overflow-x:auto;scrollbar-width:none}
+.tape{display:flex;border-bottom:1px solid var(--line);background:var(--bg2);overflow:hidden;scrollbar-width:none;position:relative}
 .tape::-webkit-scrollbar{display:none}
+.tape-track{display:flex;width:max-content;animation:tapeScroll 60s linear infinite}
+.tape:hover .tape-track{animation-play-state:paused}
+@keyframes tapeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tape .item .arrow{display:inline-block;animation:arrowPulse 1.4s ease-in-out infinite}
+.tape .item .arrow.up{color:var(--green);animation-name:arrowUp}
+.tape .item .arrow.down{color:var(--red);animation-name:arrowDown}
+@keyframes arrowUp{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(-3px);opacity:.55}}
+@keyframes arrowDown{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(3px);opacity:.55}}
 .tape .item{display:flex;align-items:center;gap:8px;padding:9px 18px;border-right:1px solid var(--line);white-space:nowrap;font-size:12.5px}
 .tape .item .s{color:var(--txt2);font-weight:600}
 .tape .item .p{font-weight:700}
