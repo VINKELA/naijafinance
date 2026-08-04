@@ -2,10 +2,11 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
+import { ShareButton } from '../share-button';
 
 @Component({
   selector: 'app-market',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ShareButton],
   template: `
     <!-- Hero index cards -->
     <div class="hero">
@@ -29,7 +30,7 @@ import { ApiService } from '../api.service';
       </div>
     </div>
 
-    <div class="secHead"><h2>Market movers · NGX</h2><a class="link" routerLink="/companies">See all →</a></div>
+    <div class="secHead"><h2>Market movers · NGX</h2><div class="share-row"><app-share-btn [text]="moversShareText()" link="/market"></app-share-btn><a class="link" routerLink="/companies">See all →</a></div></div>
     <div class="card" style="padding:6px 16px 12px">
       <table>
         <thead><tr><th>Symbol</th><th>Price (₦)</th><th>Change</th><th>Volume</th><th>Trend</th></tr></thead>
@@ -120,6 +121,7 @@ export class MarketPage implements OnInit {
   news = signal<any[]>([]);
 
   constructor(private api: ApiService) {}
+  moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
 
   ngOnInit() {
     this.api.indexes().subscribe(idx => {

@@ -4,12 +4,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is illustrative mock data for demo purposes and does not constitute investment advice.';
 
 @Component({
   selector: 'app-symbol',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ShareButton],
   template: `
     <h2>Symbol &amp; Chart (F-02)</h2>
     <p class="sub">OHLCV price chart with company profile.</p>
@@ -28,6 +29,7 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
           <div class="label">{{ detail().symbol }} · {{ detail().name }}</div>
           <div class="value">{{ detail().price }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
+          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="'/symbol?symbol=' + detail().symbol"></app-share-btn></div>
         </div>
         <div class="stat-tile" *ngFor="let s of detail().stats">
           <div class="label">{{ s.label }}</div>
@@ -64,6 +66,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
   }
   ngAfterViewInit() { this.renderChart(); }
 
+  shareText(): string { const d = this.detail(); return d ? `${d.symbol} — NGN ${d.price} (${d.changePct}%)` : 'Naija Finance'; }
   load() {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;

@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, Bond, Auction } from '../api.service';
+import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-bonds',
-  imports: [CommonModule],
+  imports: [CommonModule, ShareButton],
   template: `
     <h2>Bonds &amp; Treasury Bills</h2>
     <p class="sub">FGN fixed-income instruments and the public DMO auction calendar.</p>
@@ -15,12 +16,13 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <div class="table-wrap">
       <h3>Bond instruments</h3>
       <table class="data">
-        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Coupon</th><th class="num">Maturity</th></tr></thead>
+        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Coupon</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let b of bonds()">
             <td class="sym">{{ b.symbol }}</td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
+            <td><app-share-btn [text]="shareText(b)" [link]="'/symbol?symbol=' + b.symbol"></app-share-btn></td>
           </tr>
         </tbody>
       </table>
@@ -47,6 +49,7 @@ export class BondsPage implements OnInit {
   bonds = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
   constructor(private api: ApiService) {}
+  shareText(b: Bond): string { return `${b.symbol} — ${b.name} (FGN bond)`; }
   ngOnInit() {
     this.api.bonds().subscribe(b => this.bonds.set(b));
     this.api.auctions().subscribe(a => this.auctions.set(a));
