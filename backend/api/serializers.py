@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    Exchange, Instrument, Portfolio, PortfolioItem, 
-    Watchlist, MarketIndex, PriceHistory
+    Exchange, Instrument, Portfolio, PortfolioItem,
+    Watchlist, MarketIndex, PriceHistory, Fund, NavSnapshot
 )
 from .display import display_instrument_name
 
@@ -125,18 +125,42 @@ class PortfolioSerializer(serializers.ModelSerializer):
                 total += item.quantity * (item.instrument.last_price or 0)
         return total
 
+class NavSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NavSnapshot
+        fields = ['id', 'fund', 'date', 'nav']
+
+
+class FundSerializer(serializers.ModelSerializer):
+    asset_class_display = serializers.CharField(source='get_asset_class_display', read_only=True)
+    latest_nav = serializers.SerializerMethodField()
+    nav_history = NavSnapshotSerializer(many=True, read_only=True, source='nav_snapshots')
+
+    class Meta:
+        model = Fund
+        fields = ['id', 'name', 'manager', 'asset_class', 'asset_class_display', 'latest_nav', 'nav_history']
+
+    def get_latest_nav(self, obj):
+        latest = obj.nav_snapshots.order_by('-date').first()
+        return NavSnapshotSerializer(latest).data if latest else None
+
+
 # --- Watchlist Serializer ---
 class WatchlistSerializer(serializers.ModelSerializer):
     instruments = InstrumentSerializer(many=True, read_only=True)
-    
-    # Write-only field to add instruments by ID
+    funds = FundSerializer(many=True, read_only=True)
+
+    # Write-only fields to add instruments / funds by ID
     instrument_ids = serializers.PrimaryKeyRelatedField(
         queryset=Instrument.objects.all(), source='instruments', many=True, write_only=True, required=False
+    )
+    fund_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Fund.objects.all(), source='funds', many=True, write_only=True, required=False
     )
 
     class Meta:
         model = Watchlist
-        fields = ['id', 'name', 'instruments', 'instrument_ids']
+        fields = ['id', 'name', 'instruments', 'funds', 'instrument_ids', 'fund_ids']
 
 # --- Index Serializers ---
 class MarketIndexSerializer(serializers.ModelSerializer):
@@ -175,26 +199,6 @@ class AuctionCalendarSerializer(serializers.ModelSerializer):
             'id', 'instrument', 'instrument_symbol', 'instrument_name',
             'auction_date', 'tenor', 'offer_size', 'stop_rate', 'notes',
         ]
-
-
-class NavSnapshotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = NavSnapshot
-        fields = ['id', 'fund', 'date', 'nav']
-
-
-class FundSerializer(serializers.ModelSerializer):
-    asset_class_display = serializers.CharField(source='get_asset_class_display', read_only=True)
-    latest_nav = serializers.SerializerMethodField()
-    nav_history = NavSnapshotSerializer(many=True, read_only=True, source='nav_snapshots')
-
-    class Meta:
-        model = Fund
-        fields = ['id', 'name', 'manager', 'asset_class', 'asset_class_display', 'latest_nav', 'nav_history']
-
-    def get_latest_nav(self, obj):
-        latest = obj.nav_snapshots.order_by('-date').first()
-        return NavSnapshotSerializer(latest).data if latest else None
 
 
 class FxRateSerializer(serializers.ModelSerializer):

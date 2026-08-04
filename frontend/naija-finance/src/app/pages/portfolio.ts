@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
+import { track } from '../analytics';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -13,6 +14,11 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <p class="sub">Manual positions, P&L and allocation.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
+
+    <div class="form-row" style="margin-bottom: 12px;" *ngIf="portfolios().length">
+      <button type="button" (click)="shareMix()">📤 Share my mix</button>
+      <span class="muted" style="font-size:11.5px;">Generates your allocation snapshot for WhatsApp/Telegram — the acquisition loop.</span>
+    </div>
 
     <div class="stat-grid" *ngIf="insights()">
       <div class="stat-tile">
@@ -116,6 +122,39 @@ export class PortfolioPage implements OnInit {
 
   removePortfolio(p: any) {
     this.api.deletePortfolio(p.id).subscribe({ next: () => this.refresh(), error: (e) => this.error = e?.error?.detail ?? 'Delete failed.' });
+  }
+
+  shareMix() {
+    const ps = this.portfolios();
+    if (!ps.length) return;
+    const items = ps.flatMap((p: any) => p.items ?? []);
+    if (!items.length) { this.error = 'Add a position before sharing your mix.'; return; }
+    const total = items.reduce((sum: number, it: any) => sum + Number(it.current_value ?? 0), 0);
+    const byClass = new Map<string, number>();
+    for (const it of items) {
+      const cls = (it.asset_class ?? 'Other').split('·')[0].trim();
+      byClass.set(cls, (byClass.get(cls) ?? 0) + Number(it.current_value ?? 0));
+    }
+    const alloc = [...byClass.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([c, v]) => `${c} ${total ? Math.round((v / total) * 100) : 0}%`)
+      .join(' · ');
+    const fmt = (n: number) => n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const text = `My Naija Finance mix — ${items.length} holdings · ₦${fmt(total)}
+${alloc}
+Build yours → https://naijafinance.app/market`;
+    const url = 'https://naijafinance.app/market';
+    track('share_click', { url: '/market', mix: true });
+    try {
+      if (navigator.share) { navigator.share({ title: 'My Naija Finance mix', text, url }).catch(() => {}); return; }
+    } catch { /* fall through */ }
+    try {
+      navigator.clipboard.writeText(`${text}
+${url}`).then(() => { this.error = 'Mix copied to clipboard — paste into WhatsApp.'; });
+    } catch {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${text}
+${url}`)}`, '_blank');
+    }
   }
 
   createPortfolio() {

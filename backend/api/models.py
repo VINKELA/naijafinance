@@ -208,6 +208,7 @@ class Watchlist(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=100, default="My Watchlist")
     instruments = models.ManyToManyField(Instrument, blank=True) # Used to be Stock
+    funds = models.ManyToManyField('Fund', blank=True, related_name='watchlists')
 
 
 # ==========================================

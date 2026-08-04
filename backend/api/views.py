@@ -493,12 +493,27 @@ def default_watchlist(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request):
+    watchlist, _ = Watchlist.objects.get_or_create(user=request.user, name='My Watchlist')
+    fund_id = request.data.get('fund_id')
+    if fund_id:
+        fund = get_object_or_404(Fund, id=fund_id)
+        if watchlist.funds.filter(id=fund.id).exists():
+            watchlist.funds.remove(fund)
+            added = False
+        else:
+            watchlist.funds.add(fund)
+            added = True
+        return Response({
+            "added": added,
+            "kind": "fund",
+            "watchlist": WatchlistSerializer(watchlist).data,
+        })
+
     symbol = request.data.get('symbol', '').strip()
     if not symbol:
-        return Response({"detail": "symbol is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "symbol or fund_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
-    watchlist, _ = Watchlist.objects.get_or_create(user=request.user, name='My Watchlist')
     if watchlist.instruments.filter(id=instrument.id).exists():
         watchlist.instruments.remove(instrument)
         added = False
@@ -508,6 +523,7 @@ def toggle_watchlist(request):
 
     return Response({
         "added": added,
+        "kind": "instrument",
         "watchlist": WatchlistSerializer(watchlist).data,
     })
 
