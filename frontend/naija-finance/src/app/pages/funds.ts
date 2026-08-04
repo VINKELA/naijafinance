@@ -71,7 +71,7 @@ export class FundsPage implements OnInit, AfterViewInit {
     if (!this.chartRef?.nativeElement) return;
     if (!this.chart) {
       this.chart = createChart(this.chartRef.nativeElement, {
-        layout: { background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
+        layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.chartRef.nativeElement.clientWidth, height: 260,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
