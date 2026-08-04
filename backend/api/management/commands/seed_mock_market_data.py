@@ -152,6 +152,63 @@ class Command(BaseCommand):
                 if hist_created:
                     history_rows += 1
 
+        # --- Fixed income: bonds, T-bills & commercial papers (real prices + history) ---
+        # seed_public_data creates these instruments; here we give them a realistic
+        # last_price and a full OHLCV history so charts / 52-wk stats / compare work.
+        FIXED_INCOME = [
+            # (symbol, base_price, vol)
+            ('FGN-14.55-2029', 105.60, 0.004),
+            ('FGN-13.98-2028', 104.80, 0.004),
+            ('FGN-16.29-2047', 112.40, 0.005),
+            ('FGN-10.00-2032', 96.80, 0.004),
+            ('NTB-91D', 98.40, 0.002),
+            ('NTB-182D', 97.20, 0.0025),
+            ('NTB-364D', 93.80, 0.003),
+            ('GTB-CP-2026-12', 98.70, 0.0015),
+            ('DANGCEM-CP-2026-11', 98.30, 0.0015),
+            ('MTNN-CP-2026-10', 98.10, 0.0015),
+            ('ZENITH-CP-2027-01', 98.90, 0.0015),
+            ('ACCESS-CP-2026-12', 98.60, 0.0015),
+            ('BUACEM-CP-2026-09', 98.40, 0.0015),
+        ]
+        for symbol, base_price, vol in FIXED_INCOME:
+            instrument = Instrument.objects.filter(exchange=exchange, symbol=symbol).order_by('id').first()
+            if instrument is None:
+                continue  # created by seed_public_data (runs first)
+            instrument.last_price = Decimal(str(base_price))
+            instrument.save(update_fields=['last_price'])
+            rng = random.Random(f"naija-finance-mock-{symbol}")
+            price = float(base_price)
+            series = []
+            trading_days = 0
+            d = today
+            while trading_days < HISTORY_DAYS:
+                if d.weekday() < 5:
+                    series.append((d, price))
+                    trading_days += 1
+                    price = price * (1 + rng.gauss(0, float(vol)))
+                d -= timedelta(days=1)
+            series.reverse()
+            for day, close in series:
+                daily_vol = close * float(vol) * 0.4
+                open_p = close * (1 + rng.gauss(0, float(vol) * 0.3))
+                high = max(open_p, close) + abs(rng.gauss(0, daily_vol * 0.5))
+                low = min(open_p, close) - abs(rng.gauss(0, daily_vol * 0.5))
+                volume = int(rng.uniform(50_000, 1_500_000))
+                _, hist_created = PriceHistory.objects.update_or_create(
+                    instrument=instrument,
+                    date=day,
+                    defaults={
+                        'open_price': Decimal(str(round(open_p, 4))),
+                        'high_price': Decimal(str(round(high, 4))),
+                        'low_price': Decimal(str(round(low, 4))),
+                        'close_price': Decimal(str(round(close, 4))),
+                        'volume': volume,
+                    },
+                )
+                if hist_created:
+                    history_rows += 1
+
         # --- Market indexes ---
         indexes_created = 0
         for symbol, name, price, change in INDEXES:

@@ -62,6 +62,18 @@ def _get_exchange():
     return currency, exchange
 
 
+BOND_PRICES = {
+    # symbol -> realistic demo price (₦ per ₦100 face)
+    'FGN-14.55-2029': '105.60',
+    'FGN-13.98-2028': '104.80',
+    'FGN-16.29-2047': '112.40',
+    'FGN-10.00-2032': '96.80',
+    'NTB-91D': '98.40',
+    'NTB-182D': '97.20',
+    'NTB-364D': '93.80',
+}
+
+
 def _get_or_create_bond(exchange, currency, symbol, name, maturity, coupon):
     # Name is the unique key (dedupe_reference keeps one row per name), so a
     # plain name lookup is safe both on clean DBs and on previously-dirty ones.
@@ -80,13 +92,14 @@ def _get_or_create_bond(exchange, currency, symbol, name, maturity, coupon):
             'base_currency': currency,
             'maturity_date': maturity,
             'coupon_rate': coupon,
-            'last_price': Decimal('0.00'),
+            'last_price': Decimal(BOND_PRICES.get(symbol, '100.00')),
             'is_active': True,
         },
     )
     if not created:
         instrument.is_active = True
-        instrument.save(update_fields=['is_active'])
+        instrument.last_price = Decimal(BOND_PRICES.get(symbol, '100.00'))
+        instrument.save(update_fields=['is_active', 'last_price'])
     return instrument
 
 
@@ -193,6 +206,17 @@ REVENUE_HISTORY = {
 }
 
 
+CP_PRICES = {
+    # symbol -> realistic demo price (discount notes trade just under par)
+    'GTB-CP-2026-12': '98.70',
+    'DANGCEM-CP-2026-11': '98.30',
+    'MTNN-CP-2026-10': '98.10',
+    'ZENITH-CP-2027-01': '98.90',
+    'ACCESS-CP-2026-12': '98.60',
+    'BUACEM-CP-2026-09': '98.40',
+}
+
+
 class Command(BaseCommand):
     help = "Seed public free-data-layer rows (DMO, funds/NAV, CBN FX, company profiles)."
 
@@ -296,14 +320,15 @@ class Command(BaseCommand):
                     'base_currency': currency,
                     'maturity_date': maturity,
                     'coupon_rate': coupon,
-                    'last_price': Decimal('0.00'),
+                    'last_price': Decimal(CP_PRICES.get(symbol, '98.00')),
                     'is_active': True,
                 },
             )
             if not created:
                 inst.asset_class = 'COMMERCIAL_PAPER'
                 inst.is_active = True
-                inst.save(update_fields=['asset_class', 'is_active'])
+                inst.last_price = Decimal(CP_PRICES.get(symbol, '98.00'))
+                inst.save(update_fields=['asset_class', 'is_active', 'last_price'])
             cps += 1 if created else 0
 
         self.stdout.write(self.style.SUCCESS(
