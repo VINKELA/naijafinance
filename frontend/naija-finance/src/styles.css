@@ -94,10 +94,12 @@ a{color:var(--blue);text-decoration:none}
 
 /* Page titles — match mockup (accent-colored like mockup branding) */
 .page h2.title,.page h2{font-size:15px;font-weight:700;letter-spacing:-.2px;color:var(--accent);margin:0 0 4px}
-.page .sub{color:var(--txt2);font-size:13.5px;margin:0 0 18px}
+.sub{color:var(--txt2);font-size:13.5px;margin:0 0 24px}
+.page .sub{margin:0 0 24px}
 
 /* ── Cards ── */
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:12px}
+.page .card:first-of-type,.page .hero+.card,.page .stat-grid+.card{margin-top:0}
 .card h3{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;color:var(--txt)}
 .card h3 .tag{font-size:10.5px;color:var(--txt2);font-weight:500;background:var(--bg2);border:1px solid var(--line);padding:2px 7px;border-radius:10px}
 

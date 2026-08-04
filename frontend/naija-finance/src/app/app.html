@@ -27,7 +27,7 @@
   <a routerLink="/watchlist" routerLinkActive="on">Watchlist</a>
   <a routerLink="/portfolio" routerLinkActive="on">Portfolio</a>
   <a routerLink="/alerts" routerLinkActive="on">Alerts</a>
-  <a routerLink="/account" routerLinkActive="on">Account</a>
+  <a routerLink="/account" routerLinkActive="on" *ngIf="!isAuthed">Account</a>
 </nav>
 
 <div class="tape"><div class="tape-track">
