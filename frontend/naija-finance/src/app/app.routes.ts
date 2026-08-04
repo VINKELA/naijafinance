@@ -9,6 +9,7 @@ import { WatchlistPage } from './pages/watchlist';
 import { PortfolioPage } from './pages/portfolio';
 import { SymbolPage } from './pages/symbol';
 import { AssetPage } from './pages/asset';
+import { AssetMixPage } from './pages/asset-mix';
 import { AuthPage } from './pages/auth';
 
 export const routes: Routes = [
@@ -23,5 +24,6 @@ export const routes: Routes = [
   { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
   { path: 'symbol', component: SymbolPage, title: 'Symbol & Chart' },
   { path: 'asset', component: AssetPage, title: 'Asset Information' },
+  { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'account', component: AuthPage, title: 'Account' },
 ];

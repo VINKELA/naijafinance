@@ -211,6 +211,19 @@ class Watchlist(TimeStampedModel):
     funds = models.ManyToManyField('Fund', blank=True, related_name='watchlists')
 
 
+class MixShare(TimeStampedModel):
+    """Public, shareable snapshot of a user's portfolio (REQ-11 'Asset Mix' card)."""
+    token = models.CharField(max_length=32, unique=True, db_index=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"MixShare {self.token} ({self.portfolio.name})"
+
+
 # ==========================================
 # 7. NEWS, EARNINGS & SCRAPE TRACKING
 # ==========================================

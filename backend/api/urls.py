@@ -58,6 +58,10 @@ urlpatterns = [
     path('watchlist/default/', views.default_watchlist, name='default_watchlist'),
     path('watchlist/history/', views.watchlist_history, name='watchlist_history'),
     path('watchlist/toggle/', views.toggle_watchlist, name='toggle_watchlist'),
+    path('portfolios/<int:pk>/performance/', views.portfolio_performance, name='portfolio_performance'),
+    path('mix/', views.create_mix_share, name='create_mix_share'),
+    path('mix/<str:token>/', views.mix_card, name='mix_card'),
+    path('mix/<str:token>/performance/', views.mix_performance, name='mix_performance'),
     path('earnings/', views.get_earnings, name='get_earnings'),
     # Add this to your urlpatterns:
     path('stock/<str:symbol>/', views.get_stock_detail, name='get_stock_detail'),

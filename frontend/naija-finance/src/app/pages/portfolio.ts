@@ -1,11 +1,13 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
+const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
 @Component({
   selector: 'app-portfolio',
@@ -37,6 +39,15 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         </div>
         <div class="delta">{{ insights().totals?.gainLossPct ?? 0 }}%</div>
       </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;" *ngIf="portfolios().length">
+      <div class="form-row" style="margin-bottom: 10px;">
+        <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadPerformance(p.days)">{{ p.label }}</span>
+        <span class="muted" style="font-size:11.5px;">Portfolio value over time</span>
+      </div>
+      <div #perfChartRef style="width: 100%; height: 260px;"></div>
+      <p class="disclaimer" style="margin:8px 0 0;">{{ perfNote }}</p>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -86,23 +97,55 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     </div>
   `,
 })
-export class PortfolioPage implements OnInit {
+export class PortfolioPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
+  perfNote = PERF_NOTE;
+  periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
+  period = 90;
   portfolios = signal<any[]>([]);
   funds = signal<any[]>([]);
   insights = signal<any>(null);
   newName = '';
   error = '';
   form = { portfolioId: null as number | null, kind: 'instrument' as 'instrument' | 'fund', symbol: '', fundId: null as number | null, quantity: null as number | null, purchasePrice: null as number | null };
+  @ViewChild('perfChartRef') perfChartRef!: ElementRef;
+  private chart: IChartApi | null = null;
+  private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService) {}
 
   ngOnInit() { this.refresh(); }
+  ngAfterViewInit() { if (this.api.isAuthed) this.loadPerformance(this.period); }
+
+  loadPerformance(days: number) {
+    this.period = days;
+    const ps = this.portfolios();
+    if (!ps.length) return;
+    this.api.portfolioPerformance(ps[0].id, days).subscribe({
+      next: (r) => this.renderPerf(r.points ?? []),
+      error: () => this.renderPerf([]),
+    });
+  }
+
+  private renderPerf(pts: any[]) {
+    if (!this.perfChartRef?.nativeElement) return;
+    if (!this.chart) {
+      this.chart = createChart(this.perfChartRef.nativeElement, {
+        layout: { background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
+        grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
+        width: this.perfChartRef.nativeElement.clientWidth, height: 260,
+        timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+      });
+      this.series = this.chart.addSeries(AreaSeries, { lineColor: '#4e9bff', topColor: 'rgba(78,155,255,0.3)', bottomColor: 'rgba(78,155,255,0.02)', lineWidth: 2 });
+    }
+    this.series?.setData(pts.map(p => ({ time: p.date, value: Number(p.value) })));
+    this.chart?.timeScale().fitContent();
+  }
 
   refresh() {
     if (!this.api.isAuthed) { this.error = 'Sign in to use portfolios (Account page).'; return; }
     this.api.portfolios().subscribe({
-      next: (p) => { this.portfolios.set(p); this.error = ''; if (p.length && this.form.portfolioId === null) this.form.portfolioId = p[0].id; },
+      next: (p) => { this.portfolios.set(p); this.error = ''; if (p.length && this.form.portfolioId === null) this.form.portfolioId = p[0].id; if (p.length && !this.chart) this.loadPerformance(this.period); },
       error: () => this.error = 'Could not load portfolios — are you logged in?',
     });
     this.api.portfolioInsights().subscribe({
@@ -150,16 +193,26 @@ ${alloc}
 Build yours → https://naijafinance.app/market`;
     const url = 'https://naijafinance.app/market';
     track('share_click', { url: '/market', mix: true });
-    try {
-      if (navigator.share) { navigator.share({ title: 'My Asset Mix', text, url }).catch(() => {}); return; }
-    } catch { /* fall through */ }
-    try {
-      navigator.clipboard.writeText(`${text}
-${url}`).then(() => { this.error = 'Mix copied to clipboard — paste into WhatsApp.'; });
-    } catch {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`${text}
-${url}`)}`, '_blank');
-    }
+    // REQ-11: create a public Asset Mix card (chart in the card is the viral hook), open it, copy its link.
+    this.api.createMixShare(ps[0].id).subscribe({
+      next: (share) => {
+        const cardUrl = `${location.origin}/asset-mix?token=${share.token}`;
+        try {
+          navigator.clipboard.writeText(`${text}\n${cardUrl}`).then(() => { this.error = 'Asset Mix card created — link copied.'; });
+        } catch { /* ignore */ }
+        window.open(cardUrl, '_blank');
+      },
+      error: () => {
+        try {
+          if (navigator.share) { navigator.share({ title: 'My Asset Mix', text, url }).catch(() => {}); return; }
+        } catch { /* fall through */ }
+        try {
+          navigator.clipboard.writeText(`${text}\n${url}`).then(() => { this.error = 'Mix copied to clipboard — paste into WhatsApp.'; });
+        } catch {
+          window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`, '_blank');
+        }
+      },
+    });
   }
 
   createPortfolio() {

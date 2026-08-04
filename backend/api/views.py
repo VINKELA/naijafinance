@@ -1,4 +1,5 @@
 import random
+import secrets
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
@@ -18,7 +19,7 @@ User = get_user_model()
 from .models import (
     Exchange, Instrument, Portfolio, PortfolioItem, Watchlist, 
     MarketIndex, PriceHistory, NewsArticle, EarningsCalendar, ScrapeExecution,
-    AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert
+    AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert, MixShare
 )
 from .serializers import *
 from .tasks import run_stateful_scrape
@@ -488,6 +489,150 @@ def default_watchlist(request):
     if watchlist is None:
         watchlist = Watchlist.objects.create(user=request.user, name='My Watchlist')
     return Response(WatchlistSerializer(watchlist).data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def portfolio_performance(request, pk):
+    """Value-over-time series for one portfolio (instruments via PriceHistory, funds via NAV).
+
+    Period: 30/90/180/365 days (default 90). Display-only.
+    """
+    portfolio = get_object_or_404(Portfolio, pk=pk, user=request.user)
+    period = int(request.query_params.get('period', 90))
+    if period not in (30, 90, 180, 365):
+        period = 90
+    points = build_portfolio_value_series(portfolio, period)
+    return Response({"period_days": period, "points": points})
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_mix_share(request):
+    """Create a public 'Asset Mix' share card from one of the user's portfolios."""
+    portfolio_id = request.data.get('portfolio_id')
+    portfolio = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
+    token = secrets.token_hex(6)
+    share = MixShare.objects.create(token=token, user=request.user, portfolio=portfolio)
+    return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mix_card(request, token):
+    """Public card data for a shared Asset Mix (no login)."""
+    share = get_object_or_404(MixShare, token=token)
+    portfolio = share.portfolio
+    items = list(portfolio.items.all())
+    total = Decimal('0.00')
+    rows = []
+    for it in items:
+        if it.fund_id:
+            latest = it.fund.nav_snapshots.order_by('-date').first()
+            price = latest.nav if latest else Decimal('0.00')
+            symbol = it.fund.name
+            cls = f"Fund · {it.fund.get_asset_class_display()}"
+        elif it.instrument_id:
+            price = it.instrument.last_price or Decimal('0.00')
+            symbol = it.instrument.symbol
+            cls = it.instrument.get_asset_class_display()
+        else:
+            continue
+        value = (price or Decimal('0.00')) * it.quantity
+        total += value
+        rows.append({"symbol": symbol, "asset_class": cls, "value": float(value)})
+    rows.sort(key=lambda r: r['value'], reverse=True)
+    for r in rows:
+        r['pct'] = round((r['value'] / float(total) * 100) if total else 0, 1)
+    return Response({
+        "name": portfolio.name,
+        "asOf": timezone.localdate().isoformat(),
+        "totalValue": float(total),
+        "items": rows,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mix_performance(request, token):
+    """Public value-over-time series for a shared Asset Mix (no login)."""
+    share = get_object_or_404(MixShare, token=token)
+    period = int(request.query_params.get('period', 90))
+    if period not in (30, 90, 180, 365):
+        period = 90
+    points = build_portfolio_value_series(share.portfolio, period)
+    return Response({"period_days": period, "points": points})
+
+
+def build_portfolio_value_series(portfolio, period_days=90):
+    """Daily total-value series for one portfolio over the period.
+
+    Instruments are valued with PriceHistory close prices; funds with
+    NavSnapshot NAVs. Returns [{date, value}] oldest-first; forward-fills
+    missing days with the last known price.
+    """
+    today = timezone.localdate()
+    start = today - timedelta(days=period_days)
+    items = list(portfolio.items.all())
+    if not items:
+        return []
+
+    # quantities per instrument / fund
+    inst_qty = defaultdict(lambda: Decimal('0.00'))
+    fund_qty = defaultdict(lambda: Decimal('0.00'))
+    for it in items:
+        if it.instrument_id:
+            inst_qty[it.instrument_id] += it.quantity
+        elif it.fund_id:
+            fund_qty[it.fund_id] += it.quantity
+
+    price_series = {}  # inst_id -> {date: price}
+    nav_series = {}    # fund_id -> {date: nav}
+
+    if inst_qty:
+        rows = list(
+            PriceHistory.objects
+            .filter(instrument_id__in=list(inst_qty.keys()), date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('instrument_id', 'date', 'close_price')
+        )
+        for r in rows:
+            price_series.setdefault(r['instrument_id'], {})[r['date']] = float(r['close_price'] or 0)
+    if fund_qty:
+        rows = list(
+            NavSnapshot.objects
+            .filter(fund_id__in=list(fund_qty.keys()), date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('fund_id', 'date', 'nav')
+        )
+        for r in rows:
+            nav_series.setdefault(r['fund_id'], {})[r['date']] = float(r['nav'] or 0)
+
+    all_dates = sorted({d for s in price_series.values() for d in s} | {d for s in nav_series.values() for d in s})
+    if not all_dates:
+        return []
+
+    last_price = {iid: None for iid in inst_qty}
+    last_nav = {fid: None for fid in fund_qty}
+    points = []
+    for d in all_dates:
+        for iid, s in price_series.items():
+            if d in s:
+                last_price[iid] = s[d]
+        for fid, s in nav_series.items():
+            if d in s:
+                last_nav[fid] = s[d]
+        value = Decimal('0.00')
+        for iid, qty in inst_qty.items():
+            p = last_price.get(iid)
+            if p is not None:
+                value += qty * Decimal(str(p))
+        for fid, qty in fund_qty.items():
+            n = last_nav.get(fid)
+            if n is not None:
+                value += qty * Decimal(str(n))
+        points.append({"date": d.isoformat(), "value": round(float(value), 2)})
+    return points
 
 
 @api_view(['GET'])
