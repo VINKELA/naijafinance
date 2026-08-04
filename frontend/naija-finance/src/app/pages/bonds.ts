@@ -63,6 +63,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class BondsPage implements OnInit {
+  fmtPrice = fmtPrice;
   disclaimer = DISCLAIMER;
   bonds = signal<Bond[]>([]);
   cps = signal<Bond[]>([]);

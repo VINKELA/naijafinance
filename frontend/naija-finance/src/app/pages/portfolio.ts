@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
-import { fmtMoney, fmtPrice, fmtPct } from '../format';
+import { fmtMoney, fmtPrice, fmtPct, fmtWords } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
@@ -217,7 +217,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
       .sort((a, b) => b[1] - a[1])
       .map(([c, v]) => `${c} ${total ? Math.round((v / total) * 100) : 0}%`)
       .join(' · ');
-    const fmt = (n: number) => n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmt = (n: number) => fmtWords(n);
     const base = `${location.origin}/asset-mix`;
     const buildYours = `${location.origin}/market`;
     track('share_click', { url: '/asset-mix', mix: true });

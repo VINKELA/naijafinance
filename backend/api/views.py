@@ -151,6 +151,12 @@ def calculate_instrument_performance(instrument):
 
 
 def format_naira(value):
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return '—'
+    if v != v or abs(v) >= 1e6:  # NaN or big money -> word tier (CEO 19:49)
+        return f"₦{_fmt_words(v)}"
     return f"₦{Decimal(value):,.2f}"
 
 
@@ -228,6 +234,27 @@ def get_market_trends(request):
         })
     return Response(data)
 
+def _fmt_words(value):
+    """Human-readable word tier: 20 Million, 1.5 Billion, 840 Thousand (CEO 19:49)."""
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return '—'
+    if not n or n != n:  # falsy or NaN
+        return '—'
+    abs_n = abs(n)
+    sign = '-' if n < 0 else ''
+    def tier(d, word):
+        num = abs_n / d
+        s = f"{num:.0f}" if num >= 100 else f"{num:.2f}".rstrip('0').rstrip('.')
+        return f"{sign}{s} {word}"
+    if abs_n >= 1e12: return tier(1e12, 'Trillion')
+    if abs_n >= 1e9: return tier(1e9, 'Billion')
+    if abs_n >= 1e6: return tier(1e6, 'Million')
+    if abs_n >= 1e3: return tier(1e3, 'Thousand')
+    return f"{sign}{abs_n:,.2f}".rstrip('0').rstrip('.')
+
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def get_portfolio_summary(request):
@@ -247,11 +274,11 @@ def get_portfolio_summary(request):
         grand_total += portfolio_total
         items_data.append({
             "name": port.name,
-            "value": f"₦{portfolio_total:,.2f}"
+            "value": f"₦{_fmt_words(portfolio_total)}"
         })
         
     return Response({
-        "total": f"₦{grand_total:,.2f}",
+        "total": f"₦{_fmt_words(grand_total)}",
         "items": items_data
     })
 
@@ -1262,7 +1289,7 @@ def get_company_detail(request, symbol):
             {"label": "EPS", "value": str(company.eps) if company.eps is not None else "—"},
             {"label": "P/E", "value": str(company.pe_ratio) if company.pe_ratio is not None else "—"},
             {"label": "Book value", "value": str(company.book_value) if company.book_value is not None else "—"},
-            {"label": "Market cap (₦)", "value": f"{float(company.market_cap):,.0f}" if company.market_cap else "—"},
+            {"label": "Market cap (₦)", "value": _fmt_words(company.market_cap)},
         ],
     })
 

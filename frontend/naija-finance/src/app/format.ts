@@ -36,6 +36,21 @@ export function fmtMoney(v: any): string {
   return `${n < 0 ? '-' : ''}₦${stripZeros(abs.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 }))}`;
 }
 
+/** Word-tier money: 20 Million, 1.5 Billion, 840 Thousand (CEO 19:49 — kill the zeros). */
+export function fmtWords(v: any): string {
+  if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  const tier = (d: number, word: string) => `${sign}${stripZeros((abs / d).toFixed(abs / d >= 100 ? 0 : 2))} ${word}`;
+  if (abs >= 1e12) return tier(1e12, 'Trillion');
+  if (abs >= 1e9) return tier(1e9, 'Billion');
+  if (abs >= 1e6) return tier(1e6, 'Million');
+  if (abs >= 1e3) return tier(1e3, 'Thousand');
+  return `${sign}${abs.toLocaleString('en-US')}`;
+}
+
 /** Compact count (volume/shares): 1.2M, 45,600. Nil → — */
 export function fmtCompact(v: any): string {
   if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';

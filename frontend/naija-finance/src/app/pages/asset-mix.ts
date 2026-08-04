@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
-import { fmtMoney, fmtPct } from '../format';
+import { fmtMoney, fmtPct, fmtWords } from '../format';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
@@ -38,6 +38,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
           <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
         </select>
         <input type="number" step="any" min="1" placeholder="Value (₦)" [(ngModel)]="r.value" [name]="'bval'+i" style="width: 130px;">
+        <span class="muted" style="font-size: 11px; align-self: center;" *ngIf="r.value">≈ {{ fmtWords(r.value) }}</span>
         <button type="button" class="ghost" (click)="builder.rows.splice(i,1)">✕</button>
       </div>
       <datalist id="mixAssetOptions">
@@ -131,6 +132,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   `,
 })
 export class AssetMixPage implements OnInit, AfterViewInit {
+  fmtWords = fmtWords;
   perfNote = PERF_NOTE;
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;

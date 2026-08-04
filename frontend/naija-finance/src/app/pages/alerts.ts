@@ -57,6 +57,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class AlertsPage implements OnInit {
+  fmtPrice = fmtPrice;
   disclaimer = DISCLAIMER;
   alerts = signal<Alert[]>([]);
   bonds = signal<Bond[]>([]);
