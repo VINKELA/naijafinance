@@ -26,7 +26,7 @@ export const routes: Routes = [
   { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
   { path: 'symbol', component: SymbolPage, title: 'Symbol & Chart' },
   { path: 'asset', component: AssetPage, title: 'Asset Information' },
-  { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
+  { path: 'asset-mix', component: AssetMixPage, title: 'Asset Mix' },
   { path: 'account', component: AuthPage, title: 'Account' },
   { path: 'legal', component: LegalPage, title: 'Terms & Privacy' },
   { path: 'compare', component: ComparePage, title: 'Compare Assets' },

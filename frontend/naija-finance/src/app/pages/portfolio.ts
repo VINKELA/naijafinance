@@ -20,7 +20,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="form-row" style="margin-bottom: 12px;" *ngIf="portfolios().length">
-      <button type="button" (click)="shareMix()">📤 Share my Asset Mix</button>
+      <button type="button" (click)="shareMix()">📤 Share Asset Mix</button>
       <span class="muted" style="font-size:11.5px;">Tick the holdings to include (none ticked = whole portfolio). Generates your allocation snapshot for WhatsApp/Telegram.</span>
     </div>
 
@@ -210,9 +210,9 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     this.api.createMixShare(ps[0].id, sel.length ? sel : undefined).subscribe({
       next: (share) => {
         const cardUrl = `${base}?token=${share.token}`;
-        const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
+        const text = `Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
         try {
-          navigator.share({ title: 'My Asset Mix', text, url: cardUrl }).catch(() => {});
+          navigator.share({ title: 'Asset Mix', text, url: cardUrl }).catch(() => {});
         } catch { /* fall through */ }
         try {
           navigator.clipboard.writeText(`${text}\n${cardUrl}`).then(() => { this.error = 'Asset Mix card created — link copied.'; });
@@ -220,10 +220,10 @@ export class PortfolioPage implements OnInit, AfterViewInit {
         window.open(cardUrl, '_blank');
       },
       error: () => {
-        const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
+        const text = `Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
         const url = buildYours;
         try {
-          if (navigator.share) { navigator.share({ title: 'My Asset Mix', text, url }).catch(() => {}); return; }
+          if (navigator.share) { navigator.share({ title: 'Asset Mix', text, url }).catch(() => {}); return; }
         } catch { /* fall through */ }
         try {
           navigator.clipboard.writeText(`${text}\n${url}`).then(() => { this.error = 'Mix copied to clipboard — paste into WhatsApp.'; });

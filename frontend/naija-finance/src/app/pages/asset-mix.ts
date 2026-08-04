@@ -11,13 +11,13 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   selector: 'app-asset-mix',
   imports: [CommonModule, RouterLink],
   template: `
-    <h2>My Asset Mix</h2>
+    <h2>Asset Mix</h2>
     <p class="sub" *ngIf="card()">{{ card().visibility === 'private' ? 'Private mix · only you can view' : 'Shareable performance card · as of ' + card().asOf }}</p>
     <p class="sub" style="margin-top:-12px;font-weight:600;color:var(--warn,#d97706);" *ngIf="card() && card().visibility === 'private'">🔒 This mix is private — only you can see it. Make it public to share the link.</p>
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="authed && !token">
-      <h3>My Asset Mixes</h3>
+      <h3>Asset Mixes</h3>
       <table class="data">
         <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>As of</th><th>Visibility</th><th></th></tr></thead>
         <tbody>
