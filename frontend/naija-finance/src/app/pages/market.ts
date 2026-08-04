@@ -94,7 +94,7 @@ import { fmtPrice, fmtPct, fmtCompact } from '../format';
         <table>
           <tbody>
             <tr *ngFor="let n of news()">
-              <td><span class="sym">{{ n.title }}<small>{{ n.source }}</small></span></td>
+              <td><span class="sym"><a *ngIf="n.url" [href]="n.url" target="_blank" rel="noopener" class="link">{{ n.title }}</a><ng-container *ngIf="!n.url">{{ n.title }}</ng-container><small><a [href]="sourceUrl(n.source)" target="_blank" rel="noopener" class="link">{{ n.source }}</a></small></span></td>
             </tr>
           </tbody>
         </table>
@@ -104,7 +104,7 @@ import { fmtPrice, fmtPct, fmtCompact } from '../format';
         <h3>Education <span class="tag">Pidgin</span></h3>
         <p>"Wetin be bond yield? Na di interest wey government dey pay you for lending dem money. Low risk, fixed return."</p>
         <div class="tags">
-          <span class="pill g">Bonds 101</span><span class="pill g">NAV</span><span class="pill g">T+3</span>
+          <a routerLink="/bonds" class="pill g">Bonds 101</a><a routerLink="/funds" class="pill g">NAV</a><span class="pill g">T+3</span>
         </div>
       </div>
     </div>
@@ -120,6 +120,20 @@ export class MarketPage implements OnInit {
   fx = signal<any[]>([]);
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
+
+  sourceUrl(name: string): string {
+    const map: Record<string, string> = {
+      'NGX Exchange': 'https://ngxgroup.com',
+      'BusinessDay': 'https://businessday.ng',
+      'Nairametrics': 'https://nairametrics.com',
+      'TheCable': 'https://thecable.ng',
+      'Punch': 'https://punchng.com',
+      'Vanguard': 'https://vanguardngr.com',
+      'Reuters': 'https://reuters.com',
+      'Bloomberg': 'https://bloomberg.com',
+    };
+    return map[name] || `https://news.google.com/search?q=${encodeURIComponent(name)}`;
+  }
 
   fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact;
   constructor(private api: ApiService) {}
