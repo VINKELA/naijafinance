@@ -88,7 +88,11 @@ export class ApiService {
   }
   portfolioInsights(): Observable<any> { return this.http.get<any>(`${API_BASE}/portfolio-insights/`, { headers: this.authHeaders() }); }
   portfolioPerformance(id: number, period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/portfolios/${id}/performance/?period=${period}`, { headers: this.authHeaders() }); }
-  createMixShare(portfolioId: number): Observable<any> { return this.http.post<any>(`${API_BASE}/mix/`, { portfolio_id: portfolioId }, { headers: this.authHeaders() }); }
+  createMixShare(portfolioId: number, itemIds?: number[]): Observable<any> {
+    const body: any = { portfolio_id: portfolioId };
+    if (itemIds && itemIds.length) body.item_ids = itemIds;
+    return this.http.post<any>(`${API_BASE}/mix/`, body, { headers: this.authHeaders() });
+  }
   mixCard(token: string): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/`); }
   mixPerformance(token: string, period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/performance/?period=${period}`); }
   revokeMix(token: string): Observable<void> { return this.http.delete<void>(`${API_BASE}/mix/${token}/revoke/`, { headers: this.authHeaders() }); }

@@ -506,10 +506,17 @@ def portfolio_performance(request, pk):
     return Response({"period_days": period, "points": points})
 
 
-def _mix_card_rows(portfolio):
+def _mix_card_rows(portfolio, item_ids=None):
     """Sanitized allocation-level rows: symbol, class, value, pct. NO quantities,
-    NO cost basis, NO P&L, NO user identity — the public Asset Mix contract."""
-    items = list(portfolio.items.all())
+    NO cost basis, NO P&L, NO user identity — the public Asset Mix contract.
+
+    item_ids (optional): only these PortfolioItem ids are included, so a user
+    can share a single asset or a chosen subset instead of the whole portfolio.
+    """
+    qs = portfolio.items.all()
+    if item_ids:
+        qs = qs.filter(id__in=item_ids)
+    items = list(qs)
     total = Decimal('0.00')
     rows = []
     for it in items:
@@ -543,7 +550,10 @@ def create_mix_share(request):
     """
     portfolio_id = request.data.get('portfolio_id')
     portfolio = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
-    total, rows = _mix_card_rows(portfolio)
+    item_ids = request.data.get('item_ids')
+    if item_ids is not None:
+        item_ids = [int(x) for x in item_ids if str(x).strip().isdigit()]
+    total, rows = _mix_card_rows(portfolio, item_ids)
     token = secrets.token_hex(6)
     share = MixShare.objects.create(
         token=token,

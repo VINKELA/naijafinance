@@ -21,7 +21,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
 
     <div class="form-row" style="margin-bottom: 12px;" *ngIf="portfolios().length">
       <button type="button" (click)="shareMix()">📤 Share my Asset Mix</button>
-      <span class="muted" style="font-size:11.5px;">Generates your allocation snapshot for WhatsApp/Telegram — the acquisition loop.</span>
+      <span class="muted" style="font-size:11.5px;">Tick the holdings to include (none ticked = whole portfolio). Generates your allocation snapshot for WhatsApp/Telegram.</span>
     </div>
 
     <div class="stat-grid" *ngIf="insights()">
@@ -81,9 +81,10 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <div class="table-wrap" *ngFor="let p of portfolios()">
       <h3>{{ p.name }} — {{ total(p) }} <button type="button" class="ghost" style="margin-left:8px" (click)="removePortfolio(p)">Delete</button></h3>
       <table class="data">
-        <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr></thead>
+        <thead><tr><th>Include</th><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let it of p.items">
+            <td><input type="checkbox" [checked]="selected(it)" (change)="toggleSelect(it.id)" style="width:auto;"></td>
             <td class="sym"><a routerLink="/asset" [queryParams]="assetQp(it)">{{ it.symbol }}</a></td><td>{{ it.name }}</td>
             <td><span class="pill">{{ it.asset_class }}</span></td>
             <td class="num">{{ it.quantity }}</td>
@@ -114,6 +115,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
   private series: ISeriesApi<'Area'> | null = null;
 
   fmtPrice = fmtPrice; fmtMoney = fmtMoney; fmtPct = fmtPct;
+  selectedIds = signal<Set<number>>(new Set());
   constructor(private api: ApiService) {}
 
   ngOnInit() { this.refresh(); }
@@ -171,6 +173,13 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     this.api.deletePortfolio(p.id).subscribe({ next: () => this.refresh(), error: (e) => this.error = e?.error?.detail ?? 'Delete failed.' });
   }
 
+  selected(it: any): boolean { return this.selectedIds().has(it.id); }
+  toggleSelect(id: number) {
+    const s = new Set(this.selectedIds());
+    if (s.has(id)) s.delete(id); else s.add(id);
+    this.selectedIds.set(s);
+  }
+
   shareMix() {
     const ps = this.portfolios();
     if (!ps.length) return;
@@ -197,7 +206,8 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     const buildYours = `${location.origin}/market`;
     track('share_click', { url: '/asset-mix', mix: true });
     // REQ-11: create a public Asset Mix card (chart in the card is the viral hook), open it, copy its link.
-    this.api.createMixShare(ps[0].id).subscribe({
+    const sel = [...this.selectedIds()];
+    this.api.createMixShare(ps[0].id, sel.length ? sel : undefined).subscribe({
       next: (share) => {
         const cardUrl = `${base}?token=${share.token}`;
         const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
