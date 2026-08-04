@@ -46,6 +46,7 @@ export class ApiService {
   // ---- Auth (F-09) ----
   register(payload: any): Observable<any> { return this.http.post(`${API_BASE}/auth/register/`, payload); }
   login(email: string, password: string): Observable<any> { return this.http.post(`${API_BASE}/auth/login/`, { email, password }); }
+  refreshTokens(refresh: string): Observable<any> { return this.http.post(`${API_BASE}/auth/refresh/`, { refresh }); }
   saveTokens(tokens: any) { if (tokens?.access) localStorage.setItem('nf_access', tokens.access); if (tokens?.refresh) localStorage.setItem('nf_refresh', tokens.refresh); }
   clearTokens() { localStorage.removeItem('nf_access'); localStorage.removeItem('nf_refresh'); }
   get token() { return localStorage.getItem('nf_access'); }

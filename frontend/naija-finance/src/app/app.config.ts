@@ -2,6 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessC
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { httpTickInterceptor } from './http-tick.interceptor';
+import { authRefreshInterceptor } from './auth-refresh.interceptor';
 
 import { routes } from './app.routes';
 
@@ -10,6 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([httpTickInterceptor]))
+    provideHttpClient(withFetch(), withInterceptors([httpTickInterceptor, authRefreshInterceptor]))
   ]
 };
