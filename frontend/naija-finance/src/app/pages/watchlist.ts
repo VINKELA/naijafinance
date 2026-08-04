@@ -1,6 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
 
@@ -14,6 +15,14 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <p class="sub">Your saved instruments — toggle from the search box.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
+
+    <div class="card" style="margin-bottom: 20px;" *ngIf="authed">
+      <div class="form-row" style="margin-bottom: 10px;">
+        <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadHistory(p.days)">{{ p.label }}</span>
+      </div>
+      <div #chartRef style="width: 100%; height: 220px;"></div>
+      <p class="loading" *ngIf="!authed">Sign in to see performance.</p>
+    </div>
 
     <div class="card" style="margin-bottom: 20px;">
       <form class="form-row" (ngSubmit)="toggle()">
@@ -58,7 +67,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     </div>
   `,
 })
-export class WatchlistPage implements OnInit {
+export class WatchlistPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   instruments = signal<any[]>([]);
   fundsWatched = signal<any[]>([]);
@@ -66,10 +75,40 @@ export class WatchlistPage implements OnInit {
   symbol = '';
   fundId = null as number | null;
   error = '';
+  periods = [{ label: '1W', days: 7 }, { label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '1Y', days: 365 }];
+  period = 90;
+  @ViewChild('chartRef') chartRef!: ElementRef;
+  private chart: IChartApi | null = null;
+  private series: ISeriesApi<'Area'> | null = null;
+
   constructor(private api: ApiService) {}
   get authed() { return this.api.isAuthed; }
 
   ngOnInit() { this.refresh(); }
+  ngAfterViewInit() { if (this.authed) this.loadHistory(this.period); }
+
+  loadHistory(days: number) {
+    this.period = days;
+    this.api.watchlistHistory(days).subscribe({
+      next: (h) => this.render(h.points ?? []),
+      error: () => this.render([]),
+    });
+  }
+
+  private render(pts: any[]) {
+    if (!this.chartRef?.nativeElement) return;
+    if (!this.chart) {
+      this.chart = createChart(this.chartRef.nativeElement, {
+        layout: { background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
+        grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
+        width: this.chartRef.nativeElement.clientWidth, height: 220,
+        timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+      });
+      this.series = this.chart.addSeries(AreaSeries, { lineColor: '#4e9bff', topColor: 'rgba(78,155,255,0.3)', bottomColor: 'rgba(78,155,255,0.02)', lineWidth: 2 });
+    }
+    this.series?.setData(pts.map(p => ({ time: p.date, value: Number(p.value) })));
+    this.chart?.timeScale().fitContent();
+  }
 
   refresh() {
     if (!this.api.isAuthed) return;

@@ -56,6 +56,7 @@ urlpatterns = [
     path('portfolio-insights/', views.get_portfolio_insights, name='get_portfolio_insights'),
     path('portfolio-items/add-by-symbol/', views.add_portfolio_item_by_symbol, name='add_portfolio_item_by_symbol'),
     path('watchlist/default/', views.default_watchlist, name='default_watchlist'),
+    path('watchlist/history/', views.watchlist_history, name='watchlist_history'),
     path('watchlist/toggle/', views.toggle_watchlist, name='toggle_watchlist'),
     path('earnings/', views.get_earnings, name='get_earnings'),
     # Add this to your urlpatterns:

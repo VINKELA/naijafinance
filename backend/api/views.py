@@ -490,6 +490,65 @@ def default_watchlist(request):
     return Response(WatchlistSerializer(watchlist).data)
 
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def watchlist_history(request):
+    """Aggregated performance series for the user's watched instruments + funds.
+
+    Returns [{date, value}] where value = average % change vs period start,
+    across all watched instruments (PriceHistory) and funds (NAV history).
+    Period: 7/30/90/365 days (default 90). Display-only, demo data.
+    """
+    period = int(request.query_params.get('period', 90))
+    if period not in (7, 30, 90, 365):
+        period = 90
+    watchlist = Watchlist.objects.filter(user=request.user).first()
+    if watchlist is None:
+        watchlist = Watchlist.objects.create(user=request.user, name='My Watchlist')
+
+    today = timezone.localdate()
+    start = today - timedelta(days=period)
+
+    series = defaultdict(list)  # date -> [pct changes]
+
+    for inst in watchlist.instruments.filter(is_active=True):
+        rows = list(
+            PriceHistory.objects.filter(instrument=inst, date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('date', 'close_price')
+        )
+        if len(rows) < 2:
+            continue
+        base = float(rows[0]['close_price']) or 0.0
+        if base <= 0:
+            continue
+        for row in rows:
+            pct = (float(row['close_price']) / base - 1.0) * 100.0
+            series[row['date']].append(pct)
+
+    for fund in watchlist.funds.filter(is_active=True):
+        navs = list(
+            fund.nav_snapshots.filter(date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('date', 'nav')
+        )
+        if len(navs) < 2:
+            continue
+        base = float(navs[0]['nav']) or 0.0
+        if base <= 0:
+            continue
+        for row in navs:
+            pct = (float(row['nav']) / base - 1.0) * 100.0
+            series[row['date']].append(pct)
+
+    points = [
+        {"date": d.isoformat(), "value": round(sum(v) / len(v), 3)}
+        for d, v in sorted(series.items())
+    ]
+    return Response({"period_days": period, "points": points})
+
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request):

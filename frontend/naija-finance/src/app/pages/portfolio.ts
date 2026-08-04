@@ -140,13 +140,13 @@ export class PortfolioPage implements OnInit {
       .map(([c, v]) => `${c} ${total ? Math.round((v / total) * 100) : 0}%`)
       .join(' · ');
     const fmt = (n: number) => n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const text = `My Naija Finance mix — ${items.length} holdings · ₦${fmt(total)}
+    const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}
 ${alloc}
 Build yours → https://naijafinance.app/market`;
     const url = 'https://naijafinance.app/market';
     track('share_click', { url: '/market', mix: true });
     try {
-      if (navigator.share) { navigator.share({ title: 'My Naija Finance mix', text, url }).catch(() => {}); return; }
+      if (navigator.share) { navigator.share({ title: 'My Asset Mix', text, url }).catch(() => {}); return; }
     } catch { /* fall through */ }
     try {
       navigator.clipboard.writeText(`${text}

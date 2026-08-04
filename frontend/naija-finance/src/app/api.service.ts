@@ -56,6 +56,7 @@ export class ApiService {
   // ---- F-01 Watchlists ----
   watchlists(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/watchlists/`, { headers: this.authHeaders() }); }
   defaultWatchlist(): Observable<any> { return this.http.get<any>(`${API_BASE}/watchlist/default/`, { headers: this.authHeaders() }); }
+  watchlistHistory(period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/watchlist/history/?period=${period}`, { headers: this.authHeaders() }); }
   toggleWatchlist(symbol: string, fundId?: number): Observable<any> {
     const body: any = symbol ? { symbol } : { fund_id: fundId };
     return this.http.post<any>(`${API_BASE}/watchlist/toggle/`, body, { headers: this.authHeaders() });
