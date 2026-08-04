@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
+import { track } from './analytics';
 
 @Component({
   selector: 'app-root',
@@ -30,6 +31,7 @@ export class App implements OnInit, OnDestroy {
   constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router) {}
 
   ngOnInit() {
+    track('visit', { path: location.pathname });
     this.initTheme();
     this.loadTape();
     this.timer = setInterval(() => this.loadTape(), 60000);

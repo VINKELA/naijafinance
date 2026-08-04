@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
+import { track } from '../analytics';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -59,7 +60,7 @@ export class WatchlistPage implements OnInit {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;
     this.api.toggleWatchlist(sym).subscribe({
-      next: (r) => { this.symbol = ''; this.error = ''; this.instruments.set(r.watchlist.instruments ?? []); },
+      next: (r) => { track('watchlist_add', { symbol: sym, added: r.added }); this.symbol = ''; this.error = ''; this.instruments.set(r.watchlist.instruments ?? []); },
       error: (e) => this.error = e?.error?.detail ?? 'Symbol not found.',
     });
   }

@@ -17,6 +17,27 @@ router.register(r'fx-rates', FxRateViewSet, basename='fx-rate')
 router.register(r'companies', CompanyProfileViewSet, basename='company')
 router.register(r'alerts', AlertViewSet, basename='alert')
 
+# Analytics: fire-and-forget event collection (CGO instrumentation ask, go-live)
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json, os, time
+
+@csrf_exempt
+@require_POST
+def analytics_collect(request):
+    try:
+        payload = json.loads(request.body or b'{}')
+        event = payload.get('event', 'unknown')
+        meta = payload.get('meta', {})
+        line = json.dumps({"ts": time.time(), "event": event, "meta": meta})
+        path = os.getenv('ANALYTICS_LOG', '/tmp/naijafinance-analytics.jsonl')
+        with open(path, 'a') as f:
+            f.write(line + "\n")
+        return JsonResponse({"ok": True})
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=400)
+
 urlpatterns = [
     # Auth Endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
@@ -42,5 +63,8 @@ urlpatterns = [
     path('indexes/', MarketIndexListView.as_view(), name='index-list'),
     path('indexes/<str:symbol>/', MarketIndexDetailView.as_view(), name='index-detail'),
     path('', include(router.urls)),
+    path('analytics/', analytics_collect, name='analytics_collect'),
+
 
 ]
+

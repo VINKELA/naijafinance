@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../api.service';
+import { track } from '../analytics';
 
 @Component({
   selector: 'app-auth',
@@ -62,7 +63,7 @@ export class AuthPage {
       });
     } else {
       this.api.register(this.form).subscribe({
-        next: () => { this.mode = 'login'; this.error = 'Account created — sign in.'; },
+        next: () => { track('signup', { email: this.form.email }); this.mode = 'login'; this.error = 'Account created — sign in.'; },
         error: (e) => { this.error = Object.values(e?.error ?? {}).flat().join(' ') || 'Registration failed.'; done(); },
         complete: done,
       });

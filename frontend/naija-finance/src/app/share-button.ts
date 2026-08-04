@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { track } from './analytics';
 
 /**
  * REQ-4 shareable-everywhere button.
@@ -22,6 +23,7 @@ export class ShareButton {
   copied = false;
 
   async share() {
+    track('share_click', { url: this.link || location.pathname });
     const url = this.link || location.href.split('?')[0];
     const text = this.text ? `${this.text} — Naija Finance` : 'Naija Finance — Nigerian markets, one dashboard';
     try {
