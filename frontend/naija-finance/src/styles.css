@@ -59,6 +59,13 @@ a{color:var(--blue);text-decoration:none}
 .danger{background:rgba(234,57,67,.14);color:var(--red);border:1px solid rgba(234,57,67,.45);padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13.5px}
 .danger:hover{background:rgba(234,57,67,.24)}
 
+/* ── Desktop nav (hidden on mobile — bottom mnav takes over) ── */
+.dnav{display:flex;align-items:center;gap:2px;padding:0 24px;height:46px;border-bottom:1px solid var(--line);background:rgba(10,14,20,.92);position:sticky;top:58px;z-index:45;backdrop-filter:blur(10px);overflow-x:auto}
+:root[data-theme="light"] .dnav{background:rgba(244,246,250,.94)}
+.dnav a{color:var(--txt2);font-size:13px;font-weight:600;padding:8px 14px;border-radius:9px;white-space:nowrap;text-decoration:none}
+.dnav a:hover{color:var(--txt);background:var(--card)}
+.dnav a.on{color:var(--accent);background:rgba(22,199,132,.12)}
+
 /* ── Market tape ── */
 .tape{display:flex;border-bottom:1px solid var(--line);background:var(--bg2);overflow:hidden;scrollbar-width:none;position:relative}
 .tape::-webkit-scrollbar{display:none}
@@ -203,6 +210,7 @@ html,body{max-width:100%;overflow-x:hidden}
   .logo .mark{width:24px;height:24px}
   .search{flex:1 1 100%;max-width:none;order:3;margin-left:0}
   .mnav{display:block}
+  .dnav{display:none}
   .status{display:none}
   .app-footer{padding:16px 14px 90px}
   .table-wrap{overflow-x:auto}

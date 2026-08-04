@@ -17,6 +17,18 @@
   <button class="langBtn signout" *ngIf="isAuthed" (click)="logout()">Sign out</button>
 </header>
 
+<nav class="dnav">
+  <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}">Home</a>
+  <a routerLink="/bonds" routerLinkActive="on">Markets</a>
+  <a routerLink="/funds" routerLinkActive="on">Funds</a>
+  <a routerLink="/fx" routerLinkActive="on">FX</a>
+  <a routerLink="/companies" routerLinkActive="on">Companies</a>
+  <a routerLink="/watchlist" routerLinkActive="on">Watchlist</a>
+  <a routerLink="/portfolio" routerLinkActive="on">Portfolio</a>
+  <a routerLink="/alerts" routerLinkActive="on">Alerts</a>
+  <a routerLink="/account" routerLinkActive="on">Account</a>
+</nav>
+
 <div class="tape"><div class="tape-track">
   <div class="item" *ngFor="let t of tapeLoop()"><span class="s">{{ t.s }}</span><span class="p">{{ t.p }}</span><span class="ch" [class.up]="t.up" [class.down]="!t.up && t.up !== null" [class.flat]="t.up === null"><span class="arrow" [class.up]="t.up" [class.down]="t.up === false">{{ t.up === true ? '▲' : t.up === false ? '▼' : '—' }}</span> {{ t.ch }}</span></div>
 </div></div>
