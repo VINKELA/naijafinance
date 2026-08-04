@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
@@ -19,7 +19,16 @@ const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316
 
     <div class="card" style="margin-bottom: 20px;">
       <form class="form-row" (ngSubmit)="addSymbols()">
-        <input type="text" placeholder="Symbols, comma-separated (e.g. MTNN, DANGCEM, FGN-14.55-2029)" [(ngModel)]="symbolInput" name="symbols">
+        <div style="position:relative;flex:1;min-width:220px;">
+          <input type="text" placeholder="Search symbols, bonds, funds… e.g. MTNN, DANGCEM" [(ngModel)]="symbolInput" name="symbols"
+            (input)="onSymbolInput()" (focus)="onSymbolFocus()" (blur)="onSymbolBlur()" (keydown)="onSymbolKey($event)">
+          <div class="sugg-dd" *ngIf="showSuggestions()">
+            <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="pickSuggestion(s)">
+              <span class="s">{{ s.symbol }}</span><span class="n">{{ s.name }}</span><span class="t">{{ s.type }}</span>
+            </button>
+            <div class="sugg" *ngIf="!suggestions().length" style="color:var(--txt3);cursor:default;">No matches</div>
+          </div>
+        </div>
         <button type="submit">Add</button>
       </form>
       <form class="form-row" style="margin-top:8px" (ngSubmit)="addFund()">
@@ -56,11 +65,15 @@ const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316
     </div>
   `,
 })
-export class ComparePage implements OnInit, AfterViewInit {
+export class ComparePage implements OnInit, AfterViewInit, OnDestroy {
   disclaimer = DISCLAIMER;
   periods = [{ label: '1W', days: 7 }, { label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;
   symbolInput = '';
+  suggestions = signal<any[]>([]);
+  showSuggestions = signal(false);
+  activeIndex = signal(-1);
+  private searchTimer: any;
   fundId = null as number | null;
   symbols = signal<string[]>([]);
   fundIds = signal<number[]>([]);
@@ -73,6 +86,8 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   fmtPct = fmtPct;
   constructor(private api: ApiService) {}
+
+  ngOnDestroy() { clearTimeout(this.searchTimer); }
   chips() {
     return [
       ...this.symbols().map(s => ({ label: s })),
@@ -85,6 +100,56 @@ export class ComparePage implements OnInit, AfterViewInit {
   periodLabel(): string { return this.periods.find(p => p.days === this.period)?.label ?? ''; }
   ngOnInit() { this.api.funds().subscribe(fs => this.funds.set(fs)); }
   ngAfterViewInit() {}
+
+  onSymbolInput() {
+    clearTimeout(this.searchTimer);
+    const q = this.symbolInput.trim();
+    if (!q) { this.suggestions.set([]); this.showSuggestions.set(false); return; }
+    this.searchTimer = setTimeout(() => {
+      this.api.searchStocks(q).subscribe({
+        next: (res) => {
+          this.suggestions.set((res ?? []).slice(0, 8));
+          this.activeIndex.set(-1);
+          this.showSuggestions.set(this.suggestions().length > 0);
+        },
+        error: () => { this.suggestions.set([]); this.showSuggestions.set(false); },
+      });
+    }, 250);
+  }
+  onSymbolFocus() {
+    if (this.symbolInput.trim() && this.suggestions().length) this.showSuggestions.set(true);
+  }
+  onSymbolBlur() {
+    setTimeout(() => this.showSuggestions.set(false), 150);
+  }
+  onSymbolKey(e: KeyboardEvent) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const n = this.suggestions().length;
+      if (!n) return;
+      const delta = e.key === 'ArrowDown' ? 1 : -1;
+      let idx = this.activeIndex() + delta;
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+      this.showSuggestions.set(true);
+    } else if (e.key === 'Escape') {
+      this.showSuggestions.set(false);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : null;
+      if (target) { e.preventDefault(); this.pickSuggestion(target); }
+    }
+  }
+  pickSuggestion(s: any) {
+    if (!s?.symbol) return;
+    this.symbols.set([...new Set([...this.symbols(), s.symbol])]);
+    this.symbolInput = '';
+    this.suggestions.set([]);
+    this.showSuggestions.set(false);
+    this.load(this.period);
+  }
 
   addSymbols() {
     const parts = this.symbolInput.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
