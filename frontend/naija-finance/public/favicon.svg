@@ -16,11 +16,11 @@
   <!-- soft growth glow -->
   <circle cx="256" cy="256" r="170" fill="#16C784" opacity="0.12"/>
 
-  <!-- rising market line (behind the naira mark) -->
+  <!-- rising market line (behind the naira mark) ending in a bold arrow -->
   <g fill="none" stroke="url(#growth)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M72 396 L168 322 L252 348 L430 240"/>
+    <path d="M72 396 L168 322 L252 348 L388 262"/>
   </g>
-  <path d="M430 240 l-34 8 20 -28 z" fill="url(#growth)"/>
+  <path d="M430 240 L378 296 L358 236 Z" fill="url(#growth)"/>
 
   <!-- naira mark (₦): N + double bar, white -->
   <g stroke="#F8FAFC" stroke-width="52" stroke-linecap="round" fill="none">
