@@ -114,16 +114,20 @@ AUCTIONS = [
 ]
 
 FUNDS = [
-    # name, manager, asset_class, [(date_offset_days, nav)]
-    ('Stanbic IBTC Money Market Fund', 'Stanbic IBTC Asset Management', 'MONEY_MARKET', [(0, 1.2841), (7, 1.2838), (30, 1.2809)]),
-    ('ARM Money Market Fund', 'ARM Investment Managers', 'MONEY_MARKET', [(0, 2.0310), (7, 2.0291), (30, 2.0215)]),
-    ('FBNQuest Money Market Fund', 'FBNQuest Asset Management', 'MONEY_MARKET', [(0, 1.1152), (7, 1.1146), (30, 1.1113)]),
-    ('Meristem Money Market Fund', 'Meristem Asset Management', 'MONEY_MARKET', [(0, 1.5129), (7, 1.5118), (30, 1.5071)]),
-    ('United Capital Money Market Fund', 'United Capital Asset Management', 'MONEY_MARKET', [(0, 1.4413), (7, 1.4405), (30, 1.4364)]),
-    ('Stanbic IBTC Ethical Fund', 'Stanbic IBTC Asset Management', 'ETHICAL', [(0, 1.8964), (7, 1.8890), (30, 1.8521)]),
-    ('ARM Ethical Fund', 'ARM Investment Managers', 'ETHICAL', [(0, 1.7122), (7, 1.7045), (30, 1.6689)]),
+    # name, manager, asset_class, [(date_offset_days, nav)]  (weekly cadence)
+    ('Stanbic IBTC Money Market Fund', 'Stanbic IBTC Asset Management', 'MONEY_MARKET', [(0, 1.2841), (7, 1.2838), (14, 1.2834), (30, 1.2809), (60, 1.2782), (90, 1.2755), (180, 1.2689), (365, 1.2544)]),
+    ('ARM Money Market Fund', 'ARM Investment Managers', 'MONEY_MARKET', [(0, 2.0310), (7, 2.0291), (14, 2.0272), (30, 2.0215), (60, 2.0144), (90, 2.0073), (180, 1.9904), (365, 1.9611)]),
+    ('FBNQuest Money Market Fund', 'FBNQuest Asset Management', 'MONEY_MARKET', [(0, 1.1152), (7, 1.1146), (14, 1.1140), (30, 1.1113), (60, 1.1071), (90, 1.1030), (180, 1.0955), (365, 1.0794)]),
+    ('Meristem Money Market Fund', 'Meristem Asset Management', 'MONEY_MARKET', [(0, 1.5129), (7, 1.5118), (14, 1.5107), (30, 1.5071), (60, 1.5025), (90, 1.4978), (180, 1.4894), (365, 1.4709)]),
+    ('United Capital Money Market Fund', 'United Capital Asset Management', 'MONEY_MARKET', [(0, 1.4413), (7, 1.4405), (14, 1.4396), (30, 1.4364), (60, 1.4318), (90, 1.4271), (180, 1.4191), (365, 1.4012)]),
+    ('Stanbic IBTC Ethical Fund', 'Stanbic IBTC Asset Management', 'ETHICAL', [(0, 1.8964), (7, 1.8890), (14, 1.8816), (30, 1.8521), (60, 1.8292), (90, 1.8082), (180, 1.7501), (365, 1.6424)]),
+    ('ARM Ethical Fund', 'ARM Investment Managers', 'ETHICAL', [(0, 1.7122), (7, 1.7045), (14, 1.6968), (30, 1.6689), (60, 1.6461), (90, 1.6254), (180, 1.5710), (365, 1.4728)]),
+    # Balanced + fixed income funds (CEO ask: balanced bonds / fixed income coverage)
+    ('Stanbic IBTC Balanced Fund', 'Stanbic IBTC Asset Management', 'BALANCED', [(0, 2.8473), (7, 2.8388), (14, 2.8302), (30, 2.8031), (60, 2.7714), (90, 2.7398), (180, 2.6542), (365, 2.5011)]),
+    ('ARM Balanced Fund', 'ARM Investment Managers', 'BALANCED', [(0, 3.1054), (7, 3.0948), (14, 3.0843), (30, 3.0510), (60, 3.0095), (90, 2.9680), (180, 2.8581), (365, 2.6412)]),
+    ('FBNQuest Fixed Income Fund', 'FBNQuest Asset Management', 'FIXED_INCOME', [(0, 1.9632), (7, 1.9601), (14, 1.9570), (30, 1.9474), (60, 1.9342), (90, 1.9211), (180, 1.8881), (365, 1.8220)]),
+    ('United Capital Fixed Income Fund', 'United Capital Asset Management', 'FIXED_INCOME', [(0, 1.5247), (7, 1.5222), (14, 1.5196), (30, 1.5118), (60, 1.5015), (90, 1.4913), (180, 1.4647), (365, 1.4112)]),
 ]
-
 FX_RATES = [
     # pair, rate, date
     ('USD/NGN', '1496.5300', '2026-07-31'),
@@ -161,6 +165,32 @@ COMPANIES = [
     ('ACCESS', 'Access Holdings Plc', 'Banking',
      'Banking group present in 20+ countries with a strong African and UK franchise.', 6.70, 1.9, 24.90, 1200000000000),
 ]
+
+COMMERCIAL_PAPERS = [
+    # symbol, name, issuer_name, maturity, coupon (decimal, discount/yield)
+    ('GTB-CP-2026-12', 'GTBank Commercial Paper DEC 2026', 'Guaranty Trust Holding Company Plc', date(2026, 12, 15), Decimal('0.1450')),
+    ('DANGCEM-CP-2026-11', 'Dangote Cement CP NOV 2026', 'Dangote Cement Plc', date(2026, 11, 20), Decimal('0.1475')),
+    ('MTNN-CP-2026-10', 'MTN Nigeria CP OCT 2026', 'MTN Nigeria Communications Plc', date(2026, 10, 16), Decimal('0.1500')),
+    ('ZENITH-CP-2027-01', 'Zenith Bank CP JAN 2027', 'Zenith Bank Plc', date(2027, 1, 22), Decimal('0.1425')),
+    ('ACCESS-CP-2026-12', 'Access Holdings CP DEC 2026', 'Access Holdings Plc', date(2026, 12, 4), Decimal('0.1460')),
+    ('BUACEM-CP-2026-09', 'BUA Cement CP SEP 2026', 'BUA Cement Plc', date(2026, 9, 25), Decimal('0.1490')),
+]
+
+# symbol -> [(year, revenue_ngn), ...] display-only demo series for the revenue chart
+REVENUE_HISTORY = {
+    'DANGCEM': [(2021, 1552400000000), (2022, 1823600000000), (2023, 2114000000000), (2024, 2389000000000), (2025, 2605000000000)],
+    'MTNN': [(2021, 1702000000000), (2022, 2025000000000), (2023, 2348000000000), (2024, 2517000000000), (2025, 2681000000000)],
+    'GTCO': [(2021, 612400000000), (2022, 712300000000), (2023, 892000000000), (2024, 1103000000000), (2025, 1248000000000)],
+    'ZENITHBANK': [(2021, 584200000000), (2022, 675100000000), (2023, 812400000000), (2024, 968200000000), (2025, 1093000000000)],
+    'UBA': [(2021, 498800000000), (2022, 590700000000), (2023, 756900000000), (2024, 891400000000), (2025, 1017000000000)],
+    'FBNH': [(2021, 401200000000), (2022, 476800000000), (2023, 588300000000), (2024, 712500000000), (2025, 824600000000)],
+    'NB': [(2021, 421500000000), (2022, 448200000000), (2023, 470600000000), (2024, 501300000000), (2025, 529800000000)],
+    'NESTLE': [(2021, 384700000000), (2022, 422900000000), (2023, 478600000000), (2024, 521400000000), (2025, 562300000000)],
+    'AIRTELAFRI': [(2021, 1285000000000), (2022, 1523000000000), (2023, 1784000000000), (2024, 2012000000000), (2025, 2245000000000)],
+    'SEPLAT': [(2021, 387200000000), (2022, 512400000000), (2023, 588900000000), (2024, 642300000000), (2025, 701800000000)],
+    'BUACEMENT': [(2021, 402800000000), (2022, 468500000000), (2023, 512600000000), (2024, 571900000000), (2025, 624700000000)],
+    'ACCESS': [(2021, 824600000000), (2022, 978500000000), (2023, 1241000000000), (2024, 1523000000000), (2025, 1748000000000)],
+}
 
 
 class Command(BaseCommand):
@@ -241,13 +271,43 @@ class Command(BaseCommand):
                     'pe_ratio': Decimal(str(pe)),
                     'book_value': Decimal(str(book_value)),
                     'market_cap': Decimal(str(market_cap)),
+                    'revenue_history': [
+                        {'year': y, 'revenue_ngn': str(r)}
+                        for y, r in REVENUE_HISTORY.get(symbol, [])
+                    ],
                     'is_active': True,
                 },
             )
             companies += 1 if created else 0
 
+        # REQ-7: Commercial papers (short-term corporate discount notes)
+        cps = 0
+        for symbol, name, issuer_name, maturity, coupon in COMMERCIAL_PAPERS:
+            issuer, _ = Issuer.objects.get_or_create(
+                name=issuer_name,
+                defaults={'region': Region.objects.filter(iso_code='NGA').first(), 'industry_sector': 'Financial / Corporate'},
+            )
+            inst, created = Instrument.objects.get_or_create(
+                exchange=exchange, symbol=symbol,
+                defaults={
+                    'name': name,
+                    'asset_class': 'COMMERCIAL_PAPER',
+                    'issuer': issuer,
+                    'base_currency': currency,
+                    'maturity_date': maturity,
+                    'coupon_rate': coupon,
+                    'last_price': Decimal('0.00'),
+                    'is_active': True,
+                },
+            )
+            if not created:
+                inst.asset_class = 'COMMERCIAL_PAPER'
+                inst.is_active = True
+                inst.save(update_fields=['asset_class', 'is_active'])
+            cps += 1 if created else 0
+
         self.stdout.write(self.style.SUCCESS(
-            f"Seeded: {auctions} auctions, {funds} funds, {navs} NAV snapshots, "
+            f"Seeded: {auctions} auctions, {funds} funds, {navs} NAV snapshots, {cps} commercial papers, "
             f"{fx} FX rates, {companies} company profiles "
             f"(reference dedupe removed {deduped} stale duplicate rows)."
         ))

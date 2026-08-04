@@ -30,6 +30,22 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     </div>
 
     <div class="table-wrap">
+      <h3>Commercial papers</h3>
+      <table class="data">
+        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let cp of cps()">
+            <td class="sym">{{ cp.symbol }}</td><td>{{ cp.name }}</td>
+            <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
+            <td class="num muted">{{ cp.maturity_date ?? '—' }}</td>
+            <td><app-share-btn [text]="shareCpText(cp)" [link]="'/bonds'"></app-share-btn></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="cps().length === 0">Loading commercial papers…</p>
+    </div>
+
+    <div class="table-wrap">
       <h3>DMO auction calendar</h3>
       <table class="data">
         <thead><tr><th>Date</th><th>Instrument</th><th>Tenor</th><th class="num">Offer (₦bn)</th><th class="num">Stop rate</th></tr></thead>
@@ -47,11 +63,14 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 export class BondsPage implements OnInit {
   disclaimer = DISCLAIMER;
   bonds = signal<Bond[]>([]);
+  cps = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
   constructor(private api: ApiService) {}
   shareText(b: Bond): string { return `${b.symbol} — ${b.name} (FGN bond)`; }
+  shareCpText(cp: Bond): string { return `${cp.symbol} — ${cp.name} (commercial paper)`; }
   ngOnInit() {
     this.api.bonds().subscribe(b => this.bonds.set(b));
+    this.api.commercialPapers().subscribe(cp => this.cps.set(cp));
     this.api.auctions().subscribe(a => this.auctions.set(a));
   }
 }

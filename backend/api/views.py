@@ -716,6 +716,15 @@ class BondInstrumentViewSet(viewsets.ReadOnlyModelViewSet):
         return Instrument.objects.filter(asset_class='BOND', is_active=True)
 
 
+class CommercialPaperViewSet(viewsets.ReadOnlyModelViewSet):
+    """Short-term corporate debt instruments (discount notes)."""
+    serializer_class = InstrumentSerializer
+    permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return Instrument.objects.filter(asset_class='COMMERCIAL_PAPER', is_active=True)
+
+
 class AuctionCalendarViewSet(viewsets.ReadOnlyModelViewSet):
     """F-04: Public DMO auction calendar & results."""
     serializer_class = AuctionCalendarSerializer

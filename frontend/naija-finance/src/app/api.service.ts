@@ -10,7 +10,8 @@ export interface Auction { id: number; instrument_symbol: string; instrument_nam
 export interface NavSnapshot { id: number; fund: number; date: string; nav: string; }
 export interface Fund { id: number; name: string; manager: string | null; asset_class: string; asset_class_display: string; latest_nav: NavSnapshot | null; nav_history: NavSnapshot[]; }
 export interface FxRate { id: number; pair: string; rate: string; date: string; source: string; }
-export interface CompanyProfile { id: number; symbol: string; name: string; sector: string | null; description: string | null; eps: string | null; pe_ratio: string | null; book_value: string | null; market_cap: string | null; }
+export interface RevenuePoint { year: number; revenue_ngn: string; }
+export interface CompanyProfile { id: number; symbol: string; name: string; sector: string | null; description: string | null; eps: string | null; pe_ratio: string | null; book_value: string | null; market_cap: string | null; revenue_history?: RevenuePoint[] | null; }
 export interface Alert { id?: number; instrument: number | null; instrument_symbol?: string | null; fund: number | null; fund_name?: string | null; alert_type: string; alert_type_display?: string; threshold: string; direction: string; direction_display?: string; active: boolean; triggered?: boolean; triggered_at?: string | null; last_evaluated_at?: string | null; last_value?: string | null; }
 
 @Injectable({ providedIn: 'root' })
@@ -19,6 +20,7 @@ export class ApiService {
 
   // F-04
   bonds(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/bonds/`); }
+  commercialPapers(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/commercial-papers/`); }
   auctions(): Observable<Auction[]> { return this.http.get<Auction[]>(`${API_BASE}/auctions/`); }
 
   // F-05

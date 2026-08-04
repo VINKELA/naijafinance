@@ -185,7 +185,7 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
         model = CompanyProfile
         fields = [
             'id', 'symbol', 'name', 'sector', 'description',
-            'eps', 'pe_ratio', 'book_value', 'market_cap',
+            'eps', 'pe_ratio', 'book_value', 'market_cap', 'revenue_history',
         ]
 
 

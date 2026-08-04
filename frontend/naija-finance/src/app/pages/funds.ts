@@ -1,5 +1,7 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
 
@@ -7,11 +9,23 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-funds',
-  imports: [CommonModule, ShareButton],
+  imports: [CommonModule, FormsModule, ShareButton],
   template: `
     <h2>Mutual Funds &amp; Public NAVs</h2>
-    <p class="sub">Fund list with published NAV snapshots.</p>
+    <p class="sub">Fund list with published NAV snapshots and historical performance.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="form-row" style="margin-bottom: 10px;">
+        <label style="font-size:12px;color:var(--txt2);font-weight:700;">Fund:</label>
+        <select [ngModel]="selectedId()" (ngModelChange)="select($event)" name="fundSelect" style="flex:1;min-width:220px;">
+          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
+        </select>
+        <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
+      </div>
+      <div #chartRef style="width: 100%; height: 260px;"></div>
+      <p class="loading" *ngIf="!selected()">Loading funds…</p>
+    </div>
 
     <div class="table-wrap">
       <h3>Funds &amp; latest NAV</h3>
@@ -31,10 +45,48 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     </div>
   `,
 })
-export class FundsPage implements OnInit {
+export class FundsPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   funds = signal<Fund[]>([]);
+  selectedId = signal<number | null>(null);
+  perf = signal<{ label: string; pct: number } | null>(null);
+  @ViewChild('chartRef') chartRef!: ElementRef;
+  private chart: IChartApi | null = null;
+  private series: ISeriesApi<'Area'> | null = null;
+
   constructor(private api: ApiService) {}
+  selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
   shareText(f: Fund): string { return `${f.name} — NAV ${f.latest_nav?.nav ?? '—'} (${f.asset_class_display})`; }
-  ngOnInit() { this.api.funds().subscribe(f => this.funds.set(f)); }
+  ngOnInit() {
+    this.api.funds().subscribe(fs => {
+      this.funds.set(fs);
+      if (fs.length && this.selectedId() === null) this.selectedId.set(fs[0].id);
+      this.render();
+    });
+  }
+  ngAfterViewInit() { this.render(); }
+  select(id: number) { this.selectedId.set(id); this.render(); }
+  private render() {
+    if (!this.chartRef?.nativeElement) return;
+    if (!this.chart) {
+      this.chart = createChart(this.chartRef.nativeElement, {
+        layout: { background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
+        grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
+        width: this.chartRef.nativeElement.clientWidth, height: 260,
+        timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+      });
+      this.series = this.chart.addSeries(AreaSeries, { lineColor: '#16c784', topColor: 'rgba(22,199,132,0.35)', bottomColor: 'rgba(22,199,132,0.02)', lineWidth: 2 });
+    }
+    const f = this.selected();
+    if (!f || !this.series) return;
+    const pts = [...f.nav_history].sort((a, b) => a.date.localeCompare(b.date));
+    this.series.setData(pts.map(p => ({ time: p.date, value: Number(p.nav) })));
+    this.chart?.timeScale().fitContent();
+    if (pts.length >= 2) {
+      const first = Number(pts[0].nav), last = Number(pts[pts.length - 1].nav);
+      const days = Math.max(1, Math.round((new Date(pts[pts.length - 1].date).getTime() - new Date(pts[0].date).getTime()) / 86400000));
+      const label = days >= 300 ? '1Y' : days >= 150 ? '6M' : days >= 45 ? '3M' : days >= 20 ? '1M' : `${days}D`;
+      this.perf.set({ label, pct: Math.round((last / first - 1) * 10000) / 100 });
+    } else this.perf.set(null);
+  }
 }

@@ -107,7 +107,8 @@ class Instrument(TimeStampedModel):
         ('FOREX', 'Foreign Exchange'),
         ('COMMODITY', 'Commodity'),
         ('CRYPTO', 'Cryptocurrency'),
-        ('DERIVATIVE', 'Derivative (Options/Futures)')
+        ('DERIVATIVE', 'Derivative (Options/Futures)'),
+        ('COMMERCIAL_PAPER', 'Commercial Paper (CP)')
     ]
 
     # Core Identifiers
@@ -371,6 +372,8 @@ class CompanyProfile(TimeStampedModel):
     pe_ratio = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True, help_text="Price/Earnings ratio")
     book_value = models.DecimalField(max_digits=20, decimal_places=4, null=True, blank=True, help_text="Book value per share")
     market_cap = models.DecimalField(max_digits=24, decimal_places=2, null=True, blank=True, help_text="Market capitalisation in NGN")
+    # Display-only annual revenue series for the companies chart (demo data).
+    revenue_history = models.JSONField(default=list, blank=True, null=True, help_text="[{year, revenue_ngn}, ...] display only")
     is_active = models.BooleanField(default=True)
 
     class Meta:
