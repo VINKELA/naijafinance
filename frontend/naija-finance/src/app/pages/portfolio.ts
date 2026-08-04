@@ -188,21 +188,25 @@ export class PortfolioPage implements OnInit, AfterViewInit {
       .map(([c, v]) => `${c} ${total ? Math.round((v / total) * 100) : 0}%`)
       .join(' · ');
     const fmt = (n: number) => n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}
-${alloc}
-Build yours → https://naijafinance.app/market`;
-    const url = 'https://naijafinance.app/market';
-    track('share_click', { url: '/market', mix: true });
+    const base = `${location.origin}/asset-mix`;
+    const buildYours = `${location.origin}/market`;
+    track('share_click', { url: '/asset-mix', mix: true });
     // REQ-11: create a public Asset Mix card (chart in the card is the viral hook), open it, copy its link.
     this.api.createMixShare(ps[0].id).subscribe({
       next: (share) => {
-        const cardUrl = `${location.origin}/asset-mix?token=${share.token}`;
+        const cardUrl = `${base}?token=${share.token}`;
+        const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
+        try {
+          navigator.share({ title: 'My Asset Mix', text, url: cardUrl }).catch(() => {});
+        } catch { /* fall through */ }
         try {
           navigator.clipboard.writeText(`${text}\n${cardUrl}`).then(() => { this.error = 'Asset Mix card created — link copied.'; });
         } catch { /* ignore */ }
         window.open(cardUrl, '_blank');
       },
       error: () => {
+        const text = `My Asset Mix — ${items.length} holdings · ₦${fmt(total)}\n${alloc}\nBuild yours → ${buildYours}`;
+        const url = buildYours;
         try {
           if (navigator.share) { navigator.share({ title: 'My Asset Mix', text, url }).catch(() => {}); return; }
         } catch { /* fall through */ }

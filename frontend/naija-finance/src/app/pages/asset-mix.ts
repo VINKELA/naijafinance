@@ -19,6 +19,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
         <div class="stat-tile">
           <div class="label">{{ card().name }}</div>
           <div class="value">{{ fmt(card().totalValue) }}</div>
+          <div class="delta" *ngIf="yield() !== null" [class.up]="yield()! >= 0" [class.down]="yield()! < 0">{{ yield()! >= 0 ? '▲' : '▼' }} {{ yield() }}% ({{ periodLabel() }})</div>
         </div>
         <div class="stat-tile" *ngFor="let it of card().items">
           <div class="label">{{ it.symbol }}</div>
@@ -44,6 +45,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;
   card = signal<any>(null);
+  yieldVal = signal<number | null>(null);
   error = '';
   token = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
@@ -66,12 +68,21 @@ export class AssetMixPage implements OnInit, AfterViewInit {
 
   ngAfterViewInit() { if (this.token) this.loadPerformance(this.period); }
 
+  yield(): number | null { return this.yieldVal(); }
+  periodLabel(): string { return this.periods.find(p => p.days === this.period)?.label ?? ''; }
   loadPerformance(days: number) {
     this.period = days;
     if (!this.token) return;
     this.api.mixPerformance(this.token, days).subscribe({
-      next: (r) => this.render(r.points ?? []),
-      error: () => this.render([]),
+      next: (r) => {
+        const pts = r.points ?? [];
+        this.render(pts);
+        if (pts.length >= 2) {
+          const first = Number(pts[0].value), last = Number(pts[pts.length - 1].value);
+          this.yieldVal.set(first ? Math.round((last / first - 1) * 10000) / 100 : null);
+        } else this.yieldVal.set(null);
+      },
+      error: () => { this.render([]); this.yieldVal.set(null); },
     });
   }
 

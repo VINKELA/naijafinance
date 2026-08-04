@@ -30,7 +30,11 @@ import { track } from '../analytics';
           <input type="email" placeholder="Email" [(ngModel)]="form.email" name="email" required>
           <input type="password" placeholder="Password" [(ngModel)]="form.password" name="password" required>
           <input *ngIf="mode === 'register'" type="password" placeholder="Repeat password" [(ngModel)]="form.re_password" name="re_password">
-          <button type="submit" [disabled]="busy">{{ busy ? 'Working…' : (mode === 'login' ? 'Sign in' : 'Create account') }}</button>
+          <label *ngIf="mode === 'register'" style="display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--txt2);line-height:1.4;">
+            <input type="checkbox" [(ngModel)]="form.consent" name="consent" style="margin-top:2px;width:auto;">
+            <span>I accept the <a routerLink="/legal" target="_blank" style="text-decoration:underline">Terms &amp; Conditions</a> and the <a routerLink="/legal" target="_blank" style="text-decoration:underline">Privacy Policy</a> (required).</span>
+          </label>
+          <button type="submit" [disabled]="busy || (mode === 'register' && !form.consent)">{{ busy ? 'Working…' : (mode === 'login' ? 'Sign in' : 'Create account') }}</button>
         </div>
       </form>
       <p class="error" *ngIf="error">{{ error }}</p>
@@ -47,7 +51,7 @@ export class AuthPage {
   busy = false;
   error = '';
   email = '';
-  form = { email: '', password: '', re_password: '', first_name: '', last_name: '' };
+  form = { email: '', password: '', re_password: '', first_name: '', last_name: '', consent: false };
   constructor(private api: ApiService, private router: Router) {}
 
   get isAuthed() { return this.api.isAuthed; }
