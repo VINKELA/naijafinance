@@ -922,10 +922,58 @@ def compare_assets(request):
     period = parse_period_days(request.query_params.get('period'), (7, 30, 90, 180, 365))
     symbols = [x.strip().upper() for x in request.query_params.get('symbols', '').split(',') if x.strip()]
     fund_ids = [int(x) for x in request.query_params.get('funds', '').split(',') if x.strip().isdigit()]
+    mix_tokens = [x.strip() for x in request.query_params.get('mixes', '').split(',') if x.strip()]
+    portfolio_ids = [int(x) for x in request.query_params.get('portfolios', '').split(',') if x.strip().isdigit()]
     today = timezone.localdate()
     start = today - timedelta(days=period)
 
     series = []
+
+    # User Asset Mixes (public token or owner) — normalized %-yield series
+    for tok in mix_tokens:
+        share = MixShare.objects.filter(token=tok).first()
+        if not share:
+            continue
+        if share.visibility == 'private' and request.user != share.user:
+            continue
+        if not share.portfolio_id:
+            continue
+        pts = build_portfolio_value_series(share.portfolio, period)
+        if len(pts) < 2:
+            continue
+        base = float(pts[0]['value']) or 0.0
+        if base <= 0:
+            continue
+        norm = [{"date": p['date'].isoformat() if hasattr(p['date'], 'isoformat') else str(p['date']), "value": round((float(p['value']) / base - 1.0) * 100.0, 3)} for p in pts]
+        series.append({
+            "symbol": f"Mix:{share.token[:8]}",
+            "name": (share.snapshot or {}).get("name") or "Asset Mix",
+            "asset_type": "Asset Mix",
+            "change_pct": norm[-1]["value"],
+            "points": norm,
+        })
+
+    # User Portfolios (owner-only, auth required) — normalized %-yield series
+    if request.user.is_authenticated:
+        for pid in portfolio_ids:
+            pf = Portfolio.objects.filter(pk=pid, user=request.user).first()
+            if not pf:
+                continue
+            pts = build_portfolio_value_series(pf, period)
+            if len(pts) < 2:
+                continue
+            base = float(pts[0]['value']) or 0.0
+            if base <= 0:
+                continue
+            norm = [{"date": p['date'].isoformat() if hasattr(p['date'], 'isoformat') else str(p['date']), "value": round((float(p['value']) / base - 1.0) * 100.0, 3)} for p in pts]
+            series.append({
+                "symbol": f"PF:{pid}",
+                "name": pf.name,
+                "asset_type": "Portfolio",
+                "change_pct": norm[-1]["value"],
+                "points": norm,
+            })
+
     # Instruments (equities, bonds, CPs, FX pairs)
     for sym in symbols:
         inst = Instrument.objects.filter(symbol__iexact=sym, is_active=True).first()

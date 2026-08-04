@@ -13,7 +13,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316
   imports: [CommonModule, FormsModule],
   template: `
     <h2>Compare Assets</h2>
-    <p class="sub">Normalized % performance of any mix of stocks, bonds, funds over a period.</p>
+    <p class="sub">Normalized % performance of stocks, bonds, funds — and, when signed in, your own Asset Mixes and Portfolios.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
 
@@ -37,6 +37,20 @@ const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316
           <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
         </select>
         <button type="submit" [disabled]="!fundId">Add fund</button>
+      </form>
+      <form class="form-row" style="margin-top:8px" (ngSubmit)="addMix()" *ngIf="authed">
+        <select [(ngModel)]="mixToken" name="mixToken" style="flex:1;min-width:220px;">
+          <option [ngValue]="null" disabled>My Asset Mixes…</option>
+          <option *ngFor="let m of myMixes()" [ngValue]="m.token">{{ m.name }} ({{ m.visibility === 'public' ? '🌍' : '🔒' }})</option>
+        </select>
+        <button type="submit" [disabled]="!mixToken">Add mix</button>
+      </form>
+      <form class="form-row" style="margin-top:8px" (ngSubmit)="addPortfolio()" *ngIf="authed">
+        <select [(ngModel)]="pfId" name="pfId" style="flex:1;min-width:220px;">
+          <option [ngValue]="null" disabled>My Portfolios…</option>
+          <option *ngFor="let p of myPortfolios()" [ngValue]="p.id">{{ p.name }}</option>
+        </select>
+        <button type="submit" [disabled]="!pfId">Add portfolio</button>
       </form>
       <div class="form-row" style="margin-top:10px;flex-wrap:wrap;" *ngIf="chips().length">
         <span class="pill" *ngFor="let c of chips(); let i = index" style="cursor:pointer;" (click)="removeChip(i)">{{ c.label }} ✕</span>
@@ -75,11 +89,18 @@ export class ComparePage implements OnInit, AfterViewInit, OnDestroy {
   activeIndex = signal(-1);
   private searchTimer: any;
   fundId = null as number | null;
+  mixToken = null as string | null;
+  pfId = null as number | null;
   symbols = signal<string[]>([]);
   fundIds = signal<number[]>([]);
+  mixTokens = signal<string[]>([]);
+  pfIds = signal<number[]>([]);
   funds = signal<any[]>([]);
+  myMixes = signal<any[]>([]);
+  myPortfolios = signal<any[]>([]);
   rows = signal<any[]>([]);
   error = '';
+  get authed() { return this.api.isAuthed; }
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
@@ -95,10 +116,24 @@ export class ComparePage implements OnInit, AfterViewInit, OnDestroy {
         const f = this.funds().find(x => x.id === id);
         return { label: f ? f.name : `fund#${id}` };
       }),
+      ...this.mixTokens().map(t => {
+        const m = this.myMixes().find(x => x.token === t);
+        return { label: m ? `Mix: ${m.name}` : `mix#${t.slice(0, 8)}` };
+      }),
+      ...this.pfIds().map(id => {
+        const p = this.myPortfolios().find(x => x.id === id);
+        return { label: p ? `Portfolio: ${p.name}` : `portfolio#${id}` };
+      }),
     ];
   }
   periodLabel(): string { return this.periods.find(p => p.days === this.period)?.label ?? ''; }
-  ngOnInit() { this.api.funds().subscribe(fs => this.funds.set(fs)); }
+  ngOnInit() {
+    this.api.funds().subscribe(fs => this.funds.set(fs));
+    if (this.api.isAuthed) {
+      this.api.myMixes().subscribe(m => this.myMixes.set(m ?? []));
+      this.api.portfolios().subscribe(p => this.myPortfolios.set(p ?? []));
+    }
+  }
   ngAfterViewInit() {}
 
   onSymbolInput() {
@@ -164,16 +199,31 @@ export class ComparePage implements OnInit, AfterViewInit, OnDestroy {
     this.fundId = null;
     this.load(this.period);
   }
+  addMix() {
+    if (!this.mixToken) return;
+    this.mixTokens.set([...new Set([...this.mixTokens(), this.mixToken as string])]);
+    this.mixToken = null;
+    this.load(this.period);
+  }
+  addPortfolio() {
+    if (!this.pfId) return;
+    this.pfIds.set([...new Set([...this.pfIds(), this.pfId as number])]);
+    this.pfId = null;
+    this.load(this.period);
+  }
   removeChip(i: number) {
-    const syms = [...this.symbols()], fids = [...this.fundIds()];
-    if (i < syms.length) syms.splice(i, 1); else fids.splice(i - syms.length, 1);
-    this.symbols.set(syms); this.fundIds.set(fids);
+    const syms = [...this.symbols()], fids = [...this.fundIds()], mts = [...this.mixTokens()], pfs = [...this.pfIds()];
+    if (i < syms.length) syms.splice(i, 1);
+    else if (i < syms.length + fids.length) fids.splice(i - syms.length, 1);
+    else if (i < syms.length + fids.length + mts.length) mts.splice(i - syms.length - fids.length, 1);
+    else pfs.splice(i - syms.length - fids.length - mts.length, 1);
+    this.symbols.set(syms); this.fundIds.set(fids); this.mixTokens.set(mts); this.pfIds.set(pfs);
     this.load(this.period);
   }
   load(days: number) {
     this.period = days;
     this.error = '';
-    this.api.compare(this.symbols(), this.fundIds(), days).subscribe({
+    this.api.compare(this.symbols(), this.fundIds(), days, this.mixTokens(), this.pfIds()).subscribe({
       next: (r) => { this.rows.set(r.series ?? []); this.render(r.series ?? []); },
       error: () => { this.rows.set([]); this.render([]); this.error = 'Compare failed.'; },
     });
