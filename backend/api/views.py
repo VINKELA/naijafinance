@@ -25,6 +25,32 @@ from .serializers import *
 from .tasks import run_stateful_scrape
 from .display import display_instrument_name, instrument_about_text
 
+
+PERIOD_ALIASES = {
+    '1w': 7,
+    '1m': 30,
+    '3m': 90,
+    '6m': 180,
+    '1y': 365,
+}
+
+
+def parse_period_days(raw, allowed, default=90):
+    """Parse ?period= from frontend pills (1w/1m/3m/6m/1y) or integer days.
+
+    Falls back to `default` on missing/invalid input. Returns an int in
+    `allowed` (or `default` when the parsed value isn't allowed).
+    """
+    if raw is None:
+        return default
+    value = str(raw).strip().lower()
+    days = PERIOD_ALIASES.get(value)
+    if days is None:
+        if not value.isdigit():
+            return default
+        days = int(value)
+    return days if days in allowed else default
+
 # --- Auth & Generic ViewSets ---
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -499,9 +525,7 @@ def portfolio_performance(request, pk):
     Period: 30/90/180/365 days (default 90). Display-only.
     """
     portfolio = get_object_or_404(Portfolio, pk=pk, user=request.user)
-    period = int(request.query_params.get('period', 90))
-    if period not in (30, 90, 180, 365):
-        period = 90
+    period = parse_period_days(request.query_params.get('period'), (30, 90, 180, 365))
     points = build_portfolio_value_series(portfolio, period)
     return Response({"period_days": period, "points": points})
 
@@ -598,9 +622,7 @@ def mix_card(request, token):
 def mix_performance(request, token):
     """Public value-over-time series for a shared Asset Mix (no login)."""
     share = get_object_or_404(MixShare, token=token)
-    period = int(request.query_params.get('period', 90))
-    if period not in (30, 90, 180, 365):
-        period = 90
+    period = parse_period_days(request.query_params.get('period'), (30, 90, 180, 365))
     if share.portfolio_id:
         points = build_portfolio_value_series(share.portfolio, period)
     else:
@@ -700,9 +722,7 @@ def watchlist_history(request):
     across all watched instruments (PriceHistory) and funds (NAV history).
     Period: 7/30/90/365 days (default 90). Display-only, demo data.
     """
-    period = int(request.query_params.get('period', 90))
-    if period not in (7, 30, 90, 365):
-        period = 90
+    period = parse_period_days(request.query_params.get('period'), (7, 30, 90, 365))
     watchlist = Watchlist.objects.filter(user=request.user).first()
     if watchlist is None:
         watchlist = Watchlist.objects.create(user=request.user, name='My Watchlist')
@@ -759,9 +779,7 @@ def compare_assets(request):
     Returns per-asset series where value = % change vs period start,
     so the frontend can overlay any mix of instruments + funds on one chart.
     """
-    period = int(request.query_params.get('period', 90))
-    if period not in (7, 30, 90, 180, 365):
-        period = 90
+    period = parse_period_days(request.query_params.get('period'), (7, 30, 90, 180, 365))
     symbols = [x.strip().upper() for x in request.query_params.get('symbols', '').split(',') if x.strip()]
     fund_ids = [int(x) for x in request.query_params.get('funds', '').split(',') if x.strip().isdigit()]
     today = timezone.localdate()

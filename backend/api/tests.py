@@ -353,3 +353,27 @@ class MockMarketDataTests(TestCase):
         resp = self.client.get('/api/earnings/')
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(len(resp.json()), 1)
+
+
+class ComparePeriodAliasTests(TestCase):
+    """REQ-13: compare endpoint must accept spec'd period pills (1w/1m/3m/6m/1y)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        call_command('seed_mock_market_data')
+
+    def test_string_period_pills_accepted(self):
+        for pill, expected in (('1w', 7), ('1m', 30), ('3m', 90), ('6m', 180), ('1y', 365)):
+            resp = self.client.get(f'/api/compare/?symbols=MTNN&period={pill}')
+            self.assertEqual(resp.status_code, 200, f'period={pill} failed')
+            self.assertEqual(resp.json()['period_days'], expected, f'period={pill}')
+
+    def test_uppercase_pills_and_int_still_work(self):
+        self.assertEqual(self.client.get('/api/compare/?symbols=MTNN&period=3M').json()['period_days'], 90)
+        self.assertEqual(self.client.get('/api/compare/?symbols=MTNN&period=90').json()['period_days'], 90)
+        self.assertEqual(self.client.get('/api/compare/?symbols=MTNN').json()['period_days'], 90)
+
+    def test_invalid_period_falls_back_to_default(self):
+        resp = self.client.get('/api/compare/?symbols=MTNN&period=bogus')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['period_days'], 90)
