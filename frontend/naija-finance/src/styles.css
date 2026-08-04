@@ -235,8 +235,11 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 
 @media(max-width:480px){
-  table.data td{padding:7px 4px;font-size:11px}
-  table.data th{padding:6px 4px;font-size:9.5px}
+  table.data{table-layout:fixed;width:100%}
+  table.data td{padding:6px 3px;font-size:10px}
+  table.data th{padding:5px 3px;font-size:8.5px}
+  table.data td,table.data th{overflow-wrap:break-word;word-break:break-word}
+  button.ghost{padding:3px 5px;font-size:9.5px}
 }
 
 @media(prefers-reduced-motion:reduce){
