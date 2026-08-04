@@ -6,6 +6,7 @@ import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
 import { track } from './analytics';
 import { fmtPrice, fmtPct } from './format';
+import { IS_DEMO } from './env';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +29,7 @@ export class App implements OnInit, OnDestroy {
   private searchTimer: any;
 
   get isAuthed() { return this.api.isAuthed; }
+  get isDemo() { return IS_DEMO; }
 
   constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router) {}
 

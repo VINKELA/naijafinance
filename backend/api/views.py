@@ -588,9 +588,30 @@ def create_mix_share(request):
             "asOf": timezone.localdate().isoformat(),
             "totalValue": float(total),
             "items": rows,
+            "creator": (request.user.first_name or "Naija Finance user").strip(),
         },
     )
     return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def list_mix_shares(request):
+    """Auth-only list of the user's Asset Mixes (token, name, total, asOf)."""
+    shares = MixShare.objects.filter(user=request.user)
+    out = []
+    for sh in shares:
+        snap = sh.snapshot or {}
+        out.append({
+            "token": sh.token,
+            "name": snap.get("name") or (sh.portfolio.name if sh.portfolio_id else "Asset Mix"),
+            "totalValue": snap.get("totalValue", 0),
+            "asOf": snap.get("asOf"),
+            "itemCount": len(snap.get("items", [])),
+            "created_at": sh.created_at.isoformat() if sh.created_at else None,
+            "url": f"/asset-mix?token={sh.token}",
+        })
+    return Response(out)
 
 
 @api_view(['GET'])

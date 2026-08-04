@@ -61,6 +61,7 @@ urlpatterns = [
     path('watchlist/toggle/', views.toggle_watchlist, name='toggle_watchlist'),
     path('portfolios/<int:pk>/performance/', views.portfolio_performance, name='portfolio_performance'),
     path('mix/', views.create_mix_share, name='create_mix_share'),
+    path('mix/list/', views.list_mix_shares, name='list_mix_shares'),
     path('mix/<str:token>/', views.mix_card, name='mix_card'),
     path('mix/<str:token>/revoke/', views.revoke_mix, name='revoke_mix'),
     path('mix/<str:token>/performance/', views.mix_performance, name='mix_performance'),

@@ -15,6 +15,26 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="sub" *ngIf="card()">Shareable performance card · as of {{ card().asOf }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
 
+    <div class="card" style="margin-bottom: 20px;" *ngIf="authed && !token">
+      <h3>My Asset Mixes</h3>
+      <table class="data">
+        <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>As of</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let m of mixes()">
+            <td class="sym">{{ m.name }}</td>
+            <td class="num">{{ fmt(m.totalValue) }}</td>
+            <td class="num">{{ m.itemCount }}</td>
+            <td class="muted">{{ m.asOf }}</td>
+            <td>
+              <a class="link" [routerLink]="['/asset-mix']" [queryParams]="{token: m.token}" style="margin-right:10px;">View insights</a>
+              <button type="button" class="ghost" (click)="copyMix(m)">Share</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="!mixes().length">No mixes yet — create one from the Portfolio page.</p>
+    </div>
+
     <div class="card" style="margin-bottom: 20px;" *ngIf="card()">
       <button type="button" class="ghost" *ngIf="authed && !revoked()" (click)="revoke()">Stop sharing</button>
       <p class="error" *ngIf="revoked()">This Asset Mix link has been deactivated — sharing stopped.</p>
@@ -23,6 +43,10 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
           <div class="label">{{ card().name }}</div>
           <div class="value">{{ fmt(card().totalValue) }}</div>
           <div class="delta" *ngIf="yield() !== null" [class.up]="yield()! >= 0" [class.down]="yield()! < 0">{{ yield()! >= 0 ? '▲' : '▼' }} {{ yield() }}% ({{ periodLabel() }})</div>
+          <div class="muted" style="font-size:11.5px;margin-top:6px;" *ngIf="card().creator">Mix by {{ card().creator }}</div>
+          <div class="form-row" style="margin-top:10px;">
+            <button type="button" (click)="copyLink()">📤 Share this mix</button>
+          </div>
         </div>
         <div class="stat-tile" *ngFor="let it of card().items">
           <div class="label">{{ it.symbol }}</div>
@@ -48,6 +72,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;
   card = signal<any>(null);
+  mixes = signal<any[]>([]);
   yieldVal = signal<number | null>(null);
   revokedFlag = signal(false);
   error = '';
@@ -69,13 +94,42 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   ngOnInit() {
     this.route.queryParams.subscribe(p => {
       this.token = p['token'] ?? '';
-      if (!this.token) { this.error = 'No Asset Mix token in the link.'; return; }
+      if (!this.token) {
+        if (this.api.isAuthed) { this.loadMixes(); return; }
+        this.error = 'No Asset Mix token in the link.';
+        return;
+      }
       this.api.mixCard(this.token).subscribe({
         next: (c) => { this.card.set(c); this.error = ''; },
         error: () => this.error = 'Mix not found — the link may be invalid or expired.',
       });
-      if (this.api.isAuthed || true) this.loadPerformance(this.period);
+      this.loadPerformance(this.period);
     });
+  }
+
+  loadMixes() {
+    this.api.myMixes().subscribe({
+      next: (m) => this.mixes.set(m ?? []),
+      error: () => this.error = 'Could not load your mixes.',
+    });
+  }
+
+  copyLink() {
+    const url = `${location.origin}/asset-mix?token=${this.token}`;
+    try {
+      navigator.clipboard.writeText(url).then(() => { this.error = 'Mix link copied — paste into WhatsApp.'; });
+    } catch {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Check my Asset Mix → ${url}`)}`, '_blank');
+    }
+  }
+
+  copyMix(m: any) {
+    const url = `${location.origin}/asset-mix?token=${m.token}`;
+    try {
+      navigator.clipboard.writeText(url).then(() => { this.error = 'Mix link copied — paste into WhatsApp.'; });
+    } catch {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Check my Asset Mix → ${url}`)}`, '_blank');
+    }
   }
 
   ngAfterViewInit() { if (this.token) this.loadPerformance(this.period); }

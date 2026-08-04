@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
 import { fmtPrice, fmtPct, fmtCompact } from '../format';
+import { IS_DEMO } from '../env';
 
 @Component({
   selector: 'app-market',
@@ -109,7 +110,7 @@ import { fmtPrice, fmtPct, fmtCompact } from '../format';
       </div>
     </div>
 
-    <p class="disc">⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX. Prices are illustrative mock data for this demo build.</p>
+    <p class="disc">⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.<span *ngIf="isDemo"> Prices are illustrative mock data for this demo build.</span></p>
   `,
 })
 export class MarketPage implements OnInit {
@@ -136,6 +137,7 @@ export class MarketPage implements OnInit {
   }
 
   fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact;
+  get isDemo() { return IS_DEMO; }
   constructor(private api: ApiService) {}
   moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
 

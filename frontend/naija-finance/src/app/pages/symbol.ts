@@ -5,8 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { IS_DEMO } from '../env';
 
-const DISCLAIMER = 'All data on this page is illustrative mock data for demo purposes and does not constitute investment advice.';
+const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-symbol',
@@ -49,7 +50,7 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
   `,
 })
 export class SymbolPage implements OnInit, AfterViewInit {
-  disclaimer = DISCLAIMER;
+  disclaimer = IS_DEMO ? 'All data on this page is illustrative mock data for demo purposes and does not constitute investment advice.' : DISCLAIMER;
   symbol = 'MTNN';
   detail = signal<any>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
