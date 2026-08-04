@@ -200,6 +200,7 @@ class Portfolio(TimeStampedModel):
 class PortfolioItem(TimeStampedModel):
     portfolio = models.ForeignKey(Portfolio, related_name='items', on_delete=models.CASCADE)
     instrument = models.ForeignKey(Instrument, on_delete=models.CASCADE, null=True, blank=True) # Used to be Stock
+    fund = models.ForeignKey('Fund', on_delete=models.CASCADE, null=True, blank=True, related_name='portfolio_items')
     quantity = models.DecimalField(max_digits=20, decimal_places=6)
     purchase_price = models.DecimalField(max_digits=20, decimal_places=6)
 

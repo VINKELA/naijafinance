@@ -44,24 +44,34 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <select [(ngModel)]="form.portfolioId" name="portfolioId" required>
           <option *ngFor="let p of portfolios()" [ngValue]="p.id">{{ p.name }}</option>
         </select>
-        <input type="text" placeholder="Symbol (e.g. MTNN)" [(ngModel)]="form.symbol" name="symbol" required>
-        <input type="number" step="any" placeholder="Quantity" [(ngModel)]="form.quantity" name="quantity" required>
+        <select [(ngModel)]="form.kind" name="kind">
+          <option value="instrument">Stock / Bond / CP</option>
+          <option value="fund">Mutual fund</option>
+        </select>
+        <input *ngIf="form.kind === 'instrument'" type="text" placeholder="Symbol (e.g. MTNN)" [(ngModel)]="form.symbol" name="symbol" required>
+        <select *ngIf="form.kind === 'fund'" [(ngModel)]="form.fundId" name="fundId" required style="flex:1;min-width:200px;">
+          <option [ngValue]="null" disabled>Select fund…</option>
+          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
+        </select>
+        <input type="number" step="any" placeholder="Units" [(ngModel)]="form.quantity" name="quantity" required>
         <input type="number" step="any" placeholder="Purchase price" [(ngModel)]="form.purchasePrice" name="purchasePrice" required>
         <button type="submit">Add position</button>
       </form>
     </div>
 
     <div class="table-wrap" *ngFor="let p of portfolios()">
-      <h3>{{ p.name }} — {{ p.total_value }}</h3>
+      <h3>{{ p.name }} — ₦{{ total(p) }} <button type="button" class="ghost" style="margin-left:8px" (click)="removePortfolio(p)">Delete</button></h3>
       <table class="data">
-        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th></tr></thead>
+        <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let it of p.items">
             <td class="sym">{{ it.symbol }}</td><td>{{ it.name }}</td>
+            <td><span class="pill">{{ it.asset_class }}</span></td>
             <td class="num">{{ it.quantity }}</td>
             <td class="num">{{ it.current_price }}</td>
             <td class="num">{{ it.current_value }}</td>
             <td class="num" [class.up]="it.gain_loss >= 0" [class.down]="it.gain_loss < 0">{{ it.gain_loss }} ({{ it.gain_loss_pct }}%)</td>
+            <td><button type="button" class="ghost" (click)="removeItem(it)">Remove</button></td>
           </tr>
         </tbody>
       </table>
@@ -72,10 +82,11 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 export class PortfolioPage implements OnInit {
   disclaimer = DISCLAIMER;
   portfolios = signal<any[]>([]);
+  funds = signal<any[]>([]);
   insights = signal<any>(null);
   newName = '';
   error = '';
-  form = { portfolioId: null as number | null, symbol: '', quantity: null as number | null, purchasePrice: null as number | null };
+  form = { portfolioId: null as number | null, kind: 'instrument' as 'instrument' | 'fund', symbol: '', fundId: null as number | null, quantity: null as number | null, purchasePrice: null as number | null };
 
   constructor(private api: ApiService) {}
 
@@ -91,6 +102,20 @@ export class PortfolioPage implements OnInit {
       next: (i) => this.insights.set(i),
       error: () => {},
     });
+    this.api.funds().subscribe(fs => this.funds.set(fs));
+  }
+
+  total(p: any): string {
+    const n = Number(p.total_value ?? 0);
+    return n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+
+  removeItem(it: any) {
+    this.api.removePortfolioItem(it.id).subscribe({ next: () => this.refresh(), error: (e) => this.error = e?.error?.detail ?? 'Remove failed.' });
+  }
+
+  removePortfolio(p: any) {
+    this.api.deletePortfolio(p.id).subscribe({ next: () => this.refresh(), error: (e) => this.error = e?.error?.detail ?? 'Delete failed.' });
   }
 
   createPortfolio() {
@@ -101,7 +126,16 @@ export class PortfolioPage implements OnInit {
   }
 
   addItem() {
-    if (!this.form.portfolioId || !this.form.symbol || !this.form.quantity || !this.form.purchasePrice) return;
+    if (!this.form.portfolioId || !this.form.quantity || !this.form.purchasePrice) return;
+    if (this.form.kind === 'fund') {
+      if (!this.form.fundId) return;
+      this.api.addPortfolioItem(this.form.portfolioId, '', this.form.quantity, this.form.purchasePrice, this.form.fundId).subscribe({
+        next: () => { this.form.fundId = null; this.form.quantity = null; this.form.purchasePrice = null; this.refresh(); },
+        error: (e) => this.error = e?.error?.detail ?? 'Add failed — check fund.',
+      });
+      return;
+    }
+    if (!this.form.symbol) return;
     this.api.addPortfolioItem(this.form.portfolioId, this.form.symbol.trim().toUpperCase(), this.form.quantity, this.form.purchasePrice).subscribe({
       next: () => { this.form.symbol = ''; this.form.quantity = null; this.form.purchasePrice = null; this.refresh(); },
       error: (e) => this.error = e?.error?.detail ?? 'Add failed — check symbol.',

@@ -54,6 +54,7 @@ class InstrumentSerializer(serializers.ModelSerializer):
 class PortfolioItemSerializer(serializers.ModelSerializer):
     symbol = serializers.SerializerMethodField()
     name = serializers.SerializerMethodField()
+    asset_class = serializers.SerializerMethodField()
     current_price = serializers.SerializerMethodField()
     current_value = serializers.SerializerMethodField()
     gain_loss = serializers.SerializerMethodField()
@@ -62,33 +63,49 @@ class PortfolioItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = PortfolioItem
         fields = [
-            'id', 'instrument', 'symbol', 'name', 'quantity', 'purchase_price',
+            'id', 'instrument', 'fund', 'asset_class', 'symbol', 'name', 'quantity', 'purchase_price',
             'current_price', 'current_value', 'gain_loss', 'gain_loss_pct'
         ]
 
-    def get_symbol(self, obj):
-        return obj.instrument.symbol if obj.instrument else ""
-
-    def get_name(self, obj):
-        return display_instrument_name(obj.instrument) if obj.instrument else ""
-
-    def get_current_price(self, obj):
+    def _price(self, obj):
+        if obj.fund_id:
+            latest = obj.fund.nav_snapshots.order_by('-date').first()
+            return latest.nav if latest else 0
         return obj.instrument.last_price if obj.instrument else 0
 
+    def get_symbol(self, obj):
+        return obj.fund.name if obj.fund_id else (obj.instrument.symbol if obj.instrument else "")
+
+    def get_name(self, obj):
+        if obj.fund_id:
+            return f"{obj.fund.name} (Fund)"
+        return display_instrument_name(obj.instrument) if obj.instrument else ""
+
+    def get_asset_class(self, obj):
+        if obj.fund_id:
+            return f"Fund · {obj.fund.get_asset_class_display()}"
+        return obj.instrument.get_asset_class_display() if obj.instrument else ""
+
+    def get_current_price(self, obj):
+        return self._price(obj)
+
     def get_current_value(self, obj):
-        if not obj.instrument:
+        price = self._price(obj)
+        if price == 0:
             return 0
-        return obj.quantity * obj.instrument.last_price
+        return obj.quantity * price
 
     def get_gain_loss(self, obj):
-        if not obj.instrument:
+        price = self._price(obj)
+        if price == 0:
             return 0
-        return (obj.instrument.last_price - obj.purchase_price) * obj.quantity
+        return (price - obj.purchase_price) * obj.quantity
 
     def get_gain_loss_pct(self, obj):
-        if obj.purchase_price == 0 or not obj.instrument:
+        price = self._price(obj)
+        if obj.purchase_price == 0 or price == 0:
             return 0
-        return ((obj.instrument.last_price - obj.purchase_price) / obj.purchase_price) * 100
+        return ((price - obj.purchase_price) / obj.purchase_price) * 100
 
 class PortfolioSerializer(serializers.ModelSerializer):
     items = PortfolioItemSerializer(many=True, read_only=True)
@@ -99,8 +116,14 @@ class PortfolioSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'items', 'total_value']
 
     def get_total_value(self, obj):
-        # Calculates current value by multiplying quantity by the instrument's last_price
-        return sum([(item.quantity * (item.instrument.last_price or 0)) for item in obj.items.all() if item.instrument])
+        total = 0
+        for item in obj.items.all():
+            if item.fund_id:
+                latest = item.fund.nav_snapshots.order_by('-date').first()
+                total += (item.quantity * (latest.nav or 0)) if latest else 0
+            elif item.instrument:
+                total += item.quantity * (item.instrument.last_price or 0)
+        return total
 
 # --- Watchlist Serializer ---
 class WatchlistSerializer(serializers.ModelSerializer):

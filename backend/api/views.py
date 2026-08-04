@@ -520,20 +520,30 @@ def add_portfolio_item_by_symbol(request):
     quantity = request.data.get('quantity')
     purchase_price = request.data.get('purchase_price')
 
-    if not all([portfolio_id, symbol, quantity, purchase_price]):
+    fund_id = request.data.get('fund_id')
+    if not all([portfolio_id, quantity, purchase_price]) or not (symbol or fund_id):
         return Response(
-            {"detail": "portfolio_id, symbol, quantity, and purchase_price are required."},
+            {"detail": "portfolio_id, quantity, purchase_price, and symbol or fund_id are required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     portfolio = get_object_or_404(Portfolio, id=portfolio_id, user=request.user)
-    instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
-    item = PortfolioItem.objects.create(
-        portfolio=portfolio,
-        instrument=instrument,
-        quantity=Decimal(str(quantity)),
-        purchase_price=Decimal(str(purchase_price)),
-    )
+    if fund_id:
+        fund = get_object_or_404(Fund, id=fund_id)
+        item = PortfolioItem.objects.create(
+            portfolio=portfolio,
+            fund=fund,
+            quantity=Decimal(str(quantity)),
+            purchase_price=Decimal(str(purchase_price)),
+        )
+    else:
+        instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
+        item = PortfolioItem.objects.create(
+            portfolio=portfolio,
+            instrument=instrument,
+            quantity=Decimal(str(quantity)),
+            purchase_price=Decimal(str(purchase_price)),
+        )
     return Response(PortfolioItemSerializer(item).data, status=status.HTTP_201_CREATED)
 
 

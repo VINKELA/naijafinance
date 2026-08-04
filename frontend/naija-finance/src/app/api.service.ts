@@ -61,8 +61,16 @@ export class ApiService {
   // ---- F-09 Portfolios ----
   portfolios(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/`, { headers: this.authHeaders() }); }
   createPortfolio(name: string): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/`, { name }, { headers: this.authHeaders() }); }
-  addPortfolioItem(portfolioId: number, symbol: string, quantity: number, purchasePrice: number): Observable<any> {
-    return this.http.post<any>(`${API_BASE}/portfolio-items/add-by-symbol/`, { portfolio_id: portfolioId, symbol, quantity, purchase_price: purchasePrice }, { headers: this.authHeaders() });
+  addPortfolioItem(portfolioId: number, symbol: string, quantity: number, purchasePrice: number, fundId?: number): Observable<any> {
+    const body: any = { portfolio_id: portfolioId, symbol, quantity, purchase_price: purchasePrice };
+    if (fundId) body.fund_id = fundId;
+    return this.http.post<any>(`${API_BASE}/portfolio-items/add-by-symbol/`, body, { headers: this.authHeaders() });
+  }
+  removePortfolioItem(itemId: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/portfolio-items/${itemId}/`, { headers: this.authHeaders() });
+  }
+  deletePortfolio(portfolioId: number): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/portfolios/${portfolioId}/`, { headers: this.authHeaders() });
   }
   portfolioInsights(): Observable<any> { return this.http.get<any>(`${API_BASE}/portfolio-insights/`, { headers: this.authHeaders() }); }
   searchStocks(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/stocks/search/?q=${encodeURIComponent(q)}`); }
