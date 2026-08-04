@@ -1,6 +1,7 @@
+<div class="demo-banner">⚠️ Demo preview — prices are simulated for demonstration, not live NGX market data</div>
 <header class="topbar">
-  <a routerLink="/market" class="logo"><span class="mark">🇳🇬</span><span>Naija <b>Finance</b></span></a>
-  <div class="status"><i></i> Market data · 30-min delayed · NGX live</div>
+  <a routerLink="/market" class="logo"><img src="favicon.svg" alt="" class="mark"><span>Naija <b>Finance</b></span></a>
+  <div class="status"><i></i> Demo data · as of {{ asOf() }}</div>
   <div class="search">
     <input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query"
       (input)="onSearchInput()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onSearchKey($event)" (keyup.enter)="search()" autocomplete="off">

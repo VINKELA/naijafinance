@@ -46,7 +46,7 @@ import { ApiService } from '../api.service';
       <p class="loading" *ngIf="movers().length === 0">Loading movers…</p>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <h3>FGN Bond yields <span class="tag">DMO</span></h3>
         <div class="yieldRow">
@@ -86,7 +86,7 @@ import { ApiService } from '../api.service';
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+    <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <h3>Headlines <span class="tag">News</span></h3>
         <table>

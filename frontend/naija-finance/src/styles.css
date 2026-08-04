@@ -23,11 +23,15 @@ html,body{background:var(--bg);color:var(--txt);font-family:var(--font);-webkit-
 .up{color:var(--green)} .down{color:var(--red)} .flat{color:var(--txt2)}
 a{color:var(--blue);text-decoration:none}
 
+/* ── Demo-data banner (go-live compliance fallback) ── */
+.demo-banner{background:linear-gradient(90deg,#5b3a00,#7a4f00);color:#ffd98a;text-align:center;font-size:11.5px;font-weight:700;padding:6px 12px;letter-spacing:.02em}
+:root[data-theme="light"] .demo-banner{background:linear-gradient(90deg,#f5e6c4,#f0d9a8);color:#7a4f00}
+
 /* ── Top bar ── */
 .topbar{display:flex;align-items:center;gap:16px;padding:0 24px;height:58px;border-bottom:1px solid var(--line);background:rgba(10,14,20,.92);position:sticky;top:0;z-index:50;backdrop-filter:blur(10px)}
 :root[data-theme="light"] .topbar{background:rgba(244,246,250,.94)}
 .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.3px;cursor:pointer;color:var(--txt)}
-.logo .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#16c784,#0e8f5f);display:grid;place-items:center;font-size:14px;color:#04140c;box-shadow:0 2px 10px rgba(22,199,132,.35)}
+.logo .mark{width:28px;height:28px;border-radius:7px;display:block;object-fit:cover;box-shadow:0 2px 10px rgba(22,199,132,.35)}
 .logo b{color:var(--green)}
 .status{font-size:11px;color:var(--txt2);background:var(--card);border:1px solid var(--line);padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .status i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px var(--green)}
@@ -185,13 +189,22 @@ button.ghost:hover{color:var(--red);border-color:var(--red)}
 .loading{color:var(--txt2);font-size:13px;padding:18px 16px;font-style:italic}
 .disclaimer{color:var(--txt2);font-size:12px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:0 0 22px}
 
+html,body{max-width:100%;overflow-x:hidden}
 @media(max-width:900px){
   .wrap{flex-direction:column;padding:16px 14px 90px}
   .side{width:100%}
   .hero{grid-template-columns:1fr}
-  .topbar{padding:0 14px;gap:10px;height:54px}
-  .search{max-width:none}
+  .topbar{flex-wrap:wrap;padding:10px 14px;gap:8px;height:auto;row-gap:8px}
+  .logo{font-size:15px}
+  .logo .mark{width:24px;height:24px}
+  .search{flex:1 1 100%;max-width:none;order:3;margin-left:0}
   .mnav{display:block}
   .status{display:none}
   .app-footer{padding:16px 14px 90px}
+  .table-wrap{overflow-x:auto}
+  .stat-grid{grid-template-columns:1fr}
+  .fxGrid{grid-template-columns:1fr 1fr}
+  .grid2{grid-template-columns:1fr !important}
+  .form-row input,.form-row select{min-width:0;flex:1 1 45%}
+  .sugg-dd{left:0;right:0}
 }

@@ -15,6 +15,7 @@ export class App implements OnInit, OnDestroy {
   langLabel = '🇳🇬 Pidgin';
   themeLabel = '🌙';
   query = '';
+  asOf = signal('');
   suggestions = signal<any[]>([]);
   showSuggestions = signal(false);
   activeIndex = signal(-1);
@@ -132,6 +133,10 @@ export class App implements OnInit, OnDestroy {
   loadTape() {
     const items: { s: string; p: string; ch: string; up: boolean | null }[] = [];
     this.api.indexes().subscribe(idx => {
+      const lu = idx[0]?.last_updated;
+      if (lu) {
+        try { this.asOf.set(new Date(lu).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })); } catch { /* noop */ }
+      }
       for (const i of idx.slice(0, 3)) {
         items.push({ s: i.symbol, p: i.current_price, ch: `${i.percent_change}%`, up: i.isUp });
       }
