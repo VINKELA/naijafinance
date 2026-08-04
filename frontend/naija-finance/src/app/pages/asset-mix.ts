@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { fmtMoney, fmtPct } from '../format';
@@ -9,7 +10,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
 
 @Component({
   selector: 'app-asset-mix',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <h2>Asset Mix</h2>
     <p class="sub" *ngIf="card()">{{ card().visibility === 'private' ? 'Private mix · only you can view' : 'Shareable performance card · as of ' + card().asOf }}</p>
@@ -17,7 +18,44 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="authed && !token">
-      <h3>Asset Mixes</h3>
+      <h3>Create Asset Mix</h3>
+      <div class="form-row" style="margin-bottom: 10px;">
+        <input type="text" placeholder="Mix name (e.g. My 2026 Growth Mix)" [(ngModel)]="builder.name" name="bname">
+        <select [(ngModel)]="builder.visibility" name="bvis">
+          <option value="public">🌍 Public — anyone can view</option>
+          <option value="private">🔒 Private — only you</option>
+        </select>
+        <button type="button" class="ghost" (click)="addBuilderRow()">+ Add asset</button>
+      </div>
+      <div class="form-row" style="margin-bottom: 8px; flex-wrap: wrap;" *ngFor="let r of builder.rows; let i = index">
+        <select [(ngModel)]="r.kind" [name]="'bkind'+i" style="width: 140px;">
+          <option value="instrument">Stock/Bond/CP</option>
+          <option value="fund">Fund</option>
+        </select>
+        <input *ngIf="r.kind === 'instrument'" type="text" placeholder="Symbol or name…" [(ngModel)]="r.symbol" [name]="'bsym'+i" list="mixAssetOptions" (input)="searchBuilder($any($event))">
+        <select *ngIf="r.kind === 'fund'" [(ngModel)]="r.fundId" [name]="'bfund'+i" style="flex:1;min-width:180px;">
+          <option [ngValue]="null" disabled>Select fund…</option>
+          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
+        </select>
+        <input type="number" step="any" min="1" placeholder="Value (₦)" [(ngModel)]="r.value" [name]="'bval'+i" style="width: 130px;">
+        <button type="button" class="ghost" (click)="builder.rows.splice(i,1)">✕</button>
+      </div>
+      <datalist id="mixAssetOptions">
+        <option *ngFor="let o of builder.options" [value]="o.symbol">{{ o.name }}</option>
+      </datalist>
+      <div class="form-row" style="margin-bottom: 4px;">
+        <button type="button" (click)="createMix()" [disabled]="!builder.name.trim() || !builder.rows.length">Create Asset Mix</button>
+        <span class="muted" style="font-size: 11.5px;">Pick assets by name — mix is yours to make public or private.</span>
+      </div>
+      <p class="error" *ngIf="builderError">{{ builderError }}</p>
+      <p class="error" style="color: var(--up, #16C784);" *ngIf="builderOk">{{ builderOk }}</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;" *ngIf="authed && !token">
+      <h3>Asset Mixes <span class="muted" style="font-size:11.5px;">latest 20 · search for more</span></h3>
+      <div class="form-row" style="margin-bottom: 10px;">
+        <input type="text" placeholder="Search your mixes by name…" [(ngModel)]="mixSearch" name="mixSearch" (input)="loadMixes()">
+      </div>
       <table class="data">
         <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>As of</th><th>Visibility</th><th></th></tr></thead>
         <tbody>
@@ -37,7 +75,27 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="!mixes().length">No mixes yet — create one from the Portfolio page.</p>
+      <p class="loading" *ngIf="!mixes().length">No mixes yet — create one above or from the Portfolio page.</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;" *ngIf="!token">
+      <h3>Public Asset Mixes <span class="muted" style="font-size:11.5px;">latest 20 · search for more</span></h3>
+      <div class="form-row" style="margin-bottom: 10px;">
+        <input type="text" placeholder="Search public mixes by name…" [(ngModel)]="pubSearch" name="pubSearch" (input)="loadPublic()">
+      </div>
+      <table class="data">
+        <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>By</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let m of pubMixes()">
+            <td class="sym">{{ m.name }}</td>
+            <td class="num">{{ fmt(m.totalValue) }}</td>
+            <td class="num">{{ m.itemCount }}</td>
+            <td class="muted">{{ m.creator }}</td>
+            <td><a class="link" [routerLink]="['/asset-mix']" [queryParams]="{token: m.token}">View</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="loading" *ngIf="!pubMixes().length">No public mixes yet — share one and it appears here.</p>
     </div>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="card()">
@@ -78,10 +136,17 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   period = 90;
   card = signal<any>(null);
   mixes = signal<any[]>([]);
+  pubMixes = signal<any[]>([]);
+  funds = signal<any[]>([]);
   yieldVal = signal<number | null>(null);
   revokedFlag = signal(false);
   error = '';
   token = '';
+  mixSearch = '';
+  pubSearch = '';
+  builder = { name: '', visibility: 'public', rows: [] as any[], options: [] as any[] };
+  builderError = '';
+  builderOk = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
@@ -100,8 +165,9 @@ export class AssetMixPage implements OnInit, AfterViewInit {
     this.route.queryParams.subscribe(p => {
       this.token = p['token'] ?? '';
       if (!this.token) {
+        this.loadPublic();
+        this.api.funds().subscribe(fs => this.funds.set(fs));
         if (this.api.isAuthed) { this.loadMixes(); return; }
-        this.error = 'No Asset Mix token in the link.';
         return;
       }
       this.api.mixCard(this.token).subscribe({
@@ -113,9 +179,54 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   }
 
   loadMixes() {
-    this.api.myMixes().subscribe({
+    this.api.myMixes(this.mixSearch.trim()).subscribe({
       next: (m) => this.mixes.set(m ?? []),
       error: () => this.error = 'Could not load your mixes.',
+    });
+  }
+
+  loadPublic() {
+    this.api.publicMixes(this.pubSearch.trim()).subscribe({
+      next: (m) => this.pubMixes.set(m ?? []),
+      error: () => this.error = 'Could not load public mixes.',
+    });
+  }
+
+  addBuilderRow() {
+    this.builder.rows.push({ kind: 'instrument', symbol: '', fundId: null, value: null });
+    this.builderError = ''; this.builderOk = '';
+  }
+
+  searchBuilder(ev: any) {
+    const q = (ev?.target?.value || '').trim();
+    if (q.length < 2) { this.builder.options = []; return; }
+    this.api.searchStocks(q).subscribe({
+      next: (opts) => this.builder.options = (opts ?? []).slice(0, 8),
+      error: () => {},
+    });
+  }
+
+  createMix() {
+    const items = this.builder.rows
+      .map(r => r.kind === 'fund'
+        ? { fund_id: r.fundId, value: r.value }
+        : { symbol: (r.symbol || '').trim(), value: r.value })
+      .filter(it => (it.fund_id || it.symbol) && Number(it.value) > 0);
+    if (!items.length) { this.builderError = 'Add at least one asset with a value.'; return; }
+    this.api.createStandaloneMix({
+      name: this.builder.name.trim(),
+      visibility: this.builder.visibility,
+      items,
+    }).subscribe({
+      next: (res) => {
+        this.builderError = '';
+        this.builderOk = `Asset Mix created — link: ${location.origin}/asset-mix?token=***}`;
+        this.builder = { name: '', visibility: 'public', rows: [], options: [] };
+        this.loadMixes(); this.loadPublic();
+        const url = `${location.origin}/asset-mix?token=***}`;
+        try { navigator.clipboard.writeText(url).then(() => { this.builderOk = 'Asset Mix created — link copied.'; }); } catch {}
+      },
+      error: (e) => this.builderError = e?.error?.detail ?? 'Could not create the mix.',
     });
   }
 

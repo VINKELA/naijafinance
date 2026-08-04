@@ -73,7 +73,7 @@ export class ApiService {
   }
 
   // ---- F-09 Portfolios ----
-  portfolios(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/`, { headers: this.authHeaders() }); }
+  portfolios(q = ''): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/?q=${encodeURIComponent(q)}`, { headers: this.authHeaders() }); }
   createPortfolio(name: string): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/`, { name }, { headers: this.authHeaders() }); }
   addPortfolioItem(portfolioId: number, symbol: string, quantity: number, purchasePrice: number, fundId?: number): Observable<any> {
     const body: any = { portfolio_id: portfolioId, symbol, quantity, purchase_price: purchasePrice };
@@ -94,7 +94,9 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/mix/`, body, { headers: this.authHeaders() });
   }
   mixCard(token: string): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/`); }
-  myMixes(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/mix/list/`, { headers: this.authHeaders() }); }
+  myMixes(q = ''): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/mix/list/?q=${encodeURIComponent(q)}`, { headers: this.authHeaders() }); }
+  publicMixes(q = ''): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/mix/public/?q=${encodeURIComponent(q)}`); }
+  createStandaloneMix(body: any): Observable<any> { return this.http.post<any>(`${API_BASE}/mix/create/`, body, { headers: this.authHeaders() }); }
   setMixVisibility(token: string, visibility: string): Observable<any> { return this.http.post<any>(`${API_BASE}/mix/${token}/visibility/`, { visibility }, { headers: this.authHeaders() }); }
   mixPerformance(token: string, period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/performance/?period=${period}`); }
   revokeMix(token: string): Observable<void> { return this.http.delete<void>(`${API_BASE}/mix/${token}/revoke/`, { headers: this.authHeaders() }); }

@@ -52,10 +52,18 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
+      <h3>Create Portfolio</h3>
       <form class="form-row" (ngSubmit)="createPortfolio()">
         <input type="text" placeholder="New portfolio name" [(ngModel)]="newName" name="newName" required>
         <button type="submit">Create</button>
       </form>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;" *ngIf="portfolios().length">
+      <h3>Your Portfolios <span class="muted" style="font-size:11.5px;">latest 20 · search for more</span></h3>
+      <div class="form-row" style="margin-bottom: 10px;">
+        <input type="text" placeholder="Search portfolios by name…" [(ngModel)]="pfSearch" name="pfSearch" (input)="loadPortfolios()">
+      </div>
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -108,6 +116,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
   funds = signal<any[]>([]);
   insights = signal<any>(null);
   newName = '';
+  pfSearch = '';
   error = '';
   form = { portfolioId: null as number | null, kind: 'instrument' as 'instrument' | 'fund', symbol: '', fundId: null as number | null, quantity: null as number | null, purchasePrice: null as number | null };
   @ViewChild('perfChartRef') perfChartRef!: ElementRef;
@@ -146,12 +155,19 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     this.chart?.timeScale().fitContent();
   }
 
+  loadPortfolios() {
+    this.api.portfolios(this.pfSearch.trim()).subscribe({
+      next: (ps) => this.portfolios.set(ps ?? []),
+      error: () => this.error = 'Could not load portfolios.',
+    });
+  }
+
   refresh() {
     if (!this.api.isAuthed) { this.error = 'Sign in to use portfolios (Account page).'; return; }
-    this.api.portfolios().subscribe({
-      next: (p) => { this.portfolios.set(p); this.error = ''; if (p.length && this.form.portfolioId === null) this.form.portfolioId = p[0].id; if (p.length && !this.chart) this.loadPerformance(this.period); },
-      error: () => this.error = 'Could not load portfolios — are you logged in?',
-    });
+    this.loadPortfolios();
+    const ps = this.portfolios();
+    if (ps.length && this.form.portfolioId === null) this.form.portfolioId = ps[0].id;
+    if (ps.length && !this.chart) this.loadPerformance(this.period);
     this.api.portfolioInsights().subscribe({
       next: (i) => this.insights.set(i),
       error: () => {},

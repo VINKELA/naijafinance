@@ -649,7 +649,7 @@ def list_public_mixes(request):
             "totalValue": snap.get("totalValue", 0),
             "asOf": snap.get("asOf"),
             "itemCount": len(snap.get("items", [])),
-            "url": f"/asset-mix?token={token}",
+            "url": f"/asset-mix?token={sh.token}",
         })
         if not q and len(out) >= 20:
             break
