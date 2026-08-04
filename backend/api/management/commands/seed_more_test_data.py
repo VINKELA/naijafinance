@@ -156,7 +156,7 @@ class Command(BaseCommand):
                 added_bonds += 1
 
         # Demo user enrichment
-        u = User.objects.filter(email='demo@atamatech.com').first()
+        u = User.objects.filter(email='demo@naijafinance.com').first()
         enriched = False
         if u:
             wl = u.watchlist_set.first()

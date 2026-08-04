@@ -7,8 +7,8 @@ from decimal import Decimal
 from api.models import Watchlist, Portfolio, PortfolioItem, Alert, Instrument
 
 User = get_user_model()
-EMAIL = 'demo@atamatech.com'
-PASSWORD = 'DemoPass123!'
+EMAIL = 'demo@naijafinance.com'
+PASSWORD = 'demo1234'
 
 
 class Command(BaseCommand):
@@ -17,13 +17,10 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         user, created = User.objects.get_or_create(email=EMAIL)
-        if created:
-            user.set_password(PASSWORD)
-            user.is_active = True
-            user.save()
-            self.stdout.write(f'Created demo user {EMAIL}')
-        else:
-            self.stdout.write(f'Demo user exists: {EMAIL}')
+        user.set_password(PASSWORD)
+        user.is_active = True
+        user.save()
+        self.stdout.write(('Created demo user ' if created else 'Demo user exists: ') + EMAIL)
 
         wl, _ = Watchlist.objects.get_or_create(user=user, name='Default')
         symbols = ['DANGCEM', 'MTNN', 'GTCO', 'ZENITHBANK']
