@@ -1,10 +1,19 @@
 <header class="topbar">
   <a routerLink="/market" class="logo"><span class="mark">🇳🇬</span><span>Naija <b>Finance</b></span></a>
   <div class="status"><i></i> Market data · 30-min delayed · NGX live</div>
-  <div class="search"><input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query" (keyup.enter)="search()"></div>
+  <div class="search">
+    <input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query"
+      (input)="onSearchInput()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onSearchKey($event)" (keyup.enter)="search()" autocomplete="off">
+    <div class="sugg-dd" *ngIf="showSuggestions()">
+      <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="selectSuggestion(s)">
+        <span class="s">{{ s.symbol }}</span><span class="n">{{ s.name }}</span><span class="t">{{ s.type }}</span>
+      </button>
+    </div>
+  </div>
   <button class="langBtn" (click)="toggleLang()">{{ langLabel }}</button>
   <button class="langBtn" (click)="toggleTheme()" title="Toggle light/dark theme">{{ themeLabel }}</button>
-  <div class="avatar">AK</div>
+  <a routerLink="/account" class="avatar" title="Account">{{ isAuthed ? '👤' : 'AK' }}</a>
+  <button class="langBtn signout" *ngIf="isAuthed" (click)="logout()">Sign out</button>
 </header>
 
 <div class="tape"><div class="tape-track">

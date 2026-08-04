@@ -38,6 +38,18 @@ a{color:var(--blue);text-decoration:none}
 .langBtn{background:var(--card);border:1px solid var(--line);color:var(--txt);padding:7px 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
 .langBtn:hover{border-color:var(--line2)}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;text-decoration:none;cursor:pointer}
+.langBtn.signout{color:var(--red);border-color:rgba(234,57,67,.45)}
+.langBtn.signout:hover{background:rgba(234,57,67,.12)}
+.search{position:relative}
+.sugg-dd{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;z-index:60;box-shadow:0 12px 32px rgba(0,0,0,.35);max-height:320px;overflow-y:auto}
+.sugg{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:transparent;border:0;color:var(--txt);cursor:pointer;text-align:left;font-size:13px}
+.sugg .s{font-weight:700;color:var(--accent);min-width:84px}
+.sugg .n{flex:1;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugg .t{font-size:11px;color:var(--txt3)}
+.sugg:hover,.sugg.on{background:rgba(91,141,255,.12)}
+.danger{background:rgba(234,57,67,.14);color:var(--red);border:1px solid rgba(234,57,67,.45);padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13.5px}
+.danger:hover{background:rgba(234,57,67,.24)}
 
 /* ── Market tape ── */
 .tape{display:flex;border-bottom:1px solid var(--line);background:var(--bg2);overflow:hidden;scrollbar-width:none;position:relative}

@@ -11,16 +11,15 @@ import { ApiService } from '../api.service';
     <h2>Account (F-09)</h2>
     <p class="sub">Email + JWT onboarding — no KYC in v1.</p>
 
-    <div class="card" style="max-width: 420px; margin-bottom: 16px;">
+    <div class="card" style="max-width: 420px; margin-bottom: 16px;" *ngIf="!isAuthed">
       <p class="sub" style="margin-bottom: 10px;">Demo access (one click):</p>
       <button (click)="demoLogin()" [disabled]="busy">{{ busy ? 'Signing in…' : 'Log in with demo account' }}</button>
     </div>
 
-    <div class="card" style="max-width: 420px;">
+    <div class="card" style="max-width: 420px;" *ngIf="!isAuthed">
       <div class="form-row" style="margin-bottom: 14px;">
         <button *ngIf="mode !== 'login'" class="ghost" (click)="mode = 'login'">Login</button>
         <button *ngIf="mode !== 'register'" class="ghost" (click)="mode = 'register'">Register</button>
-        <span class="muted" style="font-size: 13px; margin-left: auto;">{{ isAuthed ? 'Signed in' : 'Signed out' }}</span>
       </div>
 
       <form (ngSubmit)="submit()">
@@ -34,7 +33,11 @@ import { ApiService } from '../api.service';
         </div>
       </form>
       <p class="error" *ngIf="error">{{ error }}</p>
-      <p class="muted" style="font-size: 13px; margin-top: 12px;" *ngIf="isAuthed">Signed in as <strong>{{ email }}</strong> — <a href="#" (click)="logout($event)">sign out</a></p>
+    </div>
+
+    <div class="card" style="max-width: 420px;" *ngIf="isAuthed">
+      <p class="sub" style="margin-bottom: 10px;">Signed in as <strong>{{ email }}</strong></p>
+      <button class="danger" (click)="logout($event)">Sign out</button>
     </div>
   `,
 })
@@ -66,7 +69,7 @@ export class AuthPage {
     }
   }
 
-  logout(e: Event) { e.preventDefault(); this.api.clearTokens(); this.router.navigate(['/account']); }
+  logout(e: Event) { e.preventDefault(); this.api.clearTokens(); this.mode = 'login'; }
 
   demoLogin() {
     this.busy = true; this.error = '';
