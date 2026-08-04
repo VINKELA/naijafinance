@@ -212,10 +212,18 @@ class Watchlist(TimeStampedModel):
 
 
 class MixShare(TimeStampedModel):
-    """Public, shareable snapshot of a user's portfolio (REQ-11 'Asset Mix' card)."""
+    """Public, shareable 'Asset Mix' card.
+
+    Privacy boundary (CEO 16:46): a mix is a deliberate, public snapshot that
+    carries ONLY allocation-level data (symbol, class, value, pct) — never
+    quantities, cost basis, P&L, or user identity. It is decoupled from the
+    source portfolio: the card stays live as a frozen snapshot if the
+    portfolio is deleted, and can be revoked by the owner at any time.
+    """
     token = models.CharField(max_length=32, unique=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.CASCADE)
+    portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.SET_NULL, null=True, blank=True)
+    snapshot = models.JSONField(default=dict, blank=True)  # frozen card data
 
     class Meta:
         ordering = ['-created_at']

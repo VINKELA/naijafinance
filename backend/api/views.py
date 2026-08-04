@@ -506,36 +506,20 @@ def portfolio_performance(request, pk):
     return Response({"period_days": period, "points": points})
 
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def create_mix_share(request):
-    """Create a public 'Asset Mix' share card from one of the user's portfolios."""
-    portfolio_id = request.data.get('portfolio_id')
-    portfolio = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
-    token = secrets.token_hex(6)
-    share = MixShare.objects.create(token=token, user=request.user, portfolio=portfolio)
-    return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def mix_card(request, token):
-    """Public card data for a shared Asset Mix (no login)."""
-    share = get_object_or_404(MixShare, token=token)
-    portfolio = share.portfolio
+def _mix_card_rows(portfolio):
+    """Sanitized allocation-level rows: symbol, class, value, pct. NO quantities,
+    NO cost basis, NO P&L, NO user identity — the public Asset Mix contract."""
     items = list(portfolio.items.all())
     total = Decimal('0.00')
     rows = []
     for it in items:
         if it.fund_id:
             latest = it.fund.nav_snapshots.order_by('-date').first()
-            # Fall back to cost basis when no NAV is published, so un-priced
-            # holdings never render as a 0% / ₦0 line on the public card.
-            price = latest.nav if latest else (it.purchase_price or Decimal('0.00'))
+            price = latest.nav if latest else Decimal('0.00')
             symbol = it.fund.name
             cls = f"Fund · {it.fund.get_asset_class_display()}"
         elif it.instrument_id:
-            price = it.instrument.last_price or it.purchase_price or Decimal('0.00')
+            price = it.instrument.last_price or Decimal('0.00')
             symbol = it.instrument.symbol
             cls = it.instrument.get_asset_class_display()
         else:
@@ -546,12 +530,57 @@ def mix_card(request, token):
     rows.sort(key=lambda r: r['value'], reverse=True)
     for r in rows:
         r['pct'] = round((r['value'] / float(total) * 100) if total else 0, 1)
-    return Response({
-        "name": portfolio.name,
-        "asOf": timezone.localdate().isoformat(),
-        "totalValue": float(total),
-        "items": rows,
-    })
+    return total, rows
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_mix_share(request):
+    """Create a public 'Asset Mix' share card from one of the user's portfolios.
+
+    The card is a frozen, sanitized snapshot — allocation only. It stays live
+    if the source portfolio is later deleted (portfolio FK is SET_NULL).
+    """
+    portfolio_id = request.data.get('portfolio_id')
+    portfolio = get_object_or_404(Portfolio, pk=portfolio_id, user=request.user)
+    total, rows = _mix_card_rows(portfolio)
+    token = secrets.token_hex(6)
+    share = MixShare.objects.create(
+        token=token,
+        user=request.user,
+        portfolio=portfolio,
+        snapshot={
+            "name": portfolio.name,
+            "asOf": timezone.localdate().isoformat(),
+            "totalValue": float(total),
+            "items": rows,
+        },
+    )
+    return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mix_card(request, token):
+    """Public card data for a shared Asset Mix (no login).
+
+    Serves the frozen snapshot captured at share time, so the card remains
+    public and stable even after the source portfolio is deleted.
+    """
+    share = get_object_or_404(MixShare, token=token)
+    snap = share.snapshot or {}
+    if snap.get('items'):
+        return Response(snap)
+    # Legacy shares (pre-snapshot): compute a sanitized view live.
+    if share.portfolio_id:
+        total, rows = _mix_card_rows(share.portfolio)
+        return Response({
+            "name": share.portfolio.name,
+            "asOf": timezone.localdate().isoformat(),
+            "totalValue": float(total),
+            "items": rows,
+        })
+    return Response({"name": "Asset Mix", "asOf": timezone.localdate().isoformat(), "totalValue": 0, "items": []})
 
 
 @api_view(['GET'])
@@ -562,8 +591,23 @@ def mix_performance(request, token):
     period = int(request.query_params.get('period', 90))
     if period not in (30, 90, 180, 365):
         period = 90
-    points = build_portfolio_value_series(share.portfolio, period)
+    if share.portfolio_id:
+        points = build_portfolio_value_series(share.portfolio, period)
+    else:
+        points = []  # frozen card — allocation stays, history is gone
     return Response({"period_days": period, "points": points})
+
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def revoke_mix(request, token):
+    """Owner-only revoke: deletes a public Asset Mix share (CCO privacy control).
+
+    After revoke the share link stops resolving (404) — deliberate, immediate.
+    """
+    share = get_object_or_404(MixShare, token=token, user=request.user)
+    share.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 def build_portfolio_value_series(portfolio, period_days=90):

@@ -62,6 +62,7 @@ urlpatterns = [
     path('portfolios/<int:pk>/performance/', views.portfolio_performance, name='portfolio_performance'),
     path('mix/', views.create_mix_share, name='create_mix_share'),
     path('mix/<str:token>/', views.mix_card, name='mix_card'),
+    path('mix/<str:token>/revoke/', views.revoke_mix, name='revoke_mix'),
     path('mix/<str:token>/performance/', views.mix_performance, name='mix_performance'),
     path('earnings/', views.get_earnings, name='get_earnings'),
     # Add this to your urlpatterns:

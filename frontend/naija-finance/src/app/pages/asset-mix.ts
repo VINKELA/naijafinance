@@ -16,6 +16,8 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="card()">
+      <button type="button" class="ghost" *ngIf="authed && !revoked()" (click)="revoke()">Stop sharing</button>
+      <p class="error" *ngIf="revoked()">This Asset Mix link has been deactivated — sharing stopped.</p>
       <div class="stat-grid" style="margin-bottom: 0;">
         <div class="stat-tile">
           <div class="label">{{ card().name }}</div>
@@ -47,6 +49,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   period = 90;
   card = signal<any>(null);
   yieldVal = signal<number | null>(null);
+  revokedFlag = signal(false);
   error = '';
   token = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
@@ -54,6 +57,14 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService, private route: ActivatedRoute) {}
+  get authed() { return this.api.isAuthed; }
+  revoked() { return this.revokedFlag(); }
+  revoke() {
+    this.api.revokeMix(this.token).subscribe({
+      next: () => { this.revokedFlag.set(true); this.error = ''; },
+      error: () => this.error = 'Revoke failed — only the owner can stop sharing this mix.',
+    });
+  }
 
   ngOnInit() {
     this.route.queryParams.subscribe(p => {
