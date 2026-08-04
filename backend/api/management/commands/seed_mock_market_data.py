@@ -24,6 +24,7 @@ from api.models import (
     Region, Currency, Market, Exchange, Issuer, Instrument,
     MarketIndex, PriceHistory, NewsArticle, EarningsCalendar,
 )
+from api.management.commands.seed_public_data import dedupe_reference
 
 # One entry per CompanyProfile symbol: (symbol, base_price_naira, vol_factor)
 EQUITIES = [
@@ -68,6 +69,10 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         today = date.today()
+
+        # Heal any duplicate issuers (keeps lowest id, reassigns instruments,
+        # deletes extras) so re-running against an already-seeded DB is safe.
+        deduped_issuers = dedupe_reference(Issuer, 'name')
 
         # --- Base geography (idempotent, matches seed_public_data conventions) ---
         region, _ = Region.objects.get_or_create(iso_code='NGA', defaults={'name': 'Nigeria'})
@@ -193,5 +198,6 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Mock seed: {equities_created} equities, {history_rows} OHLCV rows, "
-            f"{indexes_created} indexes, {news_created} news, {earnings_created} earnings."
+            f"{indexes_created} indexes, {news_created} news, {earnings_created} earnings "
+            f"(issuer dedupe removed {deduped_issuers} stale duplicate rows)."
         ))

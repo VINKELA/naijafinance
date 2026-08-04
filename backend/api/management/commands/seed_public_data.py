@@ -16,12 +16,39 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import models, transaction
 
 from api.models import (
     Region, Currency, Market, Exchange, Issuer, Instrument,
     AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile,
 )
+
+
+
+def dedupe_reference(model, key_field):
+    """Collapse duplicate reference rows: keep the lowest-id row per key,
+    reassign dependent FK rows to the keeper, delete the extras.
+
+    Makes re-running seeds against an already-seeded (or previously dirty)
+    database safe and heals rows that predate unique constraints.
+    Returns the number of duplicate rows removed.
+    """
+    removed = 0
+    keys = model.objects.values_list(key_field, flat=True).distinct()
+    for key in keys:
+        rows = list(model.objects.filter(**{key_field: key}).order_by('id'))
+        if len(rows) < 2:
+            continue
+        keeper = rows[0]
+        for extra in rows[1:]:
+            for rel in model._meta.related_objects:
+                if isinstance(rel.field, (models.ForeignKey, models.OneToOneField)):
+                    rel.related_model.objects.filter(
+                        **{rel.field.name: extra}
+                    ).update(**{rel.field.name: keeper})
+            extra.delete()
+            removed += 1
+    return removed
 
 
 def _get_exchange():
@@ -36,7 +63,9 @@ def _get_exchange():
 
 
 def _get_or_create_bond(exchange, currency, symbol, name, maturity, coupon):
-    issuer = Issuer.objects.filter(region__iso_code='NGA', name='Federal Government of Nigeria').first()
+    # Name is the unique key (dedupe_reference keeps one row per name), so a
+    # plain name lookup is safe both on clean DBs and on previously-dirty ones.
+    issuer = Issuer.objects.filter(name='Federal Government of Nigeria').order_by('id').first()
     if issuer is None:
         issuer = Issuer.objects.create(
             region=Region.objects.get(iso_code='NGA'),
@@ -139,6 +168,19 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        # Heal reference tables first so the get_or_create/update_or_create
+        # calls below can never raise MultipleObjectsReturned or hit stale
+        # duplicates (e.g. the 13x 'Federal Government of Nigeria' issuers).
+        deduped = sum(
+            dedupe_reference(model, key)
+            for model, key in (
+                (Region, 'iso_code'),
+                (Currency, 'code'),
+                (Market, 'name'),
+                (Exchange, 'code'),
+                (Issuer, 'name'),
+            )
+        )
         currency, exchange = _get_exchange()
 
         # F-04: Bonds + auction calendar
@@ -206,5 +248,6 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f"Seeded: {auctions} auctions, {funds} funds, {navs} NAV snapshots, "
-            f"{fx} FX rates, {companies} company profiles."
+            f"{fx} FX rates, {companies} company profiles "
+            f"(reference dedupe removed {deduped} stale duplicate rows)."
         ))
