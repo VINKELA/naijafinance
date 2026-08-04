@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
 
 @Component({
@@ -14,15 +15,20 @@ export class App implements OnInit, OnDestroy {
   themeLabel = '🌙';
   tape: { s: string; p: string; ch: string; up: boolean | null }[] = [];
   private timer: any;
+  private cdTimer: any;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private appRef: ApplicationRef) {}
 
   ngOnInit() {
     this.initTheme();
     this.loadTape();
     this.timer = setInterval(() => this.loadTape(), 60000);
+    // Demo stopgap: this Angular 22 zoneless build does not re-render on
+    // HTTP completion reliably; tick every second so fetched data paints.
+    // Remove once change detection is properly wired.
+    this.cdTimer = setInterval(() => { try { this.appRef.tick(); } catch { /* noop */ } }, 1000);
   }
-  ngOnDestroy() { clearInterval(this.timer); }
+  ngOnDestroy() { clearInterval(this.timer); clearInterval(this.cdTimer); }
 
   toggleLang() {
     this.langLabel = this.langLabel.includes('Pidgin') ? '🇳🇬 English' : '🇳🇬 Pidgin';
