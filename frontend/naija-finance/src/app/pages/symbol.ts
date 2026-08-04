@@ -1,4 +1,5 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
@@ -21,14 +22,14 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
       </form>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;" *ngIf="detail">
+    <div class="card" style="margin-bottom: 20px;" *ngIf="detail()">
       <div class="stat-grid" style="margin-bottom: 0;">
         <div class="stat-tile">
-          <div class="label">{{ detail.symbol }} · {{ detail.name }}</div>
-          <div class="value">{{ detail.price }}</div>
-          <div class="delta" [class.up]="detail.isUp" [class.down]="!detail.isUp">{{ detail.isUp ? '▲' : '▼' }} {{ detail.changePct }}%</div>
+          <div class="label">{{ detail().symbol }} · {{ detail().name }}</div>
+          <div class="value">{{ detail().price }}</div>
+          <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
         </div>
-        <div class="stat-tile" *ngFor="let s of detail.stats">
+        <div class="stat-tile" *ngFor="let s of detail().stats">
           <div class="label">{{ s.label }}</div>
           <div class="value" style="font-size:16px;">{{ s.value }}</div>
         </div>
@@ -37,33 +38,38 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
 
     <div class="card" style="margin-bottom: 20px;">
       <div #chartRef style="width: 100%; height: 340px;"></div>
-      <p class="loading" *ngIf="!detail">Enter a symbol above to render its price history.</p>
+      <p class="loading" *ngIf="!detail()">Enter a symbol above to render its price history.</p>
     </div>
 
-    <div class="table-wrap" *ngIf="detail">
-      <h3>{{ detail.about }}</h3>
+    <div class="table-wrap" *ngIf="detail()">
+      <h3>{{ detail().about }}</h3>
     </div>
   `,
 })
 export class SymbolPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   symbol = 'MTNN';
-  detail: any = null;
+  detail = signal<any>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.route.queryParams.subscribe(p => {
+      if (p['symbol']) { this.symbol = p['symbol'].toUpperCase(); this.load(); }
+      else this.load();
+    });
+  }
   ngAfterViewInit() { this.renderChart(); }
 
   load() {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;
     this.api.stockDetail(sym).subscribe({
-      next: (d) => { this.detail = d; this.renderChart(); },
-      error: () => this.detail = null,
+      next: (d) => { this.detail.set(d); this.renderChart(); },
+      error: () => this.detail.set(null),
     });
   }
 
@@ -80,7 +86,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#5b8dff', topColor: 'rgba(91,141,255,0.35)', bottomColor: 'rgba(91,141,255,0.02)', lineWidth: 2 });
     }
-    const data = (this.detail?.chart_data ?? []).map((p: any) => ({ time: p.date, value: Number(p.price) }));
+    const data = (this.detail()?.chart_data ?? []).map((p: any) => ({ time: p.date, value: Number(p.price) }));
     if (this.series) this.series.setData(data);
     this.chart?.timeScale().fitContent();
   }

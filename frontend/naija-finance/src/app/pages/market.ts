@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
@@ -11,15 +11,15 @@ import { ApiService } from '../api.service';
     <div class="hero">
       <div class="indexCard">
         <div class="lbl">NGX All-Share Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ asi?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="asi?.isUp" [class.down]="!asi?.isUp">▲ {{ asi?.point_change ?? '' }} ({{ asi?.percent_change ?? '' }}%) · Today</div>
-        <div [innerHTML]="spark(asi, 'ASI')"></div>
+        <div class="val num">{{ asi()?.current_price ?? '—' }}</div>
+        <div class="sub" [class.up]="asi()?.isUp" [class.down]="!asi()?.isUp">▲ {{ asi()?.point_change ?? '' }} ({{ asi()?.percent_change ?? '' }}%) · Today</div>
+        <div [innerHTML]="spark(asi(), 'ASI')"></div>
       </div>
       <div class="indexCard">
         <div class="lbl">NGX 30 Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ ngx30?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="ngx30?.isUp" [class.down]="!ngx30?.isUp">▲ {{ ngx30?.point_change ?? '' }} ({{ ngx30?.percent_change ?? '' }}%) · Today</div>
-        <div [innerHTML]="spark(ngx30, 'NGX30')"></div>
+        <div class="val num">{{ ngx30()?.current_price ?? '—' }}</div>
+        <div class="sub" [class.up]="ngx30()?.isUp" [class.down]="!ngx30()?.isUp">▲ {{ ngx30()?.point_change ?? '' }} ({{ ngx30()?.percent_change ?? '' }}%) · Today</div>
+        <div [innerHTML]="spark(ngx30(), 'NGX30')"></div>
       </div>
       <div class="indexCard">
         <div class="lbl">FGN 10-Yr Yield <span class="pill">Bonds</span></div>
@@ -34,7 +34,7 @@ import { ApiService } from '../api.service';
       <table>
         <thead><tr><th>Symbol</th><th>Price (₦)</th><th>Change</th><th>Volume</th><th>Trend</th></tr></thead>
         <tbody>
-          <tr *ngFor="let m of movers">
+          <tr *ngFor="let m of movers()">
             <td><span class="sym">{{ m.symbol }}<small>{{ m.name }}</small></span></td>
             <td class="num">{{ m.price }}</td>
             <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ m.change }}</td>
@@ -43,7 +43,7 @@ import { ApiService } from '../api.service';
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="movers.length === 0">Loading movers…</p>
+      <p class="loading" *ngIf="movers().length === 0">Loading movers…</p>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
@@ -58,7 +58,7 @@ import { ApiService } from '../api.service';
         <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Upcoming DMO auctions</h3><a class="link" routerLink="/bonds">Calendar →</a></div>
         <table>
           <tbody>
-            <tr *ngFor="let a of auctions.slice(0, 3)">
+            <tr *ngFor="let a of auctions().slice(0, 3)">
               <td><span class="sym">{{ a.instrument_name }}<small>{{ a.tenor }} · ₦{{ a.offer_size ?? '—' }}bn</small></span></td>
               <td class="num">{{ a.auction_date }}</td>
             </tr>
@@ -68,7 +68,7 @@ import { ApiService } from '../api.service';
       <div class="card">
         <h3>Official FX rates <span class="tag">CBN</span></h3>
         <div class="fxGrid">
-          <div class="fxItem" *ngFor="let f of fx">
+          <div class="fxItem" *ngFor="let f of fx()">
             <div class="pair"><span>{{ f.pair }}</span><span class="flat">—</span></div>
             <div class="rate num">{{ f.rate }}</div>
             <div class="chg flat">{{ f.date }} · {{ f.source }}</div>
@@ -77,7 +77,7 @@ import { ApiService } from '../api.service';
         <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Top mutual funds</h3><a class="link" routerLink="/funds">NAVs →</a></div>
         <table>
           <tbody>
-            <tr *ngFor="let fd of funds.slice(0, 2)">
+            <tr *ngFor="let fd of funds().slice(0, 2)">
               <td><span class="sym">{{ fd.name }}<small>{{ fd.asset_class_display }}</small></span></td>
               <td class="num up">₦{{ fd.latest_nav?.nav ?? '—' }}</td>
             </tr>
@@ -91,7 +91,7 @@ import { ApiService } from '../api.service';
         <h3>Headlines <span class="tag">News</span></h3>
         <table>
           <tbody>
-            <tr *ngFor="let n of news">
+            <tr *ngFor="let n of news()">
               <td><span class="sym">{{ n.title }}<small>{{ n.source }}</small></span></td>
             </tr>
           </tbody>
@@ -111,26 +111,26 @@ import { ApiService } from '../api.service';
   `,
 })
 export class MarketPage implements OnInit {
-  asi: any = null;
-  ngx30: any = null;
-  movers: any[] = [];
-  auctions: any[] = [];
-  fx: any[] = [];
-  funds: any[] = [];
-  news: any[] = [];
+  asi = signal<any>(null);
+  ngx30 = signal<any>(null);
+  movers = signal<any[]>([]);
+  auctions = signal<any[]>([]);
+  fx = signal<any[]>([]);
+  funds = signal<any[]>([]);
+  news = signal<any[]>([]);
 
   constructor(private api: ApiService) {}
 
   ngOnInit() {
     this.api.indexes().subscribe(idx => {
-      this.asi = idx.find((i: any) => i.symbol === 'NGXASI') ?? idx[0] ?? null;
-      this.ngx30 = idx.find((i: any) => i.symbol === 'NGX30') ?? idx[1] ?? null;
+      this.asi.set(idx.find((i: any) => i.symbol === 'NGXASI') ?? idx[0] ?? null);
+      this.ngx30.set(idx.find((i: any) => i.symbol === 'NGX30') ?? idx[1] ?? null);
     });
-    this.api.movers('active', 8).subscribe(m => this.movers = m);
-    this.api.auctions().subscribe(a => this.auctions = a);
-    this.api.fxRates(true).subscribe(f => this.fx = f);
-    this.api.funds().subscribe(fd => this.funds = fd);
-    this.api.news(5).subscribe(n => this.news = n);
+    this.api.movers('active', 8).subscribe(m => this.movers.set(m));
+    this.api.auctions().subscribe(a => this.auctions.set(a));
+    this.api.fxRates(true).subscribe(f => this.fx.set(f));
+    this.api.funds().subscribe(fd => this.funds.set(fd));
+    this.api.news(5).subscribe(n => this.news.set(n));
   }
 
   volume(symbol: string): string {

@@ -1,23 +1,25 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
   langLabel = '🇳🇬 Pidgin';
   themeLabel = '🌙';
+  query = '';
   tape: { s: string; p: string; ch: string; up: boolean | null }[] = [];
   private timer: any;
   private cdTimer: any;
 
-  constructor(private api: ApiService, private appRef: ApplicationRef) {}
+  constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router) {}
 
   ngOnInit() {
     this.initTheme();
@@ -29,6 +31,19 @@ export class App implements OnInit, OnDestroy {
     this.cdTimer = setInterval(() => { try { this.appRef.tick(); } catch { /* noop */ } }, 1000);
   }
   ngOnDestroy() { clearInterval(this.timer); clearInterval(this.cdTimer); }
+
+  search() {
+    const q = this.query.trim();
+    if (!q) return;
+    this.api.searchStocks(q).subscribe({
+      next: (res) => {
+        if (res && res.length) {
+          this.router.navigate(['/symbol'], { queryParams: { symbol: res[0].symbol } });
+        }
+      },
+      error: () => { /* noop */ },
+    });
+  }
 
   toggleLang() {
     this.langLabel = this.langLabel.includes('Pidgin') ? '🇳🇬 English' : '🇳🇬 Pidgin';

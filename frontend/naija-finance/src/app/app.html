@@ -1,7 +1,7 @@
 <header class="topbar">
   <a routerLink="/market" class="logo"><span class="mark">🇳🇬</span><span>Naija <b>Finance</b></span></a>
   <div class="status"><i></i> Market data · 30-min delayed · NGX live</div>
-  <div class="search"><input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM"></div>
+  <div class="search"><input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query" (keyup.enter)="search()"></div>
   <button class="langBtn" (click)="toggleLang()">{{ langLabel }}</button>
   <button class="langBtn" (click)="toggleTheme()" title="Toggle light/dark theme">{{ themeLabel }}</button>
   <div class="avatar">AK</div>

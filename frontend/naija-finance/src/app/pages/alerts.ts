@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Alert, Bond, Fund } from '../api.service';
@@ -21,10 +21,10 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <option value="NAV">NAV</option>
         </select>
         <select [(ngModel)]="form.instrument" name="instrument" *ngIf="form.alert_type !== 'NAV'">
-          <option *ngFor="let b of bonds" [ngValue]="b.id">{{ b.symbol }}</option>
+          <option *ngFor="let b of bonds()" [ngValue]="b.id">{{ b.symbol }}</option>
         </select>
         <select [(ngModel)]="form.fund" name="fund" *ngIf="form.alert_type === 'NAV'">
-          <option *ngFor="let f of funds" [ngValue]="f.id">{{ f.name }}</option>
+          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }}</option>
         </select>
         <input type="number" step="any" placeholder="threshold" [(ngModel)]="form.threshold" name="threshold" required>
         <select [(ngModel)]="form.direction" name="direction">
@@ -40,7 +40,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Type</th><th>Target</th><th class="num">Threshold</th><th>Direction</th><th>Triggered</th><th class="num">Last value</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let a of alerts">
+          <tr *ngFor="let a of alerts()">
             <td>{{ a.alert_type_display }}</td>
             <td class="sym">{{ a.instrument_symbol ?? a.fund_name }}</td>
             <td class="num">{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
@@ -50,25 +50,25 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="alerts.length === 0 && !error">No alerts yet — create one above.</p>
+      <p class="loading" *ngIf="alerts().length === 0 && !error">No alerts yet — create one above.</p>
     </div>
     <p class="error" *ngIf="error">{{ error }}</p>
   `,
 })
 export class AlertsPage implements OnInit {
   disclaimer = DISCLAIMER;
-  alerts: Alert[] = [];
-  bonds: Bond[] = [];
-  funds: Fund[] = [];
+  alerts = signal<Alert[]>([]);
+  bonds = signal<Bond[]>([]);
+  funds = signal<Fund[]>([]);
   error = '';
   form = { alert_type: 'PRICE', instrument: null as number | null, fund: null as number | null, threshold: '', direction: 'ABOVE' };
 
   constructor(private api: ApiService) {}
 
   ngOnInit() {
-    this.api.alerts().subscribe(a => this.alerts = a, () => this.error = 'Could not load alerts — are you logged in?');
-    this.api.bonds().subscribe(b => this.bonds = b);
-    this.api.funds().subscribe(f => this.funds = f);
+    this.api.alerts().subscribe(a => this.alerts.set(a), () => this.error = 'Could not load alerts — are you logged in?');
+    this.api.bonds().subscribe(b => this.bonds.set(b));
+    this.api.funds().subscribe(f => this.funds.set(f));
   }
 
   create() {
@@ -82,11 +82,11 @@ export class AlertsPage implements OnInit {
     };
     this.api.createAlert(payload).subscribe(() => {
       this.error = '';
-      this.api.alerts().subscribe(a => this.alerts = a);
+      this.api.alerts().subscribe(a => this.alerts.set(a));
     }, (e) => this.error = e?.error?.detail ?? JSON.stringify(e?.error ?? e));
   }
 
   remove(id: number) {
-    this.api.deleteAlert(id).subscribe(() => this.alerts = this.alerts.filter(a => a.id !== id));
+    this.api.deleteAlert(id).subscribe(() => this.alerts.set(this.alerts().filter(a => a.id !== id)));
   }
 }

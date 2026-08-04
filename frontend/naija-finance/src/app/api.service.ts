@@ -31,10 +31,10 @@ export class ApiService {
   companies(): Observable<CompanyProfile[]> { return this.http.get<CompanyProfile[]>(`${API_BASE}/companies/`); }
 
   // F-08
-  alerts(): Observable<Alert[]> { return this.http.get<Alert[]>(`${API_BASE}/alerts/`); }
-  createAlert(alert: Alert): Observable<Alert> { return this.http.post<Alert>(`${API_BASE}/alerts/`, alert); }
-  updateAlert(id: number, alert: Partial<Alert>): Observable<Alert> { return this.http.patch<Alert>(`${API_BASE}/alerts/${id}/`, alert); }
-  deleteAlert(id: number): Observable<void> { return this.http.delete<void>(`${API_BASE}/alerts/${id}/`); }
+  alerts(): Observable<Alert[]> { return this.http.get<Alert[]>(`${API_BASE}/alerts/`, { headers: this.authHeaders() }); }
+  createAlert(alert: Alert): Observable<Alert> { return this.http.post<Alert>(`${API_BASE}/alerts/`, alert, { headers: this.authHeaders() }); }
+  updateAlert(id: number, alert: Partial<Alert>): Observable<Alert> { return this.http.patch<Alert>(`${API_BASE}/alerts/${id}/`, alert, { headers: this.authHeaders() }); }
+  deleteAlert(id: number): Observable<void> { return this.http.delete<void>(`${API_BASE}/alerts/${id}/`, { headers: this.authHeaders() }); }
   // Market layer (F-01/F-02/F-03) — currently deterministic mock data until the NGX feed lands
   movers(type = 'active', limit = 8): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/stocks/movers/?type=${type}&limit=${limit}`); }
   indexes(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/indexes/`); }

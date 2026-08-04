@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -26,20 +26,20 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Last price</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let i of instruments">
+          <tr *ngFor="let i of instruments()">
             <td class="sym">{{ i.symbol }}</td><td>{{ i.name }}</td>
             <td class="num">{{ i.last_price }}</td>
             <td><button class="ghost" (click)="remove(i.symbol)">Remove</button></td>
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="!error && instruments.length === 0">{{ authed ? 'Watchlist empty — add a symbol above.' : 'Sign in to use your watchlist (Account page).' }}</p>
+      <p class="loading" *ngIf="!error && instruments().length === 0">{{ authed ? 'Watchlist empty — add a symbol above.' : 'Sign in to use your watchlist (Account page).' }}</p>
     </div>
   `,
 })
 export class WatchlistPage implements OnInit {
   disclaimer = DISCLAIMER;
-  instruments: any[] = [];
+  instruments = signal<any[]>([]);
   symbol = '';
   error = '';
   constructor(private api: ApiService) {}
@@ -50,7 +50,7 @@ export class WatchlistPage implements OnInit {
   refresh() {
     if (!this.api.isAuthed) return;
     this.api.defaultWatchlist().subscribe({
-      next: (w) => this.instruments = w.instruments ?? [],
+      next: (w) => this.instruments.set(w.instruments ?? []),
       error: (e) => this.error = 'Could not load watchlist — are you logged in?',
     });
   }
@@ -59,14 +59,14 @@ export class WatchlistPage implements OnInit {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;
     this.api.toggleWatchlist(sym).subscribe({
-      next: (r) => { this.symbol = ''; this.error = ''; this.instruments = r.watchlist.instruments ?? []; },
+      next: (r) => { this.symbol = ''; this.error = ''; this.instruments.set(r.watchlist.instruments ?? []); },
       error: (e) => this.error = e?.error?.detail ?? 'Symbol not found.',
     });
   }
 
   remove(symbol: string) {
     this.api.toggleWatchlist(symbol).subscribe({
-      next: (r) => this.instruments = r.watchlist.instruments ?? [],
+      next: (r) => this.instruments.set(r.watchlist.instruments ?? []),
       error: (e) => this.error = e?.error?.detail ?? 'Remove failed.',
     });
   }

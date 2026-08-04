@@ -484,7 +484,9 @@ def market_overview(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def default_watchlist(request):
-    watchlist, _ = Watchlist.objects.get_or_create(user=request.user, name='My Watchlist')
+    watchlist = Watchlist.objects.filter(user=request.user).first()
+    if watchlist is None:
+        watchlist = Watchlist.objects.create(user=request.user, name='My Watchlist')
     return Response(WatchlistSerializer(watchlist).data)
 
 

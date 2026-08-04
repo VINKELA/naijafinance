@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, CompanyProfile } from '../api.service';
 
@@ -17,20 +17,20 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th class="num">EPS</th><th class="num">P/E</th><th class="num">Book value</th><th class="num">Market cap (₦)</th></tr></thead>
         <tbody>
-          <tr *ngFor="let c of companies">
+          <tr *ngFor="let c of companies()">
             <td class="sym">{{ c.symbol }}</td><td>{{ c.name }}</td><td class="muted">{{ c.sector ?? '—' }}</td>
             <td class="num">{{ c.eps ?? '—' }}</td><td class="num">{{ c.pe_ratio ?? '—' }}</td>
             <td class="num">{{ c.book_value ?? '—' }}</td><td class="num">{{ c.market_cap ?? '—' }}</td>
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="companies.length === 0">Loading profiles…</p>
+      <p class="loading" *ngIf="companies().length === 0">Loading profiles…</p>
     </div>
   `,
 })
 export class CompaniesPage implements OnInit {
   disclaimer = DISCLAIMER;
-  companies: CompanyProfile[] = [];
+  companies = signal<CompanyProfile[]>([]);
   constructor(private api: ApiService) {}
-  ngOnInit() { this.api.companies().subscribe(c => this.companies = c); }
+  ngOnInit() { this.api.companies().subscribe(c => this.companies.set(c)); }
 }

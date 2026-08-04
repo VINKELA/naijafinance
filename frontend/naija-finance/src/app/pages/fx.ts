@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, FxRate } from '../api.service';
 
@@ -13,18 +13,18 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <p class="disclaimer">{{ disclaimer }}</p>
 
     <div class="stat-grid">
-      <div class="stat-tile" *ngFor="let r of rates">
+      <div class="stat-tile" *ngFor="let r of rates()">
         <div class="label">{{ r.pair }}</div>
         <div class="value">{{ r.rate }}</div>
         <div class="delta muted">{{ r.date }} · {{ r.source }}</div>
       </div>
     </div>
-    <p class="loading" *ngIf="rates.length === 0">Loading rates…</p>
+    <p class="loading" *ngIf="rates().length === 0">Loading rates…</p>
   `,
 })
 export class FxPage implements OnInit {
   disclaimer = DISCLAIMER;
-  rates: FxRate[] = [];
+  rates = signal<FxRate[]>([]);
   constructor(private api: ApiService) {}
-  ngOnInit() { this.api.fxRates(true).subscribe(r => this.rates = r); }
+  ngOnInit() { this.api.fxRates(true).subscribe(r => this.rates.set(r)); }
 }

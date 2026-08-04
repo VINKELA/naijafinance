@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiService, Fund } from '../api.service';
 
@@ -17,7 +17,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Fund</th><th>Manager</th><th>Class</th><th class="num">Latest NAV</th><th class="num">NAV date</th></tr></thead>
         <tbody>
-          <tr *ngFor="let f of funds">
+          <tr *ngFor="let f of funds()">
             <td class="sym">{{ f.name }}</td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
@@ -25,13 +25,13 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           </tr>
         </tbody>
       </table>
-      <p class="loading" *ngIf="funds.length === 0">Loading funds…</p>
+      <p class="loading" *ngIf="funds().length === 0">Loading funds…</p>
     </div>
   `,
 })
 export class FundsPage implements OnInit {
   disclaimer = DISCLAIMER;
-  funds: Fund[] = [];
+  funds = signal<Fund[]>([]);
   constructor(private api: ApiService) {}
-  ngOnInit() { this.api.funds().subscribe(f => this.funds = f); }
+  ngOnInit() { this.api.funds().subscribe(f => this.funds.set(f)); }
 }

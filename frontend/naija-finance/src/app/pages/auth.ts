@@ -53,7 +53,7 @@ export class AuthPage {
     const done = () => this.busy = false;
     if (this.mode === 'login') {
       this.api.login(this.form.email, this.form.password).subscribe({
-        next: (t) => { this.api.saveTokens(t); this.email = this.form.email; this.form.password = ''; },
+        next: (t) => { this.api.saveTokens(t); this.email = this.form.email; this.form.password = ''; this.router.navigate(['/market']); },
         error: (e) => { this.error = e?.error?.detail ?? 'Login failed — check credentials.'; done(); },
         complete: done,
       });
@@ -66,12 +66,12 @@ export class AuthPage {
     }
   }
 
-  logout(e: Event) { e.preventDefault(); this.api.clearTokens(); }
+  logout(e: Event) { e.preventDefault(); this.api.clearTokens(); this.router.navigate(['/account']); }
 
   demoLogin() {
     this.busy = true; this.error = '';
     this.api.login('demo@naijafinance.com', 'demo1234').subscribe({
-      next: (t) => { this.api.saveTokens(t); this.email = 'demo@naijafinance.com'; this.mode = 'login'; },
+      next: (t) => { this.api.saveTokens(t); this.email = 'demo@naijafinance.com'; this.mode = 'login'; this.router.navigate(['/market']); },
       error: (e) => { this.error = e?.error?.detail ?? 'Demo login failed.'; this.busy = false; },
       complete: () => this.busy = false,
     });
