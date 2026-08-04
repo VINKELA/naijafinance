@@ -177,11 +177,17 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     if (!ps.length) return;
     const items = ps.flatMap((p: any) => p.items ?? []);
     if (!items.length) { this.error = 'Add a position before sharing your mix.'; return; }
-    const total = items.reduce((sum: number, it: any) => sum + Number(it.current_value ?? 0), 0);
+    // Cost-basis fallback: a holding with no live price (fund without published NAV,
+    // un-priced bond) is valued at cost so allocation never shows a bogus "0%" bucket.
+    const valOf = (it: any) => {
+      const live = Number(it.current_value ?? 0);
+      return live > 0 ? live : Number(it.purchase_price ?? 0) * Number(it.quantity ?? 0);
+    };
+    const total = items.reduce((sum: number, it: any) => sum + valOf(it), 0);
     const byClass = new Map<string, number>();
     for (const it of items) {
       const cls = (it.asset_class ?? 'Other').split('·')[0].trim();
-      byClass.set(cls, (byClass.get(cls) ?? 0) + Number(it.current_value ?? 0));
+      byClass.set(cls, (byClass.get(cls) ?? 0) + valOf(it));
     }
     const alloc = [...byClass.entries()]
       .sort((a, b) => b[1] - a[1])
