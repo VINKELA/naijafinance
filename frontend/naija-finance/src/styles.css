@@ -36,13 +36,13 @@ a{color:var(--blue);text-decoration:none}
 .status{font-size:11px;color:var(--txt2);background:var(--card);border:1px solid var(--line);padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:6px;white-space:nowrap}
 .status i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 6px var(--green)}
 .search{flex:1;max-width:380px;margin-left:auto}
-.search input{width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);padding:8px 14px;border-radius:10px;font-size:13px;outline:none;transition:border .15s}
+.search input{width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);min-height:44px;padding:8px 14px;border-radius:10px;font-size:13px;outline:none;transition:border .15s}
 .search input:focus{border-color:var(--accent)}
 .search input::placeholder{color:var(--txt3)}
-.langBtn{background:var(--card);border:1px solid var(--line);color:var(--txt);padding:7px 12px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.langBtn{background:var(--card);border:1px solid var(--line);color:var(--txt);min-height:44px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
 .langBtn:hover{border-color:var(--line2)}
 .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
-.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;text-decoration:none;cursor:pointer}
+.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#4e9bff,#7a5cff);display:grid;place-items:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;text-decoration:none;cursor:pointer}
 .langBtn.signout{color:var(--red);border-color:rgba(234,57,67,.45)}
 .langBtn.signout:hover{background:rgba(234,57,67,.12)}
 .search{position:relative}
@@ -211,4 +211,22 @@ html,body{max-width:100%;overflow-x:hidden}
   .grid2{grid-template-columns:1fr !important}
   .form-row input,.form-row select{min-width:0;flex:1 1 45%}
   .sugg-dd{left:0;right:0}
+}
+
+@media(max-width:640px){
+  .wrap{padding:12px 10px 84px}
+  .card{padding:12px}
+  .indexCard{padding:12px}
+  .card table td{padding:8px 5px;font-size:12px}
+  .card table th{padding:7px 5px;font-size:10px}
+  table.data td{padding:9px 7px;font-size:12.5px}
+  table.data th{padding:8px 7px}
+  .miniSpark{width:46px;height:15px}
+  .row{gap:10px}
+  .logo .mark{width:22px;height:22px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .tape-track{animation:none}
+  .tape .item .arrow{animation:none}
 }
