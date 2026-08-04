@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
 import { track } from './analytics';
+import { fmtPrice, fmtPct } from './format';
 
 @Component({
   selector: 'app-root',
@@ -140,11 +141,11 @@ export class App implements OnInit, OnDestroy {
         try { this.asOf.set(new Date(lu).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })); } catch { /* noop */ }
       }
       for (const i of idx.slice(0, 3)) {
-        items.push({ s: i.symbol, p: i.current_price, ch: `${i.percent_change}%`, up: i.isUp });
+        items.push({ s: i.symbol, p: fmtPrice(i.current_price), ch: fmtPct(i.percent_change), up: i.isUp });
       }
       this.api.fxRates(true).subscribe(fx => {
         for (const f of fx.slice(0, 4)) {
-          items.push({ s: f.pair, p: f.rate, ch: '0.00%', up: null });
+          items.push({ s: f.pair, p: fmtPrice(f.rate), ch: '—', up: null });
         }
         this.tape.set(items);
         this.tapeLoop.set([...items, ...items]);

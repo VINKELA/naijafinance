@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
+import { fmtPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -47,7 +48,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let i of instruments()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: i.symbol}">{{ i.symbol }}</a></td><td>{{ i.name }}</td>
             <td><span class="pill">{{ i.asset_type }}</span></td>
-            <td class="num">{{ i.last_price }}</td>
+            <td class="num">{{ fmtPrice(i.last_price) }}</td>
             <td><button class="ghost" (click)="remove(i.symbol)">Remove</button></td>
           </tr>
         </tbody>
@@ -59,7 +60,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let f of fundsWatched()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td>
             <td><span class="pill">{{ f.asset_class_display }}</span></td>
-            <td class="num">{{ f.latest_nav?.nav ?? '—' }} <span class="muted">({{ f.latest_nav?.date ?? '' }})</span></td>
+            <td class="num">{{ fmtPrice(f.latest_nav?.nav) }} <span class="muted">({{ f.latest_nav?.date ?? '' }})</span></td>
             <td><button class="ghost" (click)="removeFund(f.id)">Remove</button></td>
           </tr>
         </tbody>
@@ -82,6 +83,7 @@ export class WatchlistPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtPrice = fmtPrice;
   constructor(private api: ApiService) {}
   get authed() { return this.api.isAuthed; }
 

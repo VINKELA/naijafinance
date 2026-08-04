@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
+import { fmtMoney, fmtPrice, fmtPct } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
@@ -78,7 +79,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     </div>
 
     <div class="table-wrap" *ngFor="let p of portfolios()">
-      <h3>{{ p.name }} — ₦{{ total(p) }} <button type="button" class="ghost" style="margin-left:8px" (click)="removePortfolio(p)">Delete</button></h3>
+      <h3>{{ p.name }} — {{ total(p) }} <button type="button" class="ghost" style="margin-left:8px" (click)="removePortfolio(p)">Delete</button></h3>
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr></thead>
         <tbody>
@@ -86,9 +87,9 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
             <td class="sym"><a routerLink="/asset" [queryParams]="assetQp(it)">{{ it.symbol }}</a></td><td>{{ it.name }}</td>
             <td><span class="pill">{{ it.asset_class }}</span></td>
             <td class="num">{{ it.quantity }}</td>
-            <td class="num">{{ it.current_price }}</td>
-            <td class="num">{{ it.current_value }}</td>
-            <td class="num" [class.up]="it.gain_loss >= 0" [class.down]="it.gain_loss < 0">{{ it.gain_loss }} ({{ it.gain_loss_pct }}%)</td>
+            <td class="num">{{ fmtPrice(it.current_price) }}</td>
+            <td class="num">{{ fmtMoney(it.current_value) }}</td>
+            <td class="num" [class.up]="it.gain_loss >= 0" [class.down]="it.gain_loss < 0">{{ fmtMoney(it.gain_loss) }} ({{ fmtPct(it.gain_loss_pct) }})</td>
             <td><button type="button" class="ghost" (click)="removeItem(it)">Remove</button></td>
           </tr>
         </tbody>
@@ -112,6 +113,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtPrice = fmtPrice; fmtMoney = fmtMoney; fmtPct = fmtPct;
   constructor(private api: ApiService) {}
 
   ngOnInit() { this.refresh(); }
@@ -159,10 +161,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     return (it.asset_class ?? '').startsWith('Fund') ? { type: 'fund', id: it.fund } : { type: 'instrument', symbol: it.symbol };
   }
 
-  total(p: any): string {
-    const n = Number(p.total_value ?? 0);
-    return n >= 1e9 ? `${(n / 1e9).toFixed(2)}bn` : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  }
+  total(p: any): string { return fmtMoney(p.total_value); }
 
   removeItem(it: any) {
     this.api.removePortfolioItem(it.id).subscribe({ next: () => this.refresh(), error: (e) => this.error = e?.error?.detail ?? 'Remove failed.' });

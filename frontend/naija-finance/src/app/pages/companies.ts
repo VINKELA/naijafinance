@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
+import { fmtMoney, fmtPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -29,7 +30,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile"><div class="label">EPS</div><div class="value" style="font-size:16px;">{{ selected()!.eps ?? '—' }}</div></div>
         <div class="stat-tile"><div class="label">P/E</div><div class="value" style="font-size:16px;">{{ selected()!.pe_ratio ?? '—' }}</div></div>
         <div class="stat-tile"><div class="label">Book value</div><div class="value" style="font-size:16px;">{{ selected()!.book_value ?? '—' }}</div></div>
-        <div class="stat-tile"><div class="label">Market cap (₦)</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
+        <div class="stat-tile"><div class="label">Market cap</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
       </div>
       <p *ngIf="selected()?.description" class="muted" style="font-size:12.5px;margin-bottom:10px;">{{ selected()!.description }}</p>
       <div #chartRef style="width: 100%; height: 240px;"></div>
@@ -43,8 +44,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <tbody>
           <tr *ngFor="let c of companies()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'company', symbol: c.symbol}">{{ c.symbol }}</a></td><td>{{ c.name }}</td><td class="muted">{{ c.sector ?? '—' }}</td>
-            <td class="num">{{ c.eps ?? '—' }}</td><td class="num">{{ c.pe_ratio ?? '—' }}</td>
-            <td class="num">{{ c.book_value ?? '—' }}</td><td class="num">{{ c.market_cap ?? '—' }}</td>
+            <td class="num">{{ fmtPrice(c.eps) }}</td><td class="num">{{ fmtPrice(c.pe_ratio) }}</td>
+            <td class="num">{{ fmtPrice(c.book_value) }}</td><td class="num">{{ naira(c.market_cap) }}</td>
             <td><app-share-btn [text]="shareText(c)" [link]="'/symbol?symbol=' + c.symbol"></app-share-btn></td>
           </tr>
         </tbody>
@@ -61,13 +62,10 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtPrice = fmtPrice; fmtMoney = fmtMoney;
   constructor(private api: ApiService) {}
   selected(): CompanyProfile | null { return this.companies().find(c => c.id === this.selectedId()) ?? this.companies()[0] ?? null; }
-  naira(v: string | null): string {
-    if (!v) return '—';
-    const n = Number(v);
-    return n >= 1e12 ? `₦${(n / 1e12).toFixed(2)}tn` : n >= 1e9 ? `₦${(n / 1e9).toFixed(2)}bn` : `₦${n.toLocaleString()}`;
-  }
+  naira(v: string | null): string { return fmtMoney(v); }
   shareText(c: CompanyProfile): string { return `${c.name} (${c.symbol}) — company profile`; }
   ngOnInit() {
     this.api.companies().subscribe(cs => {

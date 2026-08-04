@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { fmtPct } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316', '#22d3ee', '#e879f9', '#84cc16', '#fb7185'];
@@ -48,7 +49,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f0b90b', '#ea3943', '#a78bfa', '#f97316
         <tbody>
           <tr *ngFor="let r of rows()">
             <td class="sym">{{ r.symbol }}</td><td>{{ r.asset_type }}</td>
-            <td class="num" [class.up]="r.change_pct >= 0" [class.down]="r.change_pct < 0">{{ r.change_pct >= 0 ? '▲' : '▼' }} {{ r.change_pct }}%</td>
+            <td class="num" [class.up]="r.change_pct >= 0" [class.down]="r.change_pct < 0">{{ r.change_pct >= 0 ? '▲' : '▼' }} {{ fmtPct(r.change_pct) }}</td>
           </tr>
         </tbody>
       </table>
@@ -70,6 +71,7 @@ export class ComparePage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
 
+  fmtPct = fmtPct;
   constructor(private api: ApiService) {}
   chips() {
     return [

@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { fmtMoney, fmtPct } from '../format';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
@@ -101,8 +102,5 @@ export class AssetMixPage implements OnInit, AfterViewInit {
     this.chart?.timeScale().fitContent();
   }
 
-  fmt(n: number): string {
-    const v = Number(n ?? 0);
-    return v >= 1e9 ? `₦${(v / 1e9).toFixed(2)}bn` : `₦${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-  }
+  fmt(n: number): string { return fmtMoney(n); }
 }

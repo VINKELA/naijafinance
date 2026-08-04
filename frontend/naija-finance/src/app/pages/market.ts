@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { fmtPrice, fmtPct, fmtCompact } from '../format';
 
 @Component({
   selector: 'app-market',
@@ -12,14 +13,14 @@ import { ShareButton } from '../share-button';
     <div class="hero">
       <div class="indexCard">
         <div class="lbl">NGX All-Share Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ asi()?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="asi()?.isUp" [class.down]="!asi()?.isUp">▲ {{ asi()?.point_change ?? '' }} ({{ asi()?.percent_change ?? '' }}%) · Today</div>
+        <div class="val num">{{ fmtPrice(asi()?.current_price) }}</div>
+        <div class="sub" [class.up]="asi()?.isUp" [class.down]="!asi()?.isUp">▲ {{ fmtPrice(asi()?.point_change) }} ({{ fmtPct(asi()?.percent_change) }}) · Today</div>
         <div [innerHTML]="spark(asi(), 'ASI')"></div>
       </div>
       <div class="indexCard">
         <div class="lbl">NGX 30 Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ ngx30()?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="ngx30()?.isUp" [class.down]="!ngx30()?.isUp">▲ {{ ngx30()?.point_change ?? '' }} ({{ ngx30()?.percent_change ?? '' }}%) · Today</div>
+        <div class="val num">{{ fmtPrice(ngx30()?.current_price) }}</div>
+        <div class="sub" [class.up]="ngx30()?.isUp" [class.down]="!ngx30()?.isUp">▲ {{ fmtPrice(ngx30()?.point_change) }} ({{ fmtPct(ngx30()?.percent_change) }}) · Today</div>
         <div [innerHTML]="spark(ngx30(), 'NGX30')"></div>
       </div>
       <div class="indexCard">
@@ -39,7 +40,7 @@ import { ShareButton } from '../share-button';
             <td><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: m.symbol}" class="sym" style="display:block">{{ m.symbol }}<small>{{ m.name }}</small></a></td>
             <td class="num">{{ m.price }}</td>
             <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ m.change }}</td>
-            <td class="num">{{ volume(m.symbol) }}</td>
+            <td class="num">{{ fmtCompact(volume(m.symbol)) }}</td>
             <td><div [innerHTML]="miniSpark(m.symbol, m.isUp)"></div></td>
           </tr>
         </tbody>
@@ -120,6 +121,7 @@ export class MarketPage implements OnInit {
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
 
+  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact;
   constructor(private api: ApiService) {}
   moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
 
@@ -135,11 +137,10 @@ export class MarketPage implements OnInit {
     this.api.news(5).subscribe(n => this.news.set(n));
   }
 
-  volume(symbol: string): string {
+  volume(symbol: string): number {
     let v = 0; const s = symbol || 'X';
     for (let k = 0; k < s.length; k++) v = (v * 31 + s.charCodeAt(k)) % 9973;
-    const n = (v % 180) + 20;
-    return n >= 100 ? `${(n / 100).toFixed(1)}M` : `${n * 100}K`;
+    return ((v % 180) + 20) * 1000;
   }
 
   spark(idx: any, seedKey: string): string {
