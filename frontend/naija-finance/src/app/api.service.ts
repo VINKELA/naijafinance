@@ -64,6 +64,13 @@ export class ApiService {
     return this.http.post<any>(`${API_BASE}/watchlist/toggle/`, body, { headers: this.authHeaders() });
   }
   sharePortfolio(portfolioId: number): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/${portfolioId}/share/`, {}, { headers: this.authHeaders() }); }
+  compare(symbols: string[], funds: number[], period = 90): Observable<any> {
+    const qs = new URLSearchParams();
+    if (symbols.length) qs.set('symbols', symbols.join(','));
+    if (funds.length) qs.set('funds', funds.join(','));
+    qs.set('period', String(period));
+    return this.http.get<any>(`${API_BASE}/compare/?${qs.toString()}`);
+  }
 
   // ---- F-09 Portfolios ----
   portfolios(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/`, { headers: this.authHeaders() }); }

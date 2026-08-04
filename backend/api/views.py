@@ -696,6 +696,74 @@ def watchlist_history(request):
 
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def compare_assets(request):
+    """Multi-asset normalized performance comparison over a period.
+
+    GET /api/compare/?symbols=MTNN,FGN-14.55-2029&funds=1,2&period=90
+    Returns per-asset series where value = % change vs period start,
+    so the frontend can overlay any mix of instruments + funds on one chart.
+    """
+    period = int(request.query_params.get('period', 90))
+    if period not in (7, 30, 90, 180, 365):
+        period = 90
+    symbols = [x.strip().upper() for x in request.query_params.get('symbols', '').split(',') if x.strip()]
+    fund_ids = [int(x) for x in request.query_params.get('funds', '').split(',') if x.strip().isdigit()]
+    today = timezone.localdate()
+    start = today - timedelta(days=period)
+
+    series = []
+    # Instruments (equities, bonds, CPs, FX pairs)
+    for sym in symbols:
+        inst = Instrument.objects.filter(symbol__iexact=sym, is_active=True).first()
+        if not inst:
+            continue
+        rows = list(
+            PriceHistory.objects.filter(instrument=inst, date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('date', 'close_price')
+        )
+        if len(rows) < 2:
+            continue
+        base = float(rows[0]['close_price']) or 0.0
+        if base <= 0:
+            continue
+        pts = [{"date": r['date'].isoformat(), "value": round((float(r['close_price']) / base - 1.0) * 100.0, 3)} for r in rows]
+        series.append({
+            "symbol": inst.symbol,
+            "name": display_instrument_name(inst),
+            "asset_type": inst.get_asset_class_display(),
+            "change_pct": pts[-1]["value"],
+            "points": pts,
+        })
+    # Funds (NAV-based)
+    for fid in fund_ids:
+        fund = Fund.objects.filter(id=fid, is_active=True).first()
+        if not fund:
+            continue
+        rows = list(
+            fund.nav_snapshots.filter(date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('date', 'nav')
+        )
+        if len(rows) < 2:
+            continue
+        base = float(rows[0]['nav']) or 0.0
+        if base <= 0:
+            continue
+        pts = [{"date": r['date'].isoformat(), "value": round((float(r['nav']) / base - 1.0) * 100.0, 3)} for r in rows]
+        series.append({
+            "symbol": fund.name,
+            "name": fund.name,
+            "asset_type": f"Fund · {fund.get_asset_class_display()}",
+            "change_pct": pts[-1]["value"],
+            "points": pts,
+        })
+    return Response({"period_days": period, "series": series})
+
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request):

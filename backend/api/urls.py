@@ -57,6 +57,7 @@ urlpatterns = [
     path('portfolio-items/add-by-symbol/', views.add_portfolio_item_by_symbol, name='add_portfolio_item_by_symbol'),
     path('watchlist/default/', views.default_watchlist, name='default_watchlist'),
     path('watchlist/history/', views.watchlist_history, name='watchlist_history'),
+    path('compare/', views.compare_assets, name='compare_assets'),
     path('watchlist/toggle/', views.toggle_watchlist, name='toggle_watchlist'),
     path('portfolios/<int:pk>/performance/', views.portfolio_performance, name='portfolio_performance'),
     path('mix/', views.create_mix_share, name='create_mix_share'),

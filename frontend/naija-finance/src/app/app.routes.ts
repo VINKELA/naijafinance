@@ -12,6 +12,7 @@ import { AssetPage } from './pages/asset';
 import { AssetMixPage } from './pages/asset-mix';
 import { AuthPage } from './pages/auth';
 import { LegalPage } from './pages/legal';
+import { ComparePage } from './pages/compare';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -28,4 +29,5 @@ export const routes: Routes = [
   { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'account', component: AuthPage, title: 'Account' },
   { path: 'legal', component: LegalPage, title: 'Terms & Privacy' },
+  { path: 'compare', component: ComparePage, title: 'Compare Assets' },
 ];
