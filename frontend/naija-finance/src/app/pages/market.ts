@@ -36,7 +36,7 @@ import { ShareButton } from '../share-button';
         <thead><tr><th>Symbol</th><th>Price (₦)</th><th>Change</th><th>Volume</th><th>Trend</th></tr></thead>
         <tbody>
           <tr *ngFor="let m of movers()">
-            <td><span class="sym">{{ m.symbol }}<small>{{ m.name }}</small></span></td>
+            <td><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: m.symbol}" class="sym" style="display:block">{{ m.symbol }}<small>{{ m.name }}</small></a></td>
             <td class="num">{{ m.price }}</td>
             <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ m.change }}</td>
             <td class="num">{{ volume(m.symbol) }}</td>

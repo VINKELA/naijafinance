@@ -61,6 +61,8 @@ urlpatterns = [
     path('earnings/', views.get_earnings, name='get_earnings'),
     # Add this to your urlpatterns:
     path('stock/<str:symbol>/', views.get_stock_detail, name='get_stock_detail'),
+    path('fund/<int:pk>/', views.get_fund_detail, name='get_fund_detail'),
+    path('company/<str:symbol>/', views.get_company_detail, name='get_company_detail'),
     path('stocks/search/', views.search_stocks, name='search_stocks'),
     path('indexes/', MarketIndexListView.as_view(), name='index-list'),
     path('indexes/<str:symbol>/', MarketIndexDetailView.as_view(), name='index-detail'),

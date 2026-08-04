@@ -8,6 +8,7 @@ import { MarketPage } from './pages/market';
 import { WatchlistPage } from './pages/watchlist';
 import { PortfolioPage } from './pages/portfolio';
 import { SymbolPage } from './pages/symbol';
+import { AssetPage } from './pages/asset';
 import { AuthPage } from './pages/auth';
 
 export const routes: Routes = [
@@ -21,5 +22,6 @@ export const routes: Routes = [
   { path: 'watchlist', component: WatchlistPage, title: 'Watchlist' },
   { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
   { path: 'symbol', component: SymbolPage, title: 'Symbol & Chart' },
+  { path: 'asset', component: AssetPage, title: 'Asset Information' },
   { path: 'account', component: AuthPage, title: 'Account' },
 ];

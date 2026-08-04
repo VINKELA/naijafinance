@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
@@ -9,7 +10,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-funds',
-  imports: [CommonModule, FormsModule, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Mutual Funds &amp; Public NAVs</h2>
     <p class="sub">Fund list with published NAV snapshots and historical performance.</p>
@@ -33,7 +34,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Fund</th><th>Manager</th><th>Class</th><th class="num">Latest NAV</th><th class="num">NAV date</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let f of funds()">
-            <td class="sym">{{ f.name }}</td><td class="muted">{{ f.manager ?? '—' }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
             <td class="num muted">{{ f.latest_nav?.date ?? '—' }}</td>

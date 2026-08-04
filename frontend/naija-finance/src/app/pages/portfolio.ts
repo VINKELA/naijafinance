@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
 
@@ -8,7 +9,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-portfolio',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <h2>Portfolio (F-09)</h2>
     <p class="sub">Manual positions, P&L and allocation.</p>
@@ -71,7 +72,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Value</th><th class="num">G/L</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let it of p.items">
-            <td class="sym">{{ it.symbol }}</td><td>{{ it.name }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="assetQp(it)">{{ it.symbol }}</a></td><td>{{ it.name }}</td>
             <td><span class="pill">{{ it.asset_class }}</span></td>
             <td class="num">{{ it.quantity }}</td>
             <td class="num">{{ it.current_price }}</td>
@@ -109,6 +110,10 @@ export class PortfolioPage implements OnInit {
       error: () => {},
     });
     this.api.funds().subscribe(fs => this.funds.set(fs));
+  }
+
+  assetQp(it: any): any {
+    return (it.asset_class ?? '').startsWith('Fund') ? { type: 'fund', id: it.fund } : { type: 'instrument', symbol: it.symbol };
   }
 
   total(p: any): string {

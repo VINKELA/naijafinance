@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
@@ -9,7 +10,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-companies',
-  imports: [CommonModule, FormsModule, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Company Profiles &amp; Fundamentals</h2>
     <p class="sub">Public company profiles with key fundamentals and historical revenue, for display only.</p>
@@ -41,7 +42,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Symbol</th><th>Name</th><th>Sector</th><th class="num">EPS</th><th class="num">P/E</th><th class="num">Book value</th><th class="num">Market cap (₦)</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let c of companies()">
-            <td class="sym">{{ c.symbol }}</td><td>{{ c.name }}</td><td class="muted">{{ c.sector ?? '—' }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'company', symbol: c.symbol}">{{ c.symbol }}</a></td><td>{{ c.name }}</td><td class="muted">{{ c.sector ?? '—' }}</td>
             <td class="num">{{ c.eps ?? '—' }}</td><td class="num">{{ c.pe_ratio ?? '—' }}</td>
             <td class="num">{{ c.book_value ?? '—' }}</td><td class="num">{{ c.market_cap ?? '—' }}</td>
             <td><app-share-btn [text]="shareText(c)" [link]="'/symbol?symbol=' + c.symbol"></app-share-btn></td>

@@ -42,6 +42,8 @@ export class ApiService {
   indexes(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/indexes/`); }
   overview(): Observable<any> { return this.http.get<any>(`${API_BASE}/overview/`); }
   news(limit = 10): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/news/?limit=${limit}`); }
+  fundDetail(id: number): Observable<any> { return this.http.get<any>(`${API_BASE}/fund/${id}/`); }
+  companyDetail(symbol: string): Observable<any> { return this.http.get<any>(`${API_BASE}/company/${symbol}/`); }
   stockDetail(symbol: string): Observable<any> { return this.http.get<any>(`${API_BASE}/stock/${symbol}/`); }
   // ---- Auth (F-09) ----
   register(payload: any): Observable<any> { return this.http.post(`${API_BASE}/auth/register/`, payload); }

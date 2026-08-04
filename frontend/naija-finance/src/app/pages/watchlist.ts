@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
@@ -9,7 +10,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-watchlist',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <h2>Watchlist (F-01)</h2>
     <p class="sub">Your saved instruments — toggle from the search box.</p>
@@ -44,7 +45,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Last price</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let i of instruments()">
-            <td class="sym">{{ i.symbol }}</td><td>{{ i.name }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: i.symbol}">{{ i.symbol }}</a></td><td>{{ i.name }}</td>
             <td><span class="pill">{{ i.asset_type }}</span></td>
             <td class="num">{{ i.last_price }}</td>
             <td><button class="ghost" (click)="remove(i.symbol)">Remove</button></td>
@@ -56,7 +57,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Fund</th><th>Class</th><th class="num">Latest NAV</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let f of fundsWatched()">
-            <td class="sym">{{ f.name }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td>
             <td><span class="pill">{{ f.asset_class_display }}</span></td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }} <span class="muted">({{ f.latest_nav?.date ?? '' }})</span></td>
             <td><button class="ghost" (click)="removeFund(f.id)">Remove</button></td>

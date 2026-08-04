@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
 import { ShareButton } from '../share-button';
 
@@ -7,7 +8,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-bonds',
-  imports: [CommonModule, ShareButton],
+  imports: [CommonModule, RouterLink, ShareButton],
   template: `
     <h2>Bonds &amp; Treasury Bills</h2>
     <p class="sub">FGN fixed-income instruments and the public DMO auction calendar.</p>
@@ -19,7 +20,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Coupon</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let b of bonds()">
-            <td class="sym">{{ b.symbol }}</td><td>{{ b.name }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
             <td><app-share-btn [text]="shareText(b)" [link]="'/symbol?symbol=' + b.symbol"></app-share-btn></td>
@@ -35,7 +36,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let cp of cps()">
-            <td class="sym">{{ cp.symbol }}</td><td>{{ cp.name }}</td>
+            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
             <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ cp.maturity_date ?? '—' }}</td>
             <td><app-share-btn [text]="shareCpText(cp)" [link]="'/bonds'"></app-share-btn></td>

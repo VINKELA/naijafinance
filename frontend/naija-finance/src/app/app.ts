@@ -91,7 +91,7 @@ export class App implements OnInit, OnDestroy {
     this.query = '';
     this.suggestions.set([]);
     this.showSuggestions.set(false);
-    this.router.navigate(['/symbol'], { queryParams: { symbol } });
+    this.router.navigate(['/asset'], { queryParams: { type: 'instrument', symbol } });
   }
 
   search() {

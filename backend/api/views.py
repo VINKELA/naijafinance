@@ -700,6 +700,18 @@ def get_stock_detail(request, symbol):
 
     raw_prices = [item['price'] for item in chart_data]
 
+    stats = [
+        {"label": "Previous close", "value": f"₦{previous_price:,.2f}"},
+        {"label": "52-wk high", "value": f"₦{max(raw_prices):,.2f}" if raw_prices else "N/A"},
+        {"label": "52-wk low", "value": f"₦{min(raw_prices):,.2f}" if raw_prices else "N/A"},
+    ]
+    if instrument.maturity_date:
+        stats.append({"label": "Maturity", "value": instrument.maturity_date.isoformat()})
+    if instrument.coupon_rate is not None:
+        stats.append({"label": "Coupon", "value": f"{float(instrument.coupon_rate) * 100:.2f}%"})
+    if instrument.issuer_id and instrument.issuer.name:
+        stats.append({"label": "Issuer", "value": instrument.issuer.name})
+
     data = {
         "id": instrument.id,
         "symbol": instrument.symbol,
@@ -711,16 +723,74 @@ def get_stock_detail(request, symbol):
         "exchange": instrument.exchange.name if instrument.exchange else "OTC",
         "asset_type": instrument.get_asset_class_display(),
         "about": instrument_about_text(instrument),
-        "chart_data": chart_data, 
-        "stats": [
-            {"label": "Previous close", "value": f"₦{previous_price:,.2f}"},
-            {"label": "52-wk high", "value": f"₦{max(raw_prices):,.2f}" if raw_prices else "N/A"},
-            {"label": "52-wk low", "value": f"₦{min(raw_prices):,.2f}" if raw_prices else "N/A"},
-        ],
+        "chart_data": chart_data,
+        "stats": stats,
         "news": []
     }
-    
+
     return Response(data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_fund_detail(request, pk):
+    fund = get_object_or_404(Fund, id=pk, is_active=True)
+    navs = list(fund.nav_snapshots.order_by('date'))
+    series = [{"date": n.date.isoformat(), "value": float(n.nav)} for n in navs]
+    latest = navs[-1] if navs else None
+    first = navs[0] if navs else None
+    pct = None
+    if latest and first and float(first.nav):
+        pct = round((float(latest.nav) / float(first.nav) - 1) * 100, 2)
+    return Response({
+        "id": fund.id,
+        "symbol": fund.name,
+        "name": fund.name,
+        "kind": "fund",
+        "asset_type": f"Fund · {fund.get_asset_class_display()}",
+        "manager": fund.manager or "—",
+        "price": f"{float(latest.nav):,.4f}" if latest else "—",
+        "changePct": f"{pct:.2f}" if pct is not None else "—",
+        "isUp": (pct or 0) >= 0,
+        "about": f"{fund.name} is a {fund.get_asset_class_display()} mutual fund managed by {fund.manager or 'the fund manager'}. NAV shown is the latest published snapshot.",
+        "chart_data": series,
+        "stats": [
+            {"label": "Latest NAV", "value": f"₦{float(latest.nav):,.4f}" if latest else "—"},
+            {"label": "NAV date", "value": latest.date.isoformat() if latest else "—"},
+            {"label": "Manager", "value": fund.manager or "—"},
+            {"label": "Class", "value": fund.get_asset_class_display()},
+        ],
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_company_detail(request, symbol):
+    company = get_object_or_404(CompanyProfile, symbol__iexact=symbol, is_active=True)
+    revenue = [
+        {"date": f"{r['year']}-01-01", "value": float(r['revenue_ngn'])}
+        for r in (company.revenue_history or [])
+        if r.get('revenue_ngn')
+    ]
+    return Response({
+        "id": company.id,
+        "symbol": company.symbol,
+        "name": company.name,
+        "kind": "company",
+        "asset_type": f"Company · {company.sector or '—'}",
+        "price": "—",
+        "changePct": "—",
+        "isUp": True,
+        "about": company.description or f"{company.name} — public company profile (display only).",
+        "chart_data": revenue,
+        "stats": [
+            {"label": "Sector", "value": company.sector or "—"},
+            {"label": "EPS", "value": str(company.eps) if company.eps is not None else "—"},
+            {"label": "P/E", "value": str(company.pe_ratio) if company.pe_ratio is not None else "—"},
+            {"label": "Book value", "value": str(company.book_value) if company.book_value is not None else "—"},
+            {"label": "Market cap (₦)", "value": f"{float(company.market_cap):,.0f}" if company.market_cap else "—"},
+        ],
+    })
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
