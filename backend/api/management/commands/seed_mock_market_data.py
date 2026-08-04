@@ -172,7 +172,7 @@ class Command(BaseCommand):
             ('BUACEM-CP-2026-09', 98.40, 0.0015),
         ]
         for symbol, base_price, vol in FIXED_INCOME:
-            instrument = Instrument.objects.filter(exchange=exchange, symbol=symbol).order_by('id').first()
+            instrument = Instrument.objects.filter(symbol=symbol).order_by('id').first()
             if instrument is None:
                 continue  # created by seed_public_data (runs first)
             instrument.last_price = Decimal(str(base_price))
