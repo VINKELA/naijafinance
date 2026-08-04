@@ -224,6 +224,12 @@ class MixShare(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.SET_NULL, null=True, blank=True)
     snapshot = models.JSONField(default=dict, blank=True)  # frozen card data
+    visibility = models.CharField(
+        max_length=10,
+        choices=[('public', 'Public'), ('private', 'Private')],
+        default='public',
+        help_text="Public mixes are viewable by anyone (no account); private mixes are owner-only.",
+    )
 
     class Meta:
         ordering = ['-created_at']

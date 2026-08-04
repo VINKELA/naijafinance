@@ -609,9 +609,27 @@ def list_mix_shares(request):
             "asOf": snap.get("asOf"),
             "itemCount": len(snap.get("items", [])),
             "created_at": sh.created_at.isoformat() if sh.created_at else None,
+            "visibility": sh.visibility,
             "url": f"/asset-mix?token={sh.token}",
         })
     return Response(out)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def set_mix_visibility(request, token):
+    """Owner-only: flip an Asset Mix between public and private.
+
+    Public = viewable by anyone (no account needed). Private = owner-only
+    (everyone else gets 404), per CEO product decision 19:11.
+    """
+    share = get_object_or_404(MixShare, token=token, user=request.user)
+    vis = (request.data.get('visibility') or '').strip().lower()
+    if vis not in ('public', 'private'):
+        return Response({'detail': "visibility must be 'public' or 'private'."}, status=400)
+    share.visibility = vis
+    share.save(update_fields=['visibility', 'updated_at'])
+    return Response({'token': share.token, 'visibility': share.visibility})
 
 
 @api_view(['GET'])
@@ -623,6 +641,8 @@ def mix_card(request, token):
     public and stable even after the source portfolio is deleted.
     """
     share = get_object_or_404(MixShare, token=token)
+    if share.visibility == 'private' and request.user != share.user:
+        return Response({'detail': 'Mix not found.'}, status=404)
     snap = share.snapshot or {}
     if snap.get('items'):
         return Response(snap)

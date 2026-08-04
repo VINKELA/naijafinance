@@ -12,13 +12,14 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   imports: [CommonModule, RouterLink],
   template: `
     <h2>My Asset Mix</h2>
-    <p class="sub" *ngIf="card()">Shareable performance card · as of {{ card().asOf }}</p>
+    <p class="sub" *ngIf="card()">{{ card().visibility === 'private' ? 'Private mix · only you can view' : 'Shareable performance card · as of ' + card().asOf }}</p>
+    <p class="sub" style="margin-top:-12px;font-weight:600;color:var(--warn,#d97706);" *ngIf="card() && card().visibility === 'private'">🔒 This mix is private — only you can see it. Make it public to share the link.</p>
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="authed && !token">
       <h3>My Asset Mixes</h3>
       <table class="data">
-        <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>As of</th><th></th></tr></thead>
+        <thead><tr><th>Name</th><th class="num">Value</th><th class="num">Holdings</th><th>As of</th><th>Visibility</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let m of mixes()">
             <td class="sym">{{ m.name }}</td>
@@ -26,8 +27,12 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
             <td class="num">{{ m.itemCount }}</td>
             <td class="muted">{{ m.asOf }}</td>
             <td>
+              <span class="pill" [style.background]="m.visibility === 'public' ? 'var(--up-bg, rgba(22,199,132,.12))' : 'var(--bg2)'">{{ m.visibility === 'public' ? '🌍 Public' : '🔒 Private' }}</span>
+            </td>
+            <td>
               <a class="link" [routerLink]="['/asset-mix']" [queryParams]="{token: m.token}" style="margin-right:10px;">View insights</a>
-              <button type="button" class="ghost" (click)="copyMix(m)">Share</button>
+              <button type="button" class="ghost" (click)="copyMix(m)" *ngIf="m.visibility === 'public'">Share</button>
+              <button type="button" class="ghost" (click)="toggleMix(m)">{{ m.visibility === 'public' ? 'Make private' : 'Make public' }}</button>
             </td>
           </tr>
         </tbody>
@@ -121,6 +126,17 @@ export class AssetMixPage implements OnInit, AfterViewInit {
     } catch {
       window.open(`https://wa.me/?text=${encodeURIComponent(`Check my Asset Mix → ${url}`)}`, '_blank');
     }
+  }
+
+  toggleMix(m: any) {
+    const next = m.visibility === 'public' ? 'private' : 'public';
+    this.api.setMixVisibility(m.token, next).subscribe({
+      next: () => {
+        m.visibility = next;
+        this.error = next === 'public' ? 'Mix is now public — anyone with the link can view it.' : 'Mix is now private — only you can view it.';
+      },
+      error: () => this.error = 'Could not update mix visibility.',
+    });
   }
 
   copyMix(m: any) {

@@ -95,6 +95,7 @@ export class ApiService {
   }
   mixCard(token: string): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/`); }
   myMixes(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/mix/list/`, { headers: this.authHeaders() }); }
+  setMixVisibility(token: string, visibility: string): Observable<any> { return this.http.post<any>(`${API_BASE}/mix/${token}/visibility/`, { visibility }, { headers: this.authHeaders() }); }
   mixPerformance(token: string, period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/mix/${token}/performance/?period=${period}`); }
   revokeMix(token: string): Observable<void> { return this.http.delete<void>(`${API_BASE}/mix/${token}/revoke/`, { headers: this.authHeaders() }); }
   searchStocks(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/stocks/search/?q=${encodeURIComponent(q)}`); }
