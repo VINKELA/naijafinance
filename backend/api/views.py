@@ -529,11 +529,13 @@ def mix_card(request, token):
     for it in items:
         if it.fund_id:
             latest = it.fund.nav_snapshots.order_by('-date').first()
-            price = latest.nav if latest else Decimal('0.00')
+            # Fall back to cost basis when no NAV is published, so un-priced
+            # holdings never render as a 0% / ₦0 line on the public card.
+            price = latest.nav if latest else (it.purchase_price or Decimal('0.00'))
             symbol = it.fund.name
             cls = f"Fund · {it.fund.get_asset_class_display()}"
         elif it.instrument_id:
-            price = it.instrument.last_price or Decimal('0.00')
+            price = it.instrument.last_price or it.purchase_price or Decimal('0.00')
             symbol = it.instrument.symbol
             cls = it.instrument.get_asset_class_display()
         else:
