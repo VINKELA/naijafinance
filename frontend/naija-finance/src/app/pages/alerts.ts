@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Alert, Bond, Fund } from '../api.service';
+import { fmtPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -43,7 +44,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let a of alerts()">
             <td>{{ a.alert_type_display }}</td>
             <td class="sym">{{ a.instrument_symbol ?? a.fund_name }}</td>
-            <td class="num">{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
+            <td class="num">{{ fmtPrice(a.threshold) }}</td><td>{{ a.direction_display }}</td>
             <td><span class="pill" [class.up]="a.triggered" [class.down]="!a.triggered">{{ a.triggered ? 'Triggered' : 'Active' }}</span></td>
             <td class="num muted">{{ a.last_value ?? '—' }}</td>
             <td><button class="ghost" (click)="remove(a.id!)">Delete</button></td>

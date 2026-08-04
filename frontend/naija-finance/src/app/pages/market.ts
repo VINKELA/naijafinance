@@ -62,7 +62,7 @@ import { IS_DEMO } from '../env';
         <table>
           <tbody>
             <tr *ngFor="let a of auctions().slice(0, 3)">
-              <td><span class="sym">{{ a.instrument_name }}<small>{{ a.tenor }} · ₦{{ a.offer_size ?? '—' }}bn</small></span></td>
+              <td><span class="sym">{{ a.instrument_name }}<small>{{ a.tenor }} · ₦{{ fmtPrice(a.offer_size) }}bn</small></span></td>
               <td class="num">{{ a.auction_date }}</td>
             </tr>
           </tbody>
@@ -73,7 +73,7 @@ import { IS_DEMO } from '../env';
         <div class="fxGrid">
           <div class="fxItem" *ngFor="let f of fx()">
             <div class="pair"><span>{{ f.pair }}</span><span class="flat">—</span></div>
-            <div class="rate num">{{ f.rate }}</div>
+            <div class="rate num">{{ fmtPrice(f.rate) }}</div>
             <div class="chg flat">{{ f.date }} · {{ f.source }}</div>
           </div>
         </div>

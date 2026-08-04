@@ -47,3 +47,19 @@ export function fmtCompact(v: any): string {
   if (abs >= 1e3) return `${stripZeros((abs / 1e3).toFixed(1))}K`;
   return abs.toLocaleString('en-US');
 }
+
+/** Human word-form compact (CEO 19:49 — "20 Million", not 20000000):
+ *  1,200,000,000,000 → 1.2 Trillion · 850,400,000 → 850.4 Million. */
+export function fmtCompactWords(v: any): string {
+  if (v === null || v === undefined || v === '' || Number.isNaN(Number(v))) return '—';
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const word = (d: number, name: string) => `${stripZeros((abs / d).toFixed(2))} ${name}`;
+  const body = abs >= 1e12 ? word(1e12, 'Trillion')
+    : abs >= 1e9 ? word(1e9, 'Billion')
+    : abs >= 1e6 ? word(1e6, 'Million')
+    : abs >= 1e3 ? word(1e3, 'Thousand')
+    : abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return `${n < 0 ? '-' : ''}${body}`;
+}

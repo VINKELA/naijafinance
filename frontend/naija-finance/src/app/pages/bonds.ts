@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
+import { fmtPrice } from '../format';
 import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -53,7 +54,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <tbody>
           <tr *ngFor="let a of auctions()">
             <td>{{ a.auction_date }}</td><td>{{ a.instrument_name }}</td>
-            <td>{{ a.tenor }}</td><td class="num">{{ a.offer_size ?? '—' }}</td><td class="num">{{ a.stop_rate ?? '—' }}</td>
+            <td>{{ a.tenor }}</td><td class="num">{{ fmtPrice(a.offer_size) }}</td><td class="num">{{ fmtPrice(a.stop_rate) }}</td>
           </tr>
         </tbody>
       </table>

@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtMoney, fmtPrice } from '../format';
+import { fmtMoney, fmtPrice, fmtCompactWords } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -65,7 +65,7 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   fmtPrice = fmtPrice; fmtMoney = fmtMoney;
   constructor(private api: ApiService) {}
   selected(): CompanyProfile | null { return this.companies().find(c => c.id === this.selectedId()) ?? this.companies()[0] ?? null; }
-  naira(v: string | null): string { return fmtMoney(v); }
+  naira(v: string | null): string { return v ? '₦' + fmtCompactWords(v) : '—'; }
   shareText(c: CompanyProfile): string { return `${c.name} (${c.symbol}) — company profile`; }
   ngOnInit() {
     this.api.companies().subscribe(cs => {
