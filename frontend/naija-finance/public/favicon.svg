@@ -1,15 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- flat dark tile, no gradients, no glow -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Naija Finance mark v4 — "Naira Rising".
+       Flat, professional: deep-green tile, white naira monogram whose
+       lower bar rises into a solid green growth arrow. No gradients/glow. -->
   <rect width="512" height="512" rx="112" fill="#0C1A14"/>
-  <!-- single solid green rising arrow -->
-  <path d="M96 396 L200 320 L280 344 L420 232" fill="none" stroke="#16C784" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M420 232 L396 296 L352 232 Z" fill="#16C784"/>
-  <!-- bold white naira mark: N + double bar -->
-  <g stroke="#FFFFFF" stroke-width="56" stroke-linecap="round" fill="none">
-    <path d="M184 96 V 416"/>
-    <path d="M328 96 V 416"/>
-    <path d="M328 96 L 184 416"/>
-    <path d="M136 208 H 376"/>
-    <path d="M136 304 H 376"/>
+  <g stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M176 112 V 400" stroke-width="44"/>
+    <path d="M336 112 V 400" stroke-width="44"/>
+    <path d="M176 112 L 336 400" stroke-width="44"/>
+    <path d="M128 224 H 384" stroke-width="34"/>
+    <path d="M128 304 H 336" stroke-width="34"/>
   </g>
+  <g stroke="#16C784" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M336 304 L 392 248" stroke-width="34"/>
+  </g>
+  <path d="M396 244 L 366 258 L 382 274 Z" fill="#16C784"/>
 </svg>
