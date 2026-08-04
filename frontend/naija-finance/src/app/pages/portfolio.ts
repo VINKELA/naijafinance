@@ -19,7 +19,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="error" *ngIf="error">{{ error }}</p>
 
     <div class="form-row" style="margin-bottom: 12px;" *ngIf="portfolios().length">
-      <button type="button" (click)="shareMix()">📤 Share my mix</button>
+      <button type="button" (click)="shareMix()">📤 Share my Asset Mix</button>
       <span class="muted" style="font-size:11.5px;">Generates your allocation snapshot for WhatsApp/Telegram — the acquisition loop.</span>
     </div>
 
