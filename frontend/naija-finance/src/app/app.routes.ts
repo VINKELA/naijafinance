@@ -13,6 +13,9 @@ import { AssetMixPage } from './pages/asset-mix';
 import { AuthPage } from './pages/auth';
 import { LegalPage } from './pages/legal';
 import { ComparePage } from './pages/compare';
+import { BlogPage } from './pages/blog';
+import { BlogPostPage } from './pages/blog-post';
+import { BlogEditorPage } from './pages/blog-editor';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -30,4 +33,7 @@ export const routes: Routes = [
   { path: 'account', component: AuthPage, title: 'Account' },
   { path: 'legal', component: LegalPage, title: 'Terms & Privacy' },
   { path: 'compare', component: ComparePage, title: 'Compare Assets' },
+  { path: 'blog', component: BlogPage, title: 'Blog' },
+  { path: 'blog/new', component: BlogEditorPage, title: 'Write a Post' },
+  { path: 'blog/:id', component: BlogPostPage, title: 'Post' },
 ];
