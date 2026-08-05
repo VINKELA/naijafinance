@@ -77,6 +77,9 @@ urlpatterns = [
     path('indexes/', MarketIndexListView.as_view(), name='index-list'),
     path('indexes/<str:symbol>/', MarketIndexDetailView.as_view(), name='index-detail'),
     path('', include(router.urls)),
+    path('posts/', views.list_posts, name='list_posts'),
+    path('posts/create/', views.create_post, name='create_post'),
+    path('posts/<int:pk>/', views.post_detail, name='post_detail'),
     path('analytics/', analytics_collect, name='analytics_collect'),
 
 

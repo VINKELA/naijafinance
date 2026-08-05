@@ -443,3 +443,17 @@ class Alert(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} {self.get_alert_type_display()} {self.direction} {self.threshold}"
+
+
+class Post(TimeStampedModel):
+    """NaijaFinanceHub content (CEO 20:14) — 'the YouTube of finance in Nigeria'.
+    Public marketing surface: write about an asset, embed a YouTube video
+    (video_url -> oEmbed thumbnail/player) and link an asset's info page
+    (asset_url -> inline commodity card preview). Read = public; write = signed-up users.
+    """
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, default='')
+    video_url = models.URLField(blank=True, null=True)
+    asset_url = models.CharField(max_length=300, blank=True, null=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
+    is_published = models.BooleanField(default=True)

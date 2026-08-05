@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
     Exchange, Instrument, Portfolio, PortfolioItem,
-    Watchlist, MarketIndex, PriceHistory, Fund, NavSnapshot
+    Watchlist, MarketIndex, PriceHistory, Fund, NavSnapshot, Post
 )
 from .display import display_instrument_name
 
@@ -243,3 +243,15 @@ class AlertSerializer(serializers.ModelSerializer):
             if not instrument:
                 raise serializers.ValidationError({'instrument': f'{alert_type} alerts require an instrument.'})
         return attrs
+
+
+class PostSerializer(serializers.ModelSerializer):
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = ('id', 'title', 'body', 'video_url', 'asset_url', 'author', 'author_name', 'is_published', 'created_at')
+        read_only_fields = ('author', 'created_at')
+
+    def get_author_name(self, obj):
+        return (obj.author.first_name or obj.author.email.split('@')[0]) if obj.author else 'NaijaFinanceHub'

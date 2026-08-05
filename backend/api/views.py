@@ -19,7 +19,7 @@ User = get_user_model()
 from .models import (
     Exchange, Instrument, Portfolio, PortfolioItem, Watchlist, 
     MarketIndex, PriceHistory, NewsArticle, EarningsCalendar, ScrapeExecution,
-    AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert, MixShare
+    AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert, MixShare, Post
 )
 from .serializers import *
 from .tasks import run_stateful_scrape
@@ -1445,3 +1445,34 @@ class AlertViewSet(viewsets.ModelViewSet):
         if self.get_object().user != self.request.user:
             raise PermissionDenied("You can only update your own alerts.")
         serializer.save()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_posts(request):
+    """Public content feed — latest 20 by default; ?q= searches titles."""
+    qs = Post.objects.filter(is_published=True).order_by('-created_at')
+    q = (request.query_params.get('q') or '').strip().lower()
+    limit = min(int(request.query_params.get('limit', 20)), 100)
+    posts = [p for p in qs if not q or q in p.title.lower()][:limit]
+    return Response(PostSerializer(posts, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def post_detail(request, pk):
+    post = get_object_or_404(Post, pk=pk, is_published=True)
+    return Response(PostSerializer(post).data)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_post(request):
+    """Only signed-up users can write (mirrors the mix-creation auth rule)."""
+    data = request.data.copy()
+    data['author'] = request.user.id
+    ser = PostSerializer(data=data)
+    if not ser.is_valid():
+        return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+    post = ser.save()
+    return Response(PostSerializer(post).data, status=status.HTTP_201_CREATED)
