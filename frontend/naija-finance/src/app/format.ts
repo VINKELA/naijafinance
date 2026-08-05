@@ -2,7 +2,7 @@
  *  Google Finance-style: compact tiers, max 2dp, strip trailing zeros,
  *  signed percents, "—" for nil. ONE source of truth app-wide. */
 
-const stripZeros = (s: string) => s.replace(/\.?0+$/, '');
+const stripZeros = (s: string) => s.includes('.') ? s.replace(/\.0+$/, '').replace(/\.$/, '') : s;
 
 /** Price/index value: thousands separators, max 2dp, no trailing zeros. Nil → — */
 export function fmtPrice(v: any): string {
@@ -29,11 +29,14 @@ export function fmtMoney(v: any): string {
   const n = Number(v);
   if (!isFinite(n)) return '—';
   const abs = Math.abs(n);
-  const tier = (d: number, suffix: string) => `${n < 0 ? '-' : ''}₦${stripZeros((abs / d).toFixed(2))}${suffix}`;
-  if (abs >= 1e12) return tier(1e12, 'tn');
-  if (abs >= 1e9) return tier(1e9, 'bn');
-  if (abs >= 1e6) return tier(1e6, 'm');
-  return `${n < 0 ? '-' : ''}₦${stripZeros(abs.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 }))}`;
+  const sign = n < 0 ? '-' : '';
+  // Word tiers everywhere (CEO 19:49 — "20 Million", never 20000000).
+  const tier = (d: number, word: string) => `${sign}₦${stripZeros((abs / d).toFixed(2))} ${word}`;
+  if (abs >= 1e12) return tier(1e12, 'Trillion');
+  if (abs >= 1e9) return tier(1e9, 'Billion');
+  if (abs >= 1e6) return tier(1e6, 'Million');
+  if (abs >= 1e3) return tier(1e3, 'Thousand');
+  return `${sign}₦${stripZeros(abs.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 }))}`;
 }
 
 /** Word-tier money: 20 Million, 1.5 Billion, 840 Thousand (CEO 19:49 — kill the zeros). */

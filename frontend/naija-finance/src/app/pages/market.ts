@@ -39,8 +39,8 @@ import { IS_DEMO } from '../env';
         <tbody>
           <tr *ngFor="let m of movers()">
             <td><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: m.symbol}" class="sym" style="display:block">{{ m.symbol }}<small>{{ m.name }}</small></a></td>
-            <td class="num">{{ m.price }}</td>
-            <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ m.change }}</td>
+            <td class="num">{{ fmtPrice(m.rawPrice) }}</td>
+            <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ fmtPct(m.changePct) }}</td>
             <td class="num">{{ fmtCompact(volume(m.symbol)) }}</td>
             <td><div [innerHTML]="miniSpark(m.symbol, m.isUp)"></div></td>
           </tr>
