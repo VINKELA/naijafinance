@@ -1,18 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Naija Finance mark v6 — "Naira Rising" (v5 base + STRUCTURAL arrowhead,
-       clearly visible at 16px favicon and 24px header logo). -->
+  <!-- NaijaFinance Hub mark v7 — "NF Hub": flat professional monogram.
+       Dark tile, bold white NF, F's middle bar rises into a solid green
+       growth arrow (hub + markets). No gradients, no glow. -->
   <rect width="512" height="512" rx="112" fill="#0C1A14"/>
-  <!-- bold green rising arrow, behind the monogram -->
-  <g stroke="#16C784" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M72 440 L176 368 L264 392 L448 240" stroke-width="60"/>
+  <!-- N -->
+  <g stroke="#FFFFFF" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M150 110 V 402"/>
+    <path d="M150 110 L 262 402"/>
+    <path d="M262 110 V 402"/>
   </g>
-  <path d="M448 240 L403 374 L308 259 Z" fill="#16C784"/>
-  <!-- white naira monogram -->
-  <g stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M176 112 V 408" stroke-width="44"/>
-    <path d="M336 112 V 408" stroke-width="44"/>
-    <path d="M176 112 L 336 408" stroke-width="44"/>
-    <path d="M124 224 H 384" stroke-width="34"/>
-    <path d="M124 304 H 388" stroke-width="34"/>
+  <!-- F stem + top bar -->
+  <g stroke="#FFFFFF" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M334 110 V 402"/>
+    <path d="M334 110 H 434"/>
   </g>
+  <!-- F middle bar -> green rising arrow (structural, visible at 16px) -->
+  <g stroke="#16C784" stroke-width="46" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M334 236 L 420 150"/>
+  </g>
+  <path d="M424 142 L 382 156 L 398 184 Z" fill="#16C784"/>
 </svg>
