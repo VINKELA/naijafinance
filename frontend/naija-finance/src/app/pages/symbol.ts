@@ -67,7 +67,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
   }
   ngAfterViewInit() { this.renderChart(); }
 
-  shareText(): string { const d = this.detail(); return d ? `${d.symbol} — NGN ${d.price} (${d.changePct}%)` : 'Naija Finance'; }
+  shareText(): string { const d = this.detail(); return d ? `${d.symbol} — NGN ${d.price} (${d.changePct}%)` : 'Naija Finance Hub'; }
   load() {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;

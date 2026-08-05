@@ -7,16 +7,16 @@ import { RouterLink } from '@angular/router';
   imports: [CommonModule, RouterLink],
   template: `
     <h2>Terms &amp; Conditions</h2>
-    <p class="sub">Effective 2026-08-04 · Naija Finance (data &amp; analytics platform)</p>
+    <p class="sub">Effective 2026-08-04 · Naija Finance Hub (data &amp; analytics platform)</p>
     <div class="card" style="margin-bottom:20px;">
       <h3>1. Service nature</h3>
-      <p class="muted" style="font-size:13px;line-height:1.6;">Naija Finance is a data and analytics platform only. Nothing on this platform is investment advice, a recommendation, or an offer to buy or sell any security. Market data is delayed or indicative unless marked otherwise, and demo/simulated data is labelled as such.</p>
+      <p class="muted" style="font-size:13px;line-height:1.6;">Naija Finance Hub is a data and analytics platform only. Nothing on this platform is investment advice, a recommendation, or an offer to buy or sell any security. Market data is delayed or indicative unless marked otherwise, and demo/simulated data is labelled as such.</p>
       <h3>2. Your account</h3>
       <p class="muted" style="font-size:13px;line-height:1.6;">You are responsible for keeping your credentials confidential and for activity under your account. You may use the service for lawful, personal purposes only.</p>
       <h3>3. No warranties</h3>
       <p class="muted" style="font-size:13px;line-height:1.6;">The service is provided "as is" without warranties of any kind. We do not guarantee accuracy, completeness, or timeliness of data.</p>
       <h3>4. Limitation of liability</h3>
-      <p class="muted" style="font-size:13px;line-height:1.6;">To the fullest extent permitted by law, Naija Finance shall not be liable for any loss arising from use of the platform or reliance on its data.</p>
+      <p class="muted" style="font-size:13px;line-height:1.6;">To the fullest extent permitted by law, Naija Finance Hub shall not be liable for any loss arising from use of the platform or reliance on its data.</p>
     </div>
     <div class="card" style="margin-bottom:20px;">
       <h2>Privacy Policy</h2>

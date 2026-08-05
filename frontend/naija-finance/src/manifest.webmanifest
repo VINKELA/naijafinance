@@ -1,6 +1,6 @@
 {
-  "name": "Naija Finance — Nigerian Markets Dashboard",
-  "short_name": "NaijaFinance",
+  "name": "Naija Finance Hub — Nigerian Markets, One Dashboard",
+  "short_name": "NaijaFinanceHub",
   "description": "Nigerian equities, bonds, funds and FX — market data and insights for Nigerian investors.",
   "start_url": "/market",
   "scope": "/",
