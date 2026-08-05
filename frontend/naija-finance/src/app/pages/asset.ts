@@ -21,7 +21,9 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <div class="label">{{ detail().symbol }}</div>
           <div class="value">{{ detail().price }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp && detail().changePct !== '—'">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
-          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn></div>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn>
+            <button type="button" class="ghost" (click)="copyEmbed()">🔗 Embed</button>
+          </div>
         </div>
         <div class="stat-tile" *ngFor="let st of detail().stats">
           <div class="label">{{ st.label }}</div>
@@ -49,6 +51,7 @@ export class AssetPage implements OnInit, AfterViewInit {
   detail = signal<any>(null);
   kind = 'instrument';
   period = 90;
+  error = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
@@ -79,6 +82,22 @@ export class AssetPage implements OnInit, AfterViewInit {
     if (!d) return '/market';
     if (this.kind === 'fund') return `/asset?type=fund&id=${d.id}`;
     return `/asset?type=${this.kind}&symbol=${d.symbol}`;
+  }
+  embedUrl(): string {
+    const d = this.detail();
+    if (!d) return `${location.origin}/embed/`;
+    if (this.kind === 'fund') return `${location.origin}/embed/?fund=${d.id}`;
+    if (this.kind === 'company') return `${location.origin}/embed/?symbol=${d.symbol}`;
+    return `${location.origin}/embed/?symbol=${d.symbol}`;
+  }
+  copyEmbed() {
+    const url = this.embedUrl();
+    const snippet = `<iframe src="${url}" width="100%" height="420" style="border:1px solid #1E3A2F;border-radius:12px;" loading="lazy" title="Naija Finance"></iframe>`;
+    try {
+      navigator.clipboard.writeText(snippet).then(() => { this.error = 'Embed snippet copied — paste into your blog post.'; });
+    } catch {
+      this.error = `Embed URL: ${url}`;
+    }
   }
 
   private load(p: any) {

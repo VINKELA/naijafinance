@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
+from django.http import HttpResponse
 from django.db.models import Q, Case, IntegerField, Value, When, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, generics, status
@@ -191,6 +192,177 @@ def instrument_list_row(instrument, index=0):
 
 
 # --- Dashboard Data Views ---
+import io as _io
+
+def _embed_og_png(symbol, name, price, change_pct, is_up):
+    """Generate a 1200x630 OG image for link unfurls (WhatsApp/blogs)."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return None
+    W, H = 1200, 630
+    img = Image.new('RGB', (W, H), '#0C1A14')
+    d = ImageDraw.Draw(img)
+    # top accent bar + naira mark
+    d.rectangle([0, 0, W, 10], fill='#16C784')
+    try:
+        big = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 96)
+        mid = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 56)
+        small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 40)
+    except Exception:
+        big = mid = small = None
+    d.text((80, 60), 'Naija Finance', font=small, fill='#16C784')
+    d.text((80, 180), symbol, font=big, fill='#FFFFFF')
+    d.text((80, 300), name[:60], font=mid, fill='#9FB4D9')
+    color = '#16C784' if is_up else '#F6465D'
+    sign = '+' if is_up else ''
+    d.text((80, 400), f'\u20a6{price}', font=mid, fill='#FFFFFF')
+    d.text((560, 400), f'{sign}{change_pct}%', font=mid, fill=color)
+    d.text((80, 530), 'Nigerian equities, bonds, funds & FX - market data and insights.', font=small, fill='#5F6F93')
+    buf = _io.BytesIO()
+    img.save(buf, format='PNG')
+    return buf.getvalue()
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def asset_embed(request):
+    """YouTube-style unfurl/embed card for any asset URL.
+
+    GET /embed/?symbol=MTNN | fund=<id> | token=<mix token>
+    Returns a self-contained HTML card with OG meta so pasting the link
+    into a blog/WhatsApp renders the asset info page (name, price, change,
+    class, sparkline) without login - the acquisition loop.
+    """
+    symbol = (request.query_params.get('symbol') or '').strip().upper()
+    fund_id = request.query_params.get('fund') or ''
+    mix_token = request.query_params.get('token') or ''
+    origin = request.build_absolute_uri('/').rstrip('/')
+
+    name = price = change = '—'
+    is_up = True
+    asset_type = 'Asset'
+    spark = []
+    kind = 'instrument'
+
+    if mix_token:
+        share = MixShare.objects.filter(token=mix_token).first()
+        if share:
+            snap = share.snapshot or {}
+            name = snap.get('name') or 'Asset Mix'
+            price = f"{float(snap.get('totalValue', 0)):,.0f}"
+            asset_type = 'Asset Mix'
+            kind = 'mix'
+            rows = snap.get('items', [])[:5]
+            spark = [{'label': i.get('symbol', ''), 'pct': i.get('pct', 0)} for i in rows]
+    elif fund_id.isdigit():
+        fund = Fund.objects.filter(pk=int(fund_id), is_active=True).first()
+        if fund:
+            navs = list(fund.nav_snapshots.order_by('-date')[:2])
+            name = fund.name
+            asset_type = f'Fund \u00b7 {fund.get_asset_class_display()}'
+            kind = 'fund'
+            if navs:
+                price = f"{float(navs[0].nav):,.2f}"
+                if len(navs) > 1 and float(navs[1].nav):
+                    pct = (float(navs[0].nav) / float(navs[1].nav) - 1) * 100
+                    change = f"{pct:+.2f}"
+                    is_up = pct >= 0
+    elif symbol:
+        inst = Instrument.objects.filter(symbol__iexact=symbol, is_active=True).first()
+        if inst:
+            perf = calculate_instrument_performance(inst)
+            name = display_instrument_name(inst)
+            price = f"{perf['price']:,.2f}"
+            change = f"{perf['change_pct']:+.2f}"
+            is_up = perf['is_up']
+            asset_type = inst.get_asset_class_display()
+            kind = 'instrument'
+            rows = list(PriceHistory.objects.filter(instrument=inst).order_by('-date').values('date', 'close_price')[:40])[::-1]
+            spark = [{'label': r['date'].strftime('%d %b'), 'price': float(r['close_price'])} for r in rows]
+
+    og_url = f"{origin}/embed/?symbol={symbol}" if symbol else (f"{origin}/embed/?fund={fund_id}" if fund_id else f"{origin}/embed/?token={mix_token}")
+    og_img = f"{origin}/embed/og/{symbol or fund_id or mix_token}.png"
+
+    # inline sparkline (SVG)
+    svg = ''
+    if spark and kind == 'instrument':
+        pts = [p['price'] for p in spark]
+        lo, hi = min(pts), max(pts)
+        rng = (hi - lo) or 1
+        n = len(pts)
+        coords = []
+        for i, p in enumerate(pts):
+            x = 40 + (i / max(n - 1, 1)) * 700
+            y = 330 - ((p - lo) / rng) * 160
+            coords.append(f"{x:.0f},{y:.0f}")
+        col = '#16C784' if is_up else '#F6465D'
+        svg = f'<svg width="780" height="200" viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg"><polyline points="{" ".join(coords)}" fill="none" stroke="{col}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    elif kind == 'mix' and spark:
+        bars = ''.join(f'<div style="display:inline-block;width:{max(10, 100 // max(len(spark),1))}%;margin-right:8px;background:#16C784;border-radius:4px;height:{max(12, pct*2)}px;"></div>' for i in spark if (pct := i.get("pct", 0)))
+        svg = f'<div style="display:flex;align-items:flex-end;height:120px;">{bars}</div>'
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta property="og:title" content="{name} - {price} ({change}) | Naija Finance">
+<meta property="og:description" content="{asset_type} - Nigerian markets data and insights. Open the link for the full card, yield history and share options.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{og_img}">
+<meta property="og:url" content="{og_url}">
+<meta name="twitter:card" content="summary_large_image">
+<title>{name} | Naija Finance</title>
+<style>
+  body {{ margin:0; background:#0C1A14; color:#fff; font-family:-apple-system,Segoe UI,Roboto,sans-serif; }}
+  .card {{ max-width:840px; margin:40px auto; background:#101F28; border:1px solid #1E3A2F; border-radius:16px; padding:36px; }}
+  .brand {{ color:#16C784; font-weight:700; letter-spacing:.05em; }}
+  .sym {{ font-size:42px; font-weight:800; margin:14px 0 4px; }}
+  .nm {{ color:#9FB4D9; font-size:20px; margin-bottom:18px; }}
+  .row {{ display:flex; gap:28px; align-items:baseline; flex-wrap:wrap; }}
+  .price {{ font-size:46px; font-weight:800; }}
+  .chg {{ font-size:28px; font-weight:700; }}
+  .up {{ color:#16C784; }} .down {{ color:#F6465D; }}
+  .pill {{ display:inline-block; padding:6px 14px; border-radius:20px; background:#16C78422; border:1px solid #16C78455; color:#16C784; font-size:15px; font-weight:600; }}
+  a.cta {{ display:inline-block; margin-top:22px; color:#16C784; text-decoration:none; font-weight:700; font-size:17px; }}
+  .spark {{ margin-top:20px; }}
+  .muted {{ color:#5F6F93; font-size:14px; margin-top:26px; }}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">Naija Finance</div>
+  <div class="sym">{name}</div>
+  <div class="nm">{asset_type}</div>
+  <div class="row">
+    <div class="price">\u20a6{price}</div>
+    <div class="chg {'' if is_up else 'down'}">{'▲' if is_up else '▼'} {change}%</div>
+    <span class="pill">{asset_type}</span>
+  </div>
+  <div class="spark">{svg}</div>
+  <a class="cta" href="{og_url}">View full card on Naija Finance &rarr;</a>
+  <div class="muted">Data &amp; analytics only \u00b7 not investment advice \u00b7 sources: NGX, DMO, CBN, SEC, AFEX</div>
+</div>
+</body>
+</html>"""
+    return HttpResponse(html, content_type='text/html; charset=utf-8')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def embed_og_image(request, ref):
+    """Serve the generated 1200x630 OG PNG for link unfurls."""
+    inst = Instrument.objects.filter(symbol__iexact=ref, is_active=True).first()
+    if inst:
+        perf = calculate_instrument_performance(inst)
+        png = _embed_og_png(inst.symbol, display_instrument_name(inst), f"{perf['price']:,.2f}", f"{perf['change_pct']:.2f}", perf['is_up'])
+    else:
+        png = _embed_og_png(ref.upper(), ref.upper(), '—', '—', True)
+    if not png:
+        return HttpResponse(status=404)
+    return HttpResponse(png, content_type='image/png', headers={'Cache-Control': 'public, max-age=3600'})
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_top_movers(request):
