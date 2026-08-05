@@ -211,7 +211,7 @@ def _embed_og_png(symbol, name, price, change_pct, is_up):
         small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 40)
     except Exception:
         big = mid = small = None
-    d.text((80, 60), 'Naija Finance', font=small, fill='#16C784')
+    d.text((80, 60), 'NaijaFinance Hub', font=small, fill='#16C784')
     d.text((80, 180), symbol, font=big, fill='#FFFFFF')
     d.text((80, 300), name[:60], font=mid, fill='#9FB4D9')
     color = '#16C784' if is_up else '#F6465D'
@@ -306,13 +306,13 @@ def asset_embed(request):
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta property="og:title" content="{name} - {price} ({change}) | Naija Finance">
+<meta property="og:title" content="{name} - {price} ({change}) | NaijaFinance Hub">
 <meta property="og:description" content="{asset_type} - Nigerian markets data and insights. Open the link for the full card, yield history and share options.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="{og_img}">
 <meta property="og:url" content="{og_url}">
 <meta name="twitter:card" content="summary_large_image">
-<title>{name} | Naija Finance</title>
+<title>{name} | NaijaFinance Hub</title>
 <style>
   body {{ margin:0; background:#0C1A14; color:#fff; font-family:-apple-system,Segoe UI,Roboto,sans-serif; }}
   .card {{ max-width:840px; margin:40px auto; background:#101F28; border:1px solid #1E3A2F; border-radius:16px; padding:36px; }}
@@ -331,7 +331,7 @@ def asset_embed(request):
 </head>
 <body>
 <div class="card">
-  <div class="brand">Naija Finance</div>
+  <div class="brand">NaijaFinance Hub</div>
   <div class="sym">{name}</div>
   <div class="nm">{asset_type}</div>
   <div class="row">
@@ -340,7 +340,7 @@ def asset_embed(request):
     <span class="pill">{asset_type}</span>
   </div>
   <div class="spark">{svg}</div>
-  <a class="cta" href="{og_url}">View full card on Naija Finance &rarr;</a>
+  <a class="cta" href="{og_url}">View full card on NaijaFinance Hub &rarr;</a>
   <div class="muted">Data &amp; analytics only \u00b7 not investment advice \u00b7 sources: NGX, DMO, CBN, SEC, AFEX</div>
 </div>
 </body>
@@ -791,7 +791,7 @@ def create_mix_share(request):
             "asOf": timezone.localdate().isoformat(),
             "totalValue": float(total),
             "items": rows,
-            "creator": (request.user.first_name or "Naija Finance user").strip(),
+            "creator": (request.user.first_name or "NaijaFinance Hub user").strip(),
         },
     )
     return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
@@ -844,7 +844,7 @@ def list_public_mixes(request):
         out.append({
             "token": sh.token,
             "name": name,
-            "creator": snap.get("creator") or "Naija Finance user",
+            "creator": snap.get("creator") or "NaijaFinance Hub user",
             "totalValue": snap.get("totalValue", 0),
             "asOf": snap.get("asOf"),
             "itemCount": len(snap.get("items", [])),
@@ -907,7 +907,7 @@ def create_standalone_mix(request):
             "asOf": timezone.localdate().isoformat(),
             "totalValue": float(total),
             "items": rows,
-            "creator": (request.user.first_name or "Naija Finance user").strip(),
+            "creator": (request.user.first_name or "NaijaFinance Hub user").strip(),
         },
     )
     return Response({"token": token, "url": f"/asset-mix?token={token}", "visibility": vis}, status=status.HTTP_201_CREATED)

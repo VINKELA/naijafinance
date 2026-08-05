@@ -25,9 +25,9 @@ export class ShareButton {
   async share() {
     track('share_click', { url: this.link || location.pathname });
     const url = this.link || location.href.split('?')[0];
-    const text = this.text ? `${this.text} — Naija Finance Hub` : 'Naija Finance Hub — Nigerian markets, one dashboard';
+    const text = this.text ? `${this.text} — NaijaFinance Hub` : 'NaijaFinance Hub — Nigerian markets, one dashboard';
     try {
-      if (navigator.share) { await navigator.share({ title: 'Naija Finance Hub', text, url }); return; }
+      if (navigator.share) { await navigator.share({ title: 'NaijaFinance Hub', text, url }); return; }
     } catch { /* cancelled/failed — fall through */ }
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);

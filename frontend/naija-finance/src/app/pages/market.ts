@@ -110,7 +110,7 @@ import { IS_DEMO } from '../env';
       </div>
     </div>
 
-    <p class="disc">⚠️ Naija Finance Hub is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.<span *ngIf="isDemo"> Prices are illustrative mock data for this demo build.</span></p>
+    <p class="disc">⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.<span *ngIf="isDemo"> Prices are illustrative mock data for this demo build.</span></p>
   `,
 })
 export class MarketPage implements OnInit {

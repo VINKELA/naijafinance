@@ -75,7 +75,7 @@ export class AssetPage implements OnInit, AfterViewInit {
 
   shareText(): string {
     const d = this.detail();
-    return d ? `${d.name} — ${d.price} (${d.asset_type})` : 'Naija Finance Hub';
+    return d ? `${d.name} — ${d.price} (${d.asset_type})` : 'NaijaFinance Hub';
   }
   shareLink(): string {
     const d = this.detail();
@@ -92,7 +92,7 @@ export class AssetPage implements OnInit, AfterViewInit {
   }
   copyEmbed() {
     const url = this.embedUrl();
-    const snippet = `<iframe src="${url}" width="100%" height="420" style="border:1px solid #1E3A2F;border-radius:12px;" loading="lazy" title="Naija Finance Hub"></iframe>`;
+    const snippet = `<iframe src="${url}" width="100%" height="420" style="border:1px solid #1E3A2F;border-radius:12px;" loading="lazy" title="NaijaFinance Hub"></iframe>`;
     try {
       navigator.clipboard.writeText(snippet).then(() => { this.error = 'Embed snippet copied — paste into your blog post.'; });
     } catch {
