@@ -29,7 +29,12 @@ def fetch_fx_rates() -> dict:
                             headers={'User-Agent': UA}, timeout=20)
         resp.raise_for_status()
         data = resp.json()
-        rate_date = data.get('time_last_update_utc', str(date.today()))[:10]
+        raw_date = data.get('time_last_update_utc', str(date.today()))
+        try:
+            from email.utils import parsedate_to_datetime
+            rate_date = parsedate_to_datetime(raw_date).strftime('%Y-%m-%d')
+        except Exception:
+            rate_date = str(date.today())
         rates = data.get('rates', {})
 
         for pair_code in TARGET_PAIRS:
@@ -92,9 +97,8 @@ def fetch_crypto_prices() -> dict:
 RSS_FEEDS = [
     ('Nairametrics', 'https://nairametrics.com/feed/'),
     ('BusinessDay', 'https://businessday.ng/feed/'),
-    ('ProShare', 'https://www.proshare.co/feed'),
+    ('ProShare', 'https://www.proshare.co/feed/'),
     ('ThisDay', 'https://www.thisdaylive.com/index.php/feed/'),
-    ('Punch Business', 'https://punchng.com/business/feed/'),
 ]
 
 
@@ -130,7 +134,6 @@ def fetch_news_rss() -> dict:
                     title=title[:200],
                     body=f'{desc}\n\n<p><a href="{link}" target="_blank" rel="noopener">Read full article →</a></p>',
                     ext_link=link,
-                    published_at=timezone.now(),
                     is_rss=True,
                 )
                 created += 1

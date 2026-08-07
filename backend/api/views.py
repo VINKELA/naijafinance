@@ -4,13 +4,13 @@ from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.db.models import Q, Case, IntegerField, Value, When, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, generics, status
 import csv, io
 from datetime import date, datetime
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -1709,10 +1709,8 @@ from datetime import date, datetime
 # ==========================================
 # Data Status endpoint (REQ-FRESHNESS-WIDGET)
 # ==========================================
-@api_view(['GET'])
-@permission_classes([AllowAny])
 def data_status(request):
-    '''Public dataset freshness + pipeline status.'''
+    '''Public dataset freshness + pipeline status (plain Django view, no DRF auth).'''
     now = timezone.now()
     datasets = []
 
@@ -1823,7 +1821,7 @@ def data_status(request):
     except Exception:
         pass
 
-    return Response({
+    return JsonResponse({
         'last_run': last_run,
         'summary': {
             'total_datasets': len(datasets),

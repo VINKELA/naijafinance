@@ -20,7 +20,9 @@ from django.urls import path, include
 
 from api import views as api_views
 
+from data_status_view import data_status_public
 urlpatterns = [
+    path('api/data-status-public/', data_status_public),
     path('api/', include('api.urls')),
     # YouTube-style embed cards (CEO 20:14): paste naijafinancehub.com/embed/?symbol=MTNN
     # into a blog post and it renders the asset info card (OG tags + card HTML).
