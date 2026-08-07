@@ -111,5 +111,11 @@ export class ApiService {
   // ---- Content / Blog (REQ-31, CEO 20:14) ----
   posts(q?: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/posts/${q ? `?q=${encodeURIComponent(q)}` : ''}`); }
   postDetail(id: number): Observable<any> { return this.http.get<any>(`${API_BASE}/posts/${id}/`); }
+  uploadEod(csv: string): Observable<any> {
+    return this.http.post(`${API_BASE}/data/upload-eod/`, csv, {
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+
   createPost(payload: any): Observable<any> { return this.http.post<any>(`${API_BASE}/posts/create/`, payload, { headers: this.authHeaders() }); }
 }

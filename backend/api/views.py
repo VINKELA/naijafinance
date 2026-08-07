@@ -1761,6 +1761,16 @@ def ingest_csv(request):
                 errors.append(f'Row {i+1}: {e}')
 
     elif ingest_type == 'instruments':
+        # GAP-2 safety gate: instruments CSV blocked until NGX licence lands.
+        # Demo/seed data only — uncomment when CEO approves NGX delayed-display licence.
+        return Response({
+            'type': ingest_type,
+            'rows': len(rows),
+            'created': 0,
+            'updated': 0,
+            'errors': ['Instruments CSV import is gated pending NGX delayed-display licence (F-01/G3). Use ingest_all pipeline for public datasets only.'],
+        }, status=403)
+        # -- blocked; uncomment below when NGX licence is active --
         for i, row in enumerate(rows):
             try:
                 symbol = row.get('symbol', '').strip().upper()
