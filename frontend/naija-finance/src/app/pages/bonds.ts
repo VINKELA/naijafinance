@@ -23,7 +23,7 @@ const CP_RESTRICTED = 'Restricted — professional / institutional investors onl
         <tbody>
           <tr *ngFor="let b of bonds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
-            <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
+            <td class="num">{{ b.coupon_rate ? (fmtPrice(b.coupon_rate) + '%') : '—' }}</td>
             <td class="num muted">{{ fmtDate(b.maturity_date) }}</td>
             <td><app-share-btn [text]="shareText(b)" [link]="'/symbol?symbol=' + b.symbol"></app-share-btn></td>
           </tr>
@@ -41,7 +41,7 @@ const CP_RESTRICTED = 'Restricted — professional / institutional investors onl
         <tbody>
           <tr *ngFor="let cp of cps()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
-            <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
+            <td class="num">{{ cp.coupon_rate ? (fmtPrice(cp.coupon_rate) + '%') : '—' }}</td>
             <td class="num muted">{{ fmtDate(cp.maturity_date) }}</td>
           </tr>
         </tbody>

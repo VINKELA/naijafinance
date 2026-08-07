@@ -30,6 +30,6 @@ export class FxPage implements OnInit {
   rates = signal<FxRate[]>([]);
   fmtDate = fmtDate; fmtPrice = fmtPrice;
   constructor(private api: ApiService) {}
-  shareText(r: FxRate): string { return `${r.pair} — NGN ${r.rate} (CBN, ${r.date})`; }
+  shareText(r: FxRate): string { return `${r.pair} — NGN ${fmtPrice(r.rate)} (CBN, ${fmtDate(r.date)})`; }
   ngOnInit() { this.api.fxRates(true).subscribe(r => this.rates.set(r)); }
 }

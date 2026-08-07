@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtDate, fmtPrice, fmtPct, fmtCompact } from '../format';
+import { fmtDate, fmtMoney, fmtPrice, fmtPct, fmtCompact } from '../format';
 import { IS_DEMO } from '../env';
 
 @Component({
@@ -82,7 +82,7 @@ import { IS_DEMO } from '../env';
           <tbody>
             <tr *ngFor="let fd of funds().slice(0, 2)">
               <td><span class="sym">{{ fd.name }}<small>{{ fd.asset_class_display }}</small></span></td>
-              <td class="num up">₦{{ fd.latest_nav?.nav ?? '—' }}</td>
+              <td class="num up">{{ fmtMoney(fd.latest_nav?.nav) }}</td>
             </tr>
           </tbody>
         </table>

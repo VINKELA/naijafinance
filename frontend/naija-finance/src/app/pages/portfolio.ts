@@ -38,7 +38,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
         <div class="value" [class.up]="(insights().totals?.gainLoss ?? 0) >= 0" [class.down]="(insights().totals?.gainLoss ?? 0) < 0">
           {{ insights().totals?.formattedGainLoss ?? '—' }}
         </div>
-        <div class="delta">{{ insights().totals?.gainLossPct ?? 0 }}%</div>
+        <div class="delta">{{ fmtPct(insights().totals?.gainLossPct) }}</div>
       </div>
     </div>
 
@@ -95,7 +95,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
             <td><input type="checkbox" [checked]="selected(it)" (change)="toggleSelect(it.id)" style="width:auto;"></td>
             <td class="sym"><a routerLink="/asset" [queryParams]="assetQp(it)">{{ it.symbol }}</a></td><td>{{ it.name }}</td>
             <td><span class="pill">{{ it.asset_class }}</span></td>
-            <td class="num">{{ it.quantity }}</td>
+            <td class="num">{{ fmtPrice(it.quantity) }}</td>
             <td class="num">{{ fmtPrice(it.current_price) }}</td>
             <td class="num">{{ fmtMoney(it.current_value) }}</td>
             <td class="num" [class.up]="it.gain_loss >= 0" [class.down]="it.gain_loss < 0">{{ fmtMoney(it.gain_loss) }} ({{ fmtPct(it.gain_loss_pct) }})</td>

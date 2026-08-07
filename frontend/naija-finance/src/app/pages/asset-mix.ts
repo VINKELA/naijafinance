@@ -106,7 +106,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
         <div class="stat-tile">
           <div class="label">{{ card().name }}</div>
           <div class="value">{{ fmt(card().totalValue) }}</div>
-          <div class="delta" *ngIf="yield() !== null" [class.up]="yield()! >= 0" [class.down]="yield()! < 0">{{ yield()! >= 0 ? '▲' : '▼' }} {{ yield() }}% ({{ periodLabel() }})</div>
+          <div class="delta" *ngIf="yield() !== null" [class.up]="yield()! >= 0" [class.down]="yield()! < 0">{{ yield()! >= 0 ? '▲' : '▼' }} {{ fmtPct(yield()) }} ({{ periodLabel() }})</div>
           <div class="muted" style="font-size:11.5px;margin-top:6px;" *ngIf="card().creator">Mix by {{ card().creator }}</div>
           <div class="form-row" style="margin-top:10px;">
             <button type="button" (click)="copyLink()">📤 Share this mix</button>

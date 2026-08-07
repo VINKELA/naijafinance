@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtDate, fmtMoney, fmtPrice, fmtChartPrice } from '../format';
+import { fmtDate, fmtMoney, fmtPct, fmtPrice, fmtChartPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -23,7 +23,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <select [ngModel]="selectedId()" (ngModelChange)="select($event)" name="fundSelect" style="flex:1;min-width:220px;">
           <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
         </select>
-        <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
+        <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ fmtPct(perf()!.pct) }} ({{ perf()!.label }})</span>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <p class="loading" *ngIf="!selected()">Loading funds…</p>
@@ -56,7 +56,7 @@ export class FundsPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtDate = fmtDate; fmtMoney = fmtMoney; fmtPrice = fmtPrice; fmtChartPrice = fmtChartPrice;
+  fmtDate = fmtDate; fmtMoney = fmtMoney; fmtPct = fmtPct; fmtPrice = fmtPrice; fmtChartPrice = fmtChartPrice;
   constructor(private api: ApiService) {}
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
   shareText(f: Fund): string { return `${f.name} — NAV ${fmtMoney(f.latest_nav?.nav)} (${f.asset_class_display})`; }
