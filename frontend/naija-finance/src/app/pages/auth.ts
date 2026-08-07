@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -48,9 +48,10 @@ import { track } from '../analytics';
     </div>
 
     <div class="card" style="max-width: 420px;" *ngIf="isAuthed">
-      <p class="sub" style="margin-bottom: 10px;">Signed in as <strong>{{ email }}</strong></p>
-      <p class="sub" *ngIf="consentTermsAt" style="font-size:11.5px;color:var(--txt2);">Consent given: {{ consentTermsAt }}</p>
-      <p class="sub" *ngIf="consentAnalyticsAt" style="font-size:11.5px;color:var(--txt2);">Analytics consent given: {{ consentAnalyticsAt }}</p>
+      <p class="sub" style="margin-bottom: 10px;">Signed in as <strong>{{ email() }}</strong></p>
+      <p class="sub" *ngIf="consentTermsAt()" style="font-size:11.5px;color:var(--txt2);">Consent given: {{ consentTermsAt() }}</p>
+      <p class="sub" *ngIf="consentAnalyticsAt()" style="font-size:11.5px;color:var(--txt2);">Analytics consent given: {{ consentAnalyticsAt() }}</p>
+      <button *ngIf="consentAnalyticsAt()" class="ghost" (click)="revokeAnalytics()" style="margin-bottom:10px;display:block;">Revoke analytics consent</button>
       <button class="danger" (click)="logout($event)">Sign out</button>
     </div>
   `,
@@ -59,9 +60,9 @@ export class AuthPage implements OnInit {
   mode: 'login' | 'register' = 'login';
   busy = false;
   error = '';
-  email = '';
-  consentTermsAt = '';
-  consentAnalyticsAt = '';
+  email = signal('');
+  consentTermsAt = signal('');
+  consentAnalyticsAt = signal('');
   form = { email: '', password: '', re_password: '', first_name: '', last_name: '', consent_terms: false, consent_analytics: false };
   constructor(private api: ApiService, private router: Router) {}
 
@@ -73,10 +74,10 @@ export class AuthPage implements OnInit {
     if (!this.isAuthed) return;
     this.api.getUserMe().subscribe({
       next: (u: any) => {
-        this.email = u.email;
-        if (u.consent_terms_at) this.consentTermsAt = new Date(u.consent_terms_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        this.email.set(u.email);
+        if (u.consent_terms_at) this.consentTermsAt.set(new Date(u.consent_terms_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
         if (u.consent_analytics_at) {
-          this.consentAnalyticsAt = new Date(u.consent_analytics_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+          this.consentAnalyticsAt.set(new Date(u.consent_analytics_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }));
           this.api.setAnalyticsConsent(true);
         }
       },
@@ -88,7 +89,7 @@ export class AuthPage implements OnInit {
     const done = () => this.busy = false;
     if (this.mode === 'login') {
       this.api.login(this.form.email, this.form.password).subscribe({
-        next: (t) => { this.api.saveTokens(t); this.email = this.form.email; this.form.password = ''; this.loadConsent(); this.router.navigate(['/market']); },
+        next: (t) => { this.api.saveTokens(t); this.email.set(this.form.email); this.form.password = ''; this.loadConsent(); this.router.navigate(['/market']); },
         error: (e) => { this.error = e?.error?.detail ?? 'Login failed — check credentials.'; done(); },
         complete: done,
       });
@@ -114,12 +115,21 @@ export class AuthPage implements OnInit {
     }
   }
 
+  revokeAnalytics() {
+    this.api.revokeAnalyticsConsent().subscribe({
+      next: () => {
+        this.api.setAnalyticsConsent(false);
+        this.consentAnalyticsAt.set('');
+      },
+    });
+  }
+
   logout(e: Event) { e.preventDefault(); this.api.clearTokens(); this.mode = 'login'; }
 
   demoLogin() {
     this.busy = true; this.error = '';
     this.api.login('demo@naijafinance.com', 'demo1234').subscribe({
-      next: (t) => { this.api.saveTokens(t); this.email = 'demo@naijafinance.com'; this.mode = 'login'; this.router.navigate(['/market']); },
+      next: (t) => { this.api.saveTokens(t); this.email.set('demo@naijafinance.com'); this.mode = 'login'; this.router.navigate(['/market']); },
       error: (e) => { this.error = e?.error?.detail ?? 'Demo login failed.'; this.busy = false; },
       complete: () => this.busy = false,
     });
