@@ -25,8 +25,8 @@ import { fmtDate, fmtPrice, fmtPct } from '../format';
         <div class="stat-grid" style="margin-bottom:0;">
           <div class="stat-tile">
             <div class="label">{{ asset().name }}</div>
-            <div class="value" style="font-size:16px;">{{ fmtPrice(asset().price) }}</div>
-            <div class="delta" [class.up]="asset().isUp" [class.down]="!asset().isUp">{{ fmtPct(asset().change) }}</div>
+            <div class="value" style="font-size:16px;">{{ asset().price }}</div>
+            <div class="delta" [class.up]="asset().isUp" [class.down]="!asset().isUp">{{ asset().change }}</div>
           </div>
         </div>
         <p style="margin:10px 0 0;"><a [routerLink]="[asset().link]" class="link">Open full information page →</a></p>
