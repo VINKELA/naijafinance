@@ -23,8 +23,12 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <div class="label">{{ detail().symbol }}</div>
           <div class="value">{{ detail().price }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp && detail().changePct !== '—'">{{ detail().isUp ? '▲' : '▼' }} {{ fmtPct(detail().changePct) }}</div>
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn>
+          <div *ngIf="!isCP()" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn>
             <button type="button" class="ghost" (click)="copyEmbed()">🔗 Embed</button>
+          </div>
+          <div *ngIf="isCP()" style="margin-top:8px;">
+            <span class="pill" style="background:var(--warn);color:#fff;">Restricted — professional / institutional investors only.</span>
+            <p class="muted" style="font-size:11.5px;margin-top:6px;">This instrument is restricted under Nigerian securities regulations and is displayed for informational purposes only.</p>
           </div>
         </div>
         <div class="stat-tile" *ngFor="let st of detail().stats">
@@ -76,6 +80,12 @@ export class AssetPage implements OnInit, AfterViewInit {
   }
   ngAfterViewInit() { this.renderChart(); }
 
+  isCP(): boolean {
+    const d = this.detail();
+    if (!d) return false;
+    const t = (d.asset_type ?? '').toLowerCase();
+    return t.includes('commercial paper') || t.includes('cp');
+  }
   shareText(): string {
     const d = this.detail();
     return d ? `${d.name} — ${d.price} (${d.asset_type})` : 'NaijaFinance Hub';
