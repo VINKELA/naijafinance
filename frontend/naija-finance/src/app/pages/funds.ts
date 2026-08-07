@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
+import { fmtDate, fmtMoney, fmtPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -36,8 +37,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let f of funds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
-            <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
-            <td class="num muted">{{ f.latest_nav?.date ?? '—' }}</td>
+            <td class="num">{{ fmtMoney(f.latest_nav?.nav) }}</td>
+            <td class="num muted">{{ fmtDate(f.latest_nav?.date) }}</td>
             <td><app-share-btn [text]="shareText(f)" link="/funds"></app-share-btn></td>
           </tr>
         </tbody>
@@ -55,9 +56,10 @@ export class FundsPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtDate = fmtDate; fmtMoney = fmtMoney; fmtPrice = fmtPrice;
   constructor(private api: ApiService) {}
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
-  shareText(f: Fund): string { return `${f.name} — NAV ${f.latest_nav?.nav ?? '—'} (${f.asset_class_display})`; }
+  shareText(f: Fund): string { return `${f.name} — NAV ${fmtMoney(f.latest_nav?.nav)} (${f.asset_class_display})`; }
   ngOnInit() {
     this.api.funds().subscribe(fs => {
       this.funds.set(fs);

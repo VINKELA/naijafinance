@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
 import { track } from './analytics';
-import { fmtPrice, fmtPct } from './format';
+import { fmtDateTime, fmtPrice, fmtPct } from './format';
 import { IS_DEMO } from './env';
 
 @Component({
@@ -140,7 +140,7 @@ export class App implements OnInit, OnDestroy {
     this.api.indexes().subscribe(idx => {
       const lu = idx[0]?.last_updated;
       if (lu) {
-        try { this.asOf.set(new Date(lu).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })); } catch { /* noop */ }
+        try { this.asOf.set(fmtDateTime(lu)); } catch { /* noop */ }
       }
       for (const i of idx.slice(0, 3)) {
         items.push({ s: i.symbol, p: fmtPrice(i.current_price), ch: fmtPct(i.percent_change), up: i.isUp });

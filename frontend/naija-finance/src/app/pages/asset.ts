@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { fmtMoney, fmtPrice, fmtPct } from '../format';
 import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -20,14 +21,14 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile">
           <div class="label">{{ detail().symbol }}</div>
           <div class="value">{{ detail().price }}</div>
-          <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp && detail().changePct !== '—'">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
+          <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp && detail().changePct !== '—'">{{ detail().isUp ? '▲' : '▼' }} {{ fmtPct(detail().changePct) }}</div>
           <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn>
             <button type="button" class="ghost" (click)="copyEmbed()">🔗 Embed</button>
           </div>
         </div>
         <div class="stat-tile" *ngFor="let st of detail().stats">
           <div class="label">{{ st.label }}</div>
-          <div class="value" style="font-size:16px;">{{ st.value }}</div>
+          <div class="value" style="font-size:16px;">{{ fmtStat(st.label, st.value) }}</div>
         </div>
       </div>
     </div>
@@ -77,6 +78,13 @@ export class AssetPage implements OnInit, AfterViewInit {
     const d = this.detail();
     return d ? `${d.name} — ${d.price} (${d.asset_type})` : 'NaijaFinance Hub';
   }
+  fmtStat(label: string, value: string): string {
+    if (!value || value === '—') return '—';
+    if (/market cap/i.test(label)) return fmtMoney(value);
+    if (/^(eps|pe|book value)/i.test(label)) return fmtPrice(value);
+    return value;
+  }
+  fmtPct = fmtPct;
   shareLink(): string {
     const d = this.detail();
     if (!d) return '/market';

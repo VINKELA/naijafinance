@@ -9,7 +9,7 @@ import { track } from '../analytics';
   selector: 'app-auth',
   imports: [CommonModule, FormsModule],
   template: `
-    <h2>Account (F-09)</h2>
+    <h2>Account</h2>
     <p class="sub">Email + JWT onboarding — no KYC in v1.</p>
 
     <div class="card" style="max-width: 420px; margin-bottom: 16px;" *ngIf="!isAuthed">

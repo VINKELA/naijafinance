@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtPrice, fmtPct, fmtCompact } from '../format';
+import { fmtDate, fmtPrice, fmtPct, fmtCompact } from '../format';
 import { IS_DEMO } from '../env';
 
 @Component({
@@ -63,7 +63,7 @@ import { IS_DEMO } from '../env';
           <tbody>
             <tr *ngFor="let a of auctions().slice(0, 3)">
               <td><span class="sym">{{ a.instrument_name }}<small>{{ a.tenor }} · ₦{{ fmtPrice(a.offer_size) }}bn</small></span></td>
-              <td class="num">{{ a.auction_date }}</td>
+              <td class="num">{{ fmtDate(a.auction_date) }}</td>
             </tr>
           </tbody>
         </table>
@@ -74,7 +74,7 @@ import { IS_DEMO } from '../env';
           <div class="fxItem" *ngFor="let f of fx()">
             <div class="pair"><span>{{ f.pair }}</span><span class="flat">—</span></div>
             <div class="rate num">{{ fmtPrice(f.rate) }}</div>
-            <div class="chg flat">{{ f.date }} · {{ f.source }}</div>
+            <div class="chg flat">{{ fmtDate(f.date) }} · {{ f.source }}</div>
           </div>
         </div>
         <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Top mutual funds</h3><a class="link" routerLink="/funds">NAVs →</a></div>
@@ -136,7 +136,7 @@ export class MarketPage implements OnInit {
     return map[name] || `https://news.google.com/search?q=${encodeURIComponent(name)}`;
   }
 
-  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact;
+  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact; fmtDate = fmtDate;
   get isDemo() { return IS_DEMO; }
   constructor(private api: ApiService) {}
   moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }

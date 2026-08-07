@@ -81,3 +81,19 @@ export function fmtCompactWords(v: any): string {
     : abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
   return `${n < 0 ? '-' : ''}${body}`;
 }
+
+/** Human-like date: 21 Jul 2026 (from ISO '2026-07-21' or any parseable). Nil → — */
+export function fmtDate(v: any): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Human-like date + time: 7 Aug 2026, 09:45. Nil → — */
+export function fmtDateTime(v: any): string {
+  if (v === null || v === undefined || v === '') return '—';
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return String(v);
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+}

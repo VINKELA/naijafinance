@@ -11,7 +11,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   imports: [CommonModule, FormsModule],
   template: `
     <h2>Threshold Alerts</h2>
-    <p class="sub">Create alerts; a triggered flag is set by <code>run_alert_eval</code>.</p>
+    <p class="sub">Set thresholds for price, yield, or NAV, and we'll notify you when they're crossed.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -46,7 +46,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
             <td class="sym">{{ a.instrument_symbol ?? a.fund_name }}</td>
             <td class="num">{{ fmtPrice(a.threshold) }}</td><td>{{ a.direction_display }}</td>
             <td><span class="pill" [class.up]="a.triggered" [class.down]="!a.triggered">{{ a.triggered ? 'Triggered' : 'Active' }}</span></td>
-            <td class="num muted">{{ a.last_value ?? '—' }}</td>
+            <td class="num muted">{{ fmtPrice(a.last_value) }}</td>
             <td><button class="ghost" (click)="remove(a.id!)">Delete</button></td>
           </tr>
         </tbody>

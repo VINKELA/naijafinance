@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
-import { fmtPrice } from '../format';
+import { fmtDate, fmtPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -13,7 +13,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-watchlist',
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <h2>Watchlist (F-01)</h2>
+    <h2>Watchlist</h2>
     <p class="sub">Your saved instruments — toggle from the search box.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
@@ -60,7 +60,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let f of fundsWatched()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td>
             <td><span class="pill">{{ f.asset_class_display }}</span></td>
-            <td class="num">{{ fmtPrice(f.latest_nav?.nav) }} <span class="muted">({{ f.latest_nav?.date ?? '' }})</span></td>
+            <td class="num">{{ fmtPrice(f.latest_nav?.nav) }} <span class="muted">({{ fmtDate(f.latest_nav?.date) }})</span></td>
             <td><button class="ghost" (click)="removeFund(f.id)">Remove</button></td>
           </tr>
         </tbody>
@@ -83,7 +83,7 @@ export class WatchlistPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtPrice = fmtPrice;
+  fmtPrice = fmtPrice; fmtDate = fmtDate;
   constructor(private api: ApiService) {}
   get authed() { return this.api.isAuthed; }
 

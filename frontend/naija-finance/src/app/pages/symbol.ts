@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { fmtMoney, fmtPrice, fmtPct } from '../format';
 import { IS_DEMO } from '../env';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -13,7 +14,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-symbol',
   imports: [CommonModule, FormsModule, ShareButton],
   template: `
-    <h2>Symbol &amp; Chart (F-02)</h2>
+    <h2>Symbol &amp; Chart</h2>
     <p class="sub">OHLCV price chart with company profile.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
 
@@ -29,12 +30,12 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile">
           <div class="label">{{ detail().symbol }} · {{ detail().name }}</div>
           <div class="value">{{ detail().price }}</div>
-          <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
+          <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ fmtPct(detail().changePct) }}</div>
           <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="'/symbol?symbol=' + detail().symbol"></app-share-btn></div>
         </div>
         <div class="stat-tile" *ngFor="let s of detail().stats">
           <div class="label">{{ s.label }}</div>
-          <div class="value" style="font-size:16px;">{{ s.value }}</div>
+          <div class="value" style="font-size:16px;">{{ fmtStat(s.label, s.value) }}</div>
         </div>
       </div>
     </div>
@@ -67,7 +68,14 @@ export class SymbolPage implements OnInit, AfterViewInit {
   }
   ngAfterViewInit() { this.renderChart(); }
 
-  shareText(): string { const d = this.detail(); return d ? `${d.symbol} — NGN ${d.price} (${d.changePct}%)` : 'NaijaFinance Hub'; }
+  shareText(): string { const d = this.detail(); return d ? `${d.symbol} — NGN ${fmtPrice(d.price)} (${fmtPct(d.changePct)})` : 'NaijaFinance Hub'; }
+  fmtStat(label: string, value: string): string {
+    if (!value || value === '—') return '—';
+    if (/market cap/i.test(label)) return fmtMoney(value);
+    if (/^(eps|pe|book value)/i.test(label)) return fmtPrice(value);
+    return value;
+  }
+  fmtPrice = fmtPrice; fmtPct = fmtPct;
   load() {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;

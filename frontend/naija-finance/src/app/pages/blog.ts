@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
+import { fmtDate } from '../format';
 
 @Component({
   selector: 'app-blog',
@@ -27,7 +28,7 @@ import { ApiService } from '../api.service';
             <td>{{ p.author_name }}</td>
             <td>{{ p.video_url ? '🎬' : '—' }}</td>
             <td>{{ p.asset_url ? '📈' : '—' }}</td>
-            <td class="num">{{ (p.created_at || '').slice(0, 10) }}</td>
+            <td class="num">{{ fmtDate(p.created_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -38,6 +39,7 @@ import { ApiService } from '../api.service';
 })
 export class BlogPage implements OnInit {
   posts = signal<any[]>([]);
+  fmtDate = fmtDate;
   q = '';
   error = '';
   constructor(private api: ApiService) {}

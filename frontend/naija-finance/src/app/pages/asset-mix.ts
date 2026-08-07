@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
-import { fmtMoney, fmtPct, fmtWords } from '../format';
+import { fmtDate, fmtMoney, fmtPct, fmtWords } from '../format';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
@@ -13,7 +13,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
     <h2>Asset Mix</h2>
-    <p class="sub" *ngIf="card()">{{ card().visibility === 'private' ? 'Private mix · only you can view' : 'Shareable performance card · as of ' + card().asOf }}</p>
+    <p class="sub" *ngIf="card()">{{ card().visibility === 'private' ? 'Private mix · only you can view' : 'Shareable performance card · as of ' + fmtDate(card().asOf) }}</p>
     <p class="sub" style="margin-top:-12px;font-weight:600;color:var(--warn,#d97706);" *ngIf="card() && card().visibility === 'private'">🔒 This mix is private — only you can see it. Make it public to share the link.</p>
     <p class="error" *ngIf="error">{{ error }}</p>
 
@@ -64,7 +64,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
             <td class="sym">{{ m.name }}</td>
             <td class="num">{{ fmt(m.totalValue) }}</td>
             <td class="num">{{ m.itemCount }}</td>
-            <td class="muted">{{ m.asOf }}</td>
+            <td class="muted">{{ fmtDate(m.asOf) }}</td>
             <td>
               <span class="pill" [style.background]="m.visibility === 'public' ? 'var(--up-bg, rgba(22,199,132,.12))' : 'var(--bg2)'">{{ m.visibility === 'public' ? '🌍 Public' : '🔒 Private' }}</span>
             </td>
@@ -132,7 +132,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   `,
 })
 export class AssetMixPage implements OnInit, AfterViewInit {
-  fmtWords = fmtWords;
+  fmtWords = fmtWords; fmtDate = fmtDate;
   perfNote = PERF_NOTE;
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;

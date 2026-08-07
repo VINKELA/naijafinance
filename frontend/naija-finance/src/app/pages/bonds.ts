@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
-import { fmtPrice } from '../format';
+import { fmtDate, fmtPrice } from '../format';
 import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -23,7 +23,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let b of bonds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
-            <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
+            <td class="num muted">{{ fmtDate(b.maturity_date) }}</td>
             <td><app-share-btn [text]="shareText(b)" [link]="'/symbol?symbol=' + b.symbol"></app-share-btn></td>
           </tr>
         </tbody>
@@ -39,7 +39,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <tr *ngFor="let cp of cps()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
             <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
-            <td class="num muted">{{ cp.maturity_date ?? '—' }}</td>
+            <td class="num muted">{{ fmtDate(cp.maturity_date) }}</td>
             <td><app-share-btn [text]="shareCpText(cp)" [link]="'/bonds'"></app-share-btn></td>
           </tr>
         </tbody>
@@ -53,7 +53,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Date</th><th>Instrument</th><th>Tenor</th><th class="num">Offer (₦bn)</th><th class="num">Stop rate</th></tr></thead>
         <tbody>
           <tr *ngFor="let a of auctions()">
-            <td>{{ a.auction_date }}</td><td>{{ a.instrument_name }}</td>
+            <td>{{ fmtDate(a.auction_date) }}</td><td>{{ a.instrument_name }}</td>
             <td>{{ a.tenor }}</td><td class="num">{{ fmtPrice(a.offer_size) }}</td><td class="num">{{ fmtPrice(a.stop_rate) }}</td>
           </tr>
         </tbody>
@@ -63,7 +63,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class BondsPage implements OnInit {
-  fmtPrice = fmtPrice;
+  fmtDate = fmtDate; fmtPrice = fmtPrice;
   disclaimer = DISCLAIMER;
   bonds = signal<Bond[]>([]);
   cps = signal<Bond[]>([]);
