@@ -32,6 +32,10 @@ class User(AbstractUser):
     REQUIRED_FIELDS = [] 
     objects = CustomUserManager()
 
+    # Compliance: consent tracking for MVP sign-off
+    consent_terms_at = models.DateTimeField(null=True, blank=True, help_text="ISO timestamp when user accepted T&C + Privacy Policy")
+    consent_analytics_at = models.DateTimeField(null=True, blank=True, help_text="ISO timestamp when user opted into anonymized usage analytics")
+
     def __str__(self): return self.email
 
 

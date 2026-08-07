@@ -14,18 +14,34 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'password', 're_password', 'first_name', 'last_name')
+        fields = ('id', 'email', 'password', 're_password', 'first_name', 'last_name',
+                  'consent_terms_at', 'consent_analytics_at')
         extra_kwargs = {'password': {'write_only': True}}
+        read_only_fields = ('id',)
 
     def validate(self, attrs):
-        re_password = attrs.get('re_password')
+        re_password = attrs.pop('re_password', None)
         if re_password is not None and attrs.get('password') != re_password:
             raise serializers.ValidationError({'re_password': 'Passwords do not match.'})
+        # Store consent timestamps; default to None if not provided
+        attrs['consent_terms_at'] = attrs.get('consent_terms_at')
+        attrs['consent_analytics_at'] = attrs.get('consent_analytics_at')
         return attrs
+
+
 
     def create(self, validated_data):
         validated_data.pop('re_password', None)
+        consent_terms = validated_data.pop('consent_terms_at', None)
+        consent_analytics = validated_data.pop('consent_analytics_at', None)
         user = User.objects.create_user(**validated_data)
+        if consent_terms is not None:
+            user.consent_terms_at = consent_terms
+        if consent_analytics is not None:
+            user.consent_analytics_at = consent_analytics
+        user.save(update_fields=[f for f in ['consent_terms_at', 'consent_analytics_at']
+                                 if (consent_terms is not None and f == 'consent_terms_at')
+                                 or (consent_analytics is not None and f == 'consent_analytics_at')])
         return user
 
 # --- Data Serializers ---

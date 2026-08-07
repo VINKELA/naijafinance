@@ -42,6 +42,7 @@ def analytics_collect(request):
 urlpatterns = [
     # Auth Endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
+    path('user/me/', views.UserMeView.as_view(), name='user_me'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 # Celery Scraping Endpoints

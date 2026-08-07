@@ -57,6 +57,14 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
+class UserMeView(generics.RetrieveAPIView):
+    """Return the authenticated user profile including consent status."""
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_object(self):
+        return self.request.user
+
 
 class InstrumentViewSet(viewsets.ReadOnlyModelViewSet):
     """Publicly viewable instruments (Stocks, Bonds, Forex)"""

@@ -6,6 +6,7 @@ import { fmtDate, fmtPrice } from '../format';
 import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
+const CP_RESTRICTED = 'Restricted — professional / institutional investors only.';
 
 @Component({
   selector: 'app-bonds',
@@ -33,14 +34,15 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
     <div class="table-wrap">
       <h3>Commercial papers</h3>
+      <p class="pill" style="margin-bottom:8px;background:var(--warn);color:#fff;display:inline-block;">{{ cpRestricted }}</p>
+      <p class="muted" style="font-size:11.5px;margin-bottom:10px;">Commercial papers are short-term unsecured promissory notes issued by corporations. These instruments are restricted to professional and institutional investors under Nigerian securities regulations and are displayed here for informational purposes only.</p>
       <table class="data">
-        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th><th></th></tr></thead>
+        <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th></tr></thead>
         <tbody>
           <tr *ngFor="let cp of cps()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
             <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ fmtDate(cp.maturity_date) }}</td>
-            <td><app-share-btn [text]="shareCpText(cp)" [link]="'/bonds'"></app-share-btn></td>
           </tr>
         </tbody>
       </table>
@@ -65,12 +67,12 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 export class BondsPage implements OnInit {
   fmtDate = fmtDate; fmtPrice = fmtPrice;
   disclaimer = DISCLAIMER;
+  cpRestricted = CP_RESTRICTED;
   bonds = signal<Bond[]>([]);
   cps = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
   constructor(private api: ApiService) {}
   shareText(b: Bond): string { return `${b.symbol} — ${b.name} (FGN bond)`; }
-  shareCpText(cp: Bond): string { return `${cp.symbol} — ${cp.name} (commercial paper)`; }
   ngOnInit() {
     this.api.bonds().subscribe(b => this.bonds.set(b));
     this.api.commercialPapers().subscribe(cp => this.cps.set(cp));
