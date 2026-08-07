@@ -1,7 +1,8 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../api.service';
+import { ApiService, API_BASE } from '../api.service';
 import { ShareButton } from '../share-button';
 import { fmtDate, fmtMoney, fmtPrice, fmtPct, fmtCompact } from '../format';
 import { IS_DEMO } from '../env';
@@ -111,6 +112,23 @@ import { IS_DEMO } from '../env';
     </div>
 
     <p class="disc">⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.<span *ngIf="isDemo"> Prices are illustrative mock data for this demo build.</span></p>
+    <div class="card" style="margin-top:12px;font-size:11.5px;">
+      <h3 style="margin-bottom:8px;">Data status</h3>
+      <table class="data" style="font-size:11px;">
+        <thead><tr><th>Dataset</th><th>Source</th><th>Updated</th><th>Cadence</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let d of dataStatus()?.datasets ?? []">
+            <td>{{ d.label }}</td><td>{{ d.source }}</td>
+            <td class="num">{{ d.last_updated ? (d.last_updated | slice:0:10) : '—' }}</td>
+            <td>{{ d.cadence_label }}</td>
+            <td><span class="pill" [ngClass]="{'g': d.flag === 'green', 'w': d.flag === 'yellow' || d.flag === 'amber', 'r': d.flag === 'red'}">{{ d.flag === 'green' ? 'Live' : d.flag === 'red' ? 'Gated' : 'Stale' }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted" style="margin-top:6px;font-size:10.5px;">🟢 Live · 🟡 Manual/Stale · 🔴 Licence-gated</p>
+      <p class="muted" *ngIf="dataStatus()?.last_run" style="font-size:10.5px;">Last pipeline run: {{ dataStatus()?.last_run | slice:0:19 }}</p>
+    </div>
+
   `,
 })
 export class MarketPage implements OnInit {
@@ -138,7 +156,7 @@ export class MarketPage implements OnInit {
 
   fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact; fmtDate = fmtDate; fmtMoney = fmtMoney;
   get isDemo() { return IS_DEMO; }
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private http: HttpClient) {}
   moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
 
   ngOnInit() {

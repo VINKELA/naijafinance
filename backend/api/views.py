@@ -1705,6 +1705,136 @@ from datetime import date, datetime
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+
+# ==========================================
+# Data Status endpoint (REQ-FRESHNESS-WIDGET)
+# ==========================================
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def data_status(request):
+    '''Public dataset freshness + pipeline status.'''
+    now = timezone.now()
+    datasets = []
+
+    # CBN FX
+    fx_latest = FxRate.objects.order_by('-date').first()
+    datasets.append({
+        'key': 'cbn_fx',
+        'label': 'CBN FX Rates',
+        'source': 'cbn.gov.ng',
+        'last_updated': fx_latest.date.isoformat() if fx_latest else None,
+        'cadence_hours': 24,
+        'cadence_label': 'daily',
+        'licence': 'public',
+        'flag': 'green',
+        'rows': FxRate.objects.filter(date=fx_latest.date).count() if fx_latest else 0,
+    })
+
+    # FGN Bonds / DMO Auctions
+    last_auc = AuctionCalendar.objects.order_by('-auction_date').first()
+    datasets.append({
+        'key': 'dmo_auctions',
+        'label': 'DMO Bond Auctions',
+        'source': 'dmo.gov.ng',
+        'last_updated': last_auc.auction_date.isoformat() if last_auc else None,
+        'cadence_hours': 24,
+        'cadence_label': 'daily',
+        'licence': 'public',
+        'flag': 'green' if last_auc else 'amber',
+        'rows': AuctionCalendar.objects.count(),
+    })
+
+    # SEC NAV
+    last_nav = NavSnapshot.objects.order_by('-date').first()
+    datasets.append({
+        'key': 'sec_nav',
+        'label': 'SEC Fund NAVs',
+        'source': 'sec.gov.ng (CSV)',
+        'last_updated': last_nav.date.isoformat() if last_nav else None,
+        'cadence_hours': 168,
+        'cadence_label': 'weekly',
+        'licence': 'public',
+        'flag': 'yellow' if last_nav else 'amber',
+        'rows': NavSnapshot.objects.count(),
+    })
+
+    # NGX Equities (gated)
+    last_price = PriceHistory.objects.order_by('-date').first()
+    datasets.append({
+        'key': 'ngx_equities',
+        'label': 'NGX Equity Prices',
+        'source': 'NGX (licence pending)',
+        'last_updated': last_price.date.isoformat() if last_price else None,
+        'cadence_hours': None,
+        'cadence_label': 'none (seeded)',
+        'licence': 'gated',
+        'flag': 'red',
+        'rows': PriceHistory.objects.count(),
+    })
+
+    # Company Profiles (seeded)
+    last_co = CompanyProfile.objects.order_by('-updated_at').first()
+    datasets.append({
+        'key': 'company_profiles',
+        'label': 'Company Profiles',
+        'source': 'NGX (seed data)',
+        'last_updated': last_co.updated_at.isoformat() if last_co else None,
+        'cadence_hours': None,
+        'cadence_label': 'none (seeded)',
+        'licence': 'gated',
+        'flag': 'amber',
+        'rows': CompanyProfile.objects.count(),
+    })
+
+    # Fund data
+    last_fund = Fund.objects.filter(is_active=True).order_by('-updated_at').first()
+    datasets.append({
+        'key': 'funds',
+        'label': 'Mutual Funds',
+        'source': 'Fund managers / SEC',
+        'last_updated': last_fund.updated_at.isoformat() if last_fund else None,
+        'cadence_hours': 168,
+        'cadence_label': 'weekly',
+        'licence': 'public',
+        'flag': 'green' if last_fund else 'amber',
+        'rows': Fund.objects.filter(is_active=True).count(),
+    })
+
+    # Stale detection: flag amber if last_updated > 2x cadence
+    for ds in datasets:
+        if ds['cadence_hours'] and ds['last_updated']:
+            try:
+                last = datetime.fromisoformat(ds['last_updated'])
+                stale_threshold = timedelta(hours=ds['cadence_hours'] * 2)
+                if now - last > stale_threshold:
+                    ds['flag'] = 'amber'
+                    ds['stale'] = True
+            except (ValueError, TypeError):
+                pass
+
+    # Pipeline summary
+    pipeline_log = '/tmp/naijafinance-pipeline.log'
+    last_run = None
+    try:
+        import os
+        if os.path.exists(pipeline_log):
+            stat = os.stat(pipeline_log)
+            last_run = datetime.fromtimestamp(stat.st_mtime).isoformat()
+    except Exception:
+        pass
+
+    return Response({
+        'last_run': last_run,
+        'summary': {
+            'total_datasets': len(datasets),
+            'live': sum(1 for d in datasets if d['flag'] == 'green'),
+            'stale': sum(1 for d in datasets if d['flag'] == 'amber'),
+            'gated': sum(1 for d in datasets if d['flag'] == 'red'),
+        },
+        'datasets': datasets,
+    })
+
+
 def ingest_csv(request):
     '''Multipart CSV upload. type=fx|nav|bonds|instruments'''
     ingest_type = request.data.get('type', '').lower()

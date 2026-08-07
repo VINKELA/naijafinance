@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -10,6 +10,15 @@ import { ApiService, API_BASE } from '../api.service';
   template: `
     <h2>Data Ingest</h2>
     <p class="sub">Upload CSV files to update live data. Auth required.</p>
+
+    <div *ngIf="dataStatus()" class="card" style="margin-bottom:16px;font-size:11.5px;background:var(--card2);">
+      <p style="margin-bottom:4px;"><strong>Pipeline status</strong> · Last run: {{ dataStatus()?.last_run ? (dataStatus()?.last_run | slice:0:19) : 'never' }}</p>
+      <p style="font-size:11px;color:var(--txt2);">
+        🟢 {{ dataStatus()?.summary?.live ?? 0 }} live ·
+        🟡 {{ dataStatus()?.summary?.stale ?? 0 }} stale ·
+        🔴 {{ dataStatus()?.summary?.gated ?? 0 }} gated
+      </p>
+    </div>
 
     <div class="card" style="max-width: 540px;" *ngIf="isAuthed">
       <div style="display:grid;gap:12px;">
@@ -55,8 +64,13 @@ export class IngestPage {
   preview = signal<Record<string, string>[]>([]);
   headers = signal<string[]>([]);
 
+    dataStatus = signal<any>(null);
   constructor(private http: HttpClient, private api: ApiService) {}
   get isAuthed() { return this.api.isAuthed; }
+  ngOnInit() { if (this.isAuthed) this.loadDataStatus(); }
+  loadDataStatus() {
+    this.http.get(API_BASE + '/data-status/').subscribe((d: any) => this.dataStatus.set(d));
+  }
 
   onFile(e: Event) {
     const input = e.target as HTMLInputElement;
