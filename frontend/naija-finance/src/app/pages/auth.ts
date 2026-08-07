@@ -10,7 +10,7 @@ import { track } from '../analytics';
   imports: [CommonModule, FormsModule],
   template: `
     <h2>Account</h2>
-    <p class="sub">Email + JWT onboarding — no KYC in v1.</p>
+    <p class="sub">Create an account to track your portfolio, set alerts, and build watchlists.</p>
 
     <div class="card" style="max-width: 420px; margin-bottom: 16px;" *ngIf="!isAuthed">
       <p class="sub" style="margin-bottom: 10px;">Demo access (one click):</p>
