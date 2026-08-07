@@ -136,7 +136,7 @@ export class MarketPage implements OnInit {
     return map[name] || `https://news.google.com/search?q=${encodeURIComponent(name)}`;
   }
 
-  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact; fmtDate = fmtDate;
+  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtCompact = fmtCompact; fmtDate = fmtDate; fmtMoney = fmtMoney;
   get isDemo() { return IS_DEMO; }
   constructor(private api: ApiService) {}
   moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
