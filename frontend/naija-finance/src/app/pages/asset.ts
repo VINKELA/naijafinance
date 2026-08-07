@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { fmtChartPrice } from '../format';
 import { fmtDate, fmtMoney, fmtPrice, fmtPct } from '../format';
 import { ShareButton } from '../share-button';
 
@@ -57,6 +58,7 @@ export class AssetPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtChartPrice = fmtChartPrice;
   constructor(private api: ApiService, private route: ActivatedRoute) {}
 
   periods() {
@@ -134,6 +136,7 @@ export class AssetPage implements OnInit, AfterViewInit {
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.chartRef.nativeElement.clientWidth, height: 300,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#16c784', topColor: 'rgba(22,199,132,0.3)', bottomColor: 'rgba(22,199,132,0.02)', lineWidth: 2 });
     }

@@ -57,9 +57,9 @@ class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = UserSerializer
-class UserMeView(generics.RetrieveAPIView):
-    """Return the authenticated user profile including consent status."""
-    serializer_class = UserSerializer
+class UserMeView(generics.RetrieveUpdateAPIView):
+    """Return/update the authenticated user profile including consent status."""
+    serializer_class = UserMeSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):

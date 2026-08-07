@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtDate, fmtMoney, fmtPrice } from '../format';
+import { fmtDate, fmtMoney, fmtPrice, fmtChartPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -56,7 +56,7 @@ export class FundsPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtDate = fmtDate; fmtMoney = fmtMoney; fmtPrice = fmtPrice;
+  fmtDate = fmtDate; fmtMoney = fmtMoney; fmtPrice = fmtPrice; fmtChartPrice = fmtChartPrice;
   constructor(private api: ApiService) {}
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
   shareText(f: Fund): string { return `${f.name} — NAV ${fmtMoney(f.latest_nav?.nav)} (${f.asset_class_display})`; }
@@ -77,6 +77,7 @@ export class FundsPage implements OnInit, AfterViewInit {
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.chartRef.nativeElement.clientWidth, height: 260,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#16c784', topColor: 'rgba(22,199,132,0.35)', bottomColor: 'rgba(22,199,132,0.02)', lineWidth: 2 });
     }

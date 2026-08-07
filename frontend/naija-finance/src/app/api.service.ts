@@ -48,6 +48,7 @@ export class ApiService {
   // ---- Auth (F-09) ----
   register(payload: any): Observable<any> { return this.http.post(`${API_BASE}/auth/register/`, payload); }
   getUserMe(): Observable<any> { return this.http.get(`${API_BASE}/user/me/`, { headers: this.authHeaders() }); }
+  revokeAnalyticsConsent(): Observable<any> { return this.http.patch(`${API_BASE}/user/me/`, { consent_analytics_at: null }, { headers: this.authHeaders() }); }
   login(email: string, password: string): Observable<any> { return this.http.post(`${API_BASE}/auth/login/`, { email, password }); }
   refreshTokens(refresh: string): Observable<any> { return this.http.post(`${API_BASE}/auth/refresh/`, { refresh }); }
   saveTokens(tokens: any) { if (tokens?.access) localStorage.setItem('nf_access', tokens.access); if (tokens?.refresh) localStorage.setItem('nf_refresh', tokens.refresh); }

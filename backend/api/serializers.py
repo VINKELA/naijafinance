@@ -8,6 +8,14 @@ from .display import display_instrument_name
 
 User = get_user_model()
 
+# --- UserMe (consent-management) Serializer ---
+class UserMeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'first_name', 'last_name', 'consent_terms_at', 'consent_analytics_at')
+        read_only_fields = ('id', 'email', 'first_name', 'last_name', 'consent_terms_at')
+
+
 # --- Auth Serializers ---
 class UserSerializer(serializers.ModelSerializer):
     re_password = serializers.CharField(write_only=True, required=False)

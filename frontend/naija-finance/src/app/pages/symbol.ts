@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { fmtChartPrice } from '../format';
 import { ShareButton } from '../share-button';
 import { fmtDate, fmtMoney, fmtPrice, fmtPct } from '../format';
 import { IS_DEMO } from '../env';
@@ -58,6 +59,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
+  fmtChartPrice = fmtChartPrice;
   constructor(private api: ApiService, private route: ActivatedRoute) {}
 
   ngOnInit() {
@@ -96,6 +98,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
         height: 340,
         timeScale: { borderColor: '#223053' },
         rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#5b8dff', topColor: 'rgba(91,141,255,0.35)', bottomColor: 'rgba(91,141,255,0.02)', lineWidth: 2 });
     }

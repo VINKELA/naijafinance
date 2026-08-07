@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtMoney, fmtPrice, fmtCompactWords } from '../format';
+import { fmtMoney, fmtPrice, fmtCompactWords, fmtChartPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -62,7 +62,7 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtPrice = fmtPrice; fmtMoney = fmtMoney;
+  fmtPrice = fmtPrice; fmtMoney = fmtMoney; fmtChartPrice = fmtChartPrice;
   constructor(private api: ApiService) {}
   selected(): CompanyProfile | null { return this.companies().find(c => c.id === this.selectedId()) ?? this.companies()[0] ?? null; }
   naira(v: string | null): string { return v ? '₦' + fmtCompactWords(v) : '—'; }
@@ -84,6 +84,7 @@ export class CompaniesPage implements OnInit, AfterViewInit {
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.chartRef.nativeElement.clientWidth, height: 240,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#f0b90b', topColor: 'rgba(240,185,11,0.3)', bottomColor: 'rgba(240,185,11,0.02)', lineWidth: 2 });
     }

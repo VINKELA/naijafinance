@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
-import { fmtDate, fmtPrice } from '../format';
+import { fmtDate, fmtPrice, fmtChartPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
@@ -83,7 +83,7 @@ export class WatchlistPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtPrice = fmtPrice; fmtDate = fmtDate;
+  fmtPrice = fmtPrice; fmtChartPrice = fmtChartPrice; fmtDate = fmtDate;
   constructor(private api: ApiService) {}
   get authed() { return this.api.isAuthed; }
 
@@ -106,6 +106,7 @@ export class WatchlistPage implements OnInit, AfterViewInit {
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.chartRef.nativeElement.clientWidth, height: 220,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#4e9bff', topColor: 'rgba(78,155,255,0.3)', bottomColor: 'rgba(78,155,255,0.02)', lineWidth: 2 });
     }

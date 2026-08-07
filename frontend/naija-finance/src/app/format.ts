@@ -97,3 +97,17 @@ export function fmtDateTime(v: any): string {
   if (Number.isNaN(d.getTime())) return String(v);
   return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 }
+
+
+/** Compact price formatter for chart axes.
+ *  Google Finance-style: ≥1T → 1.2T, ≥1B → 850B, ≥1M → 12.5M, ≥1K → 838K, else locale.
+ *  Nil/NaN → empty string. */
+export function fmtChartPrice(v: number): string {
+  if (!isFinite(v)) return '';
+  const abs = Math.abs(v);
+  if (abs >= 1e12) return (v / 1e12).toFixed(1).replace(/\.0$/, '') + 'T';
+  if (abs >= 1e9)  return (v / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (abs >= 1e6)  return (v / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (abs >= 1e3)  return (v / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+  return v.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+}

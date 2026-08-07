@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
-import { fmtMoney, fmtPrice, fmtPct, fmtWords } from '../format';
+import { fmtMoney, fmtPrice, fmtPct, fmtWords, fmtChartPrice } from '../format';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
@@ -123,7 +123,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  fmtPrice = fmtPrice; fmtMoney = fmtMoney; fmtPct = fmtPct;
+  fmtPrice = fmtPrice; fmtMoney = fmtMoney; fmtPct = fmtPct; fmtChartPrice = fmtChartPrice;
   selectedIds = signal<Set<number>>(new Set());
   constructor(private api: ApiService) {}
 
@@ -148,6 +148,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.perfChartRef.nativeElement.clientWidth, height: 260,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
+        localization: { priceFormatter: fmtChartPrice },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#4e9bff', topColor: 'rgba(78,155,255,0.3)', bottomColor: 'rgba(78,155,255,0.02)', lineWidth: 2 });
     }
