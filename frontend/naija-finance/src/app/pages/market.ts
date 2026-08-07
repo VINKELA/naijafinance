@@ -139,6 +139,7 @@ export class MarketPage implements OnInit {
   fx = signal<any[]>([]);
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
+  dataStatus = signal<any>(null);
 
   sourceUrl(name: string): string {
     const map: Record<string, string> = {
@@ -169,6 +170,7 @@ export class MarketPage implements OnInit {
     this.api.fxRates(true).subscribe(f => this.fx.set(f));
     this.api.funds().subscribe(fd => this.funds.set(fd));
     this.api.news(5).subscribe(n => this.news.set(n));
+    this.http.get(API_BASE + '/data-status/').subscribe((d: any) => this.dataStatus.set(d));
   }
 
   volume(symbol: string): number {

@@ -132,7 +132,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   `,
 })
 export class AssetMixPage implements OnInit, AfterViewInit {
-  fmtWords = fmtWords; fmtDate = fmtDate;
+  fmtWords = fmtWords; fmtDate = fmtDate; fmtPct = fmtPct;
   perfNote = PERF_NOTE;
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;
