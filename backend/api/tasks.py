@@ -260,3 +260,28 @@ def run_stateful_scrape(execution_id):
     finally:
         if driver:
             driver.quit()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Live Data Pipeline Tasks (zero-licence public sources, 2026-08-07)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+from .live_data import fetch_fx_rates, fetch_crypto_prices, fetch_news_rss
+
+
+@shared_task
+def task_fetch_fx_rates():
+    """Daily: pull latest NGN cross-rates from Frankfurter free API."""
+    return fetch_fx_rates()
+
+
+@shared_task
+def task_fetch_crypto_prices():
+    """Every 30 min: pull NGN-denominated crypto prices from CoinGecko free API."""
+    return fetch_crypto_prices()
+
+
+@shared_task
+def task_fetch_news_rss():
+    """Hourly: aggregate Nigerian financial headlines from RSS feeds."""
+    return fetch_news_rss()

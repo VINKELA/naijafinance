@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
+from celery.schedules import crontab
 
 
 def env_bool(name, default=False):
@@ -149,6 +150,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.getenv('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+        'OPTIONS': {'timeout': 20},
     }
 }
 
@@ -198,7 +200,20 @@ CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = os.getenv('CELERY_TIMEZONE', TIME_ZONE)
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    'fetch-fx-rates-daily': {
+        'task': 'api.tasks.task_fetch_fx_rates',
+        'schedule': crontab(hour=9, minute=0),  # CBN publishes ~9am WAT
+    },
+    'fetch-crypto-prices': {
+        'task': 'api.tasks.task_fetch_crypto_prices',
+        'schedule': crontab(minute='*/30'),  # every 30 min
+    },
+    'fetch-news-rss': {
+        'task': 'api.tasks.task_fetch_news_rss',
+        'schedule': crontab(minute='*/60'),  # every hour
+    },
+}
 
 # G3 COMPLIANCE (2026-08-03): Login-based scraping of CSCS is RETIRED.
 # The former `cscs-daily-data-update` beat entry has been removed. The

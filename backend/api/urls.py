@@ -4,18 +4,35 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import *
 from . import views
 router = DefaultRouter()
+
+# Live data pipeline endpoints (CTO-admin)
+path('data/upload-eod/', upload_eod_csv, name='upload_eod_csv'),
+path('data/trigger-rss/', trigger_rss_fetch, name='trigger_rss_fetch'),
+path('data/trigger-fx/', trigger_fx_fetch, name='trigger_fx_fetch'),
+path('data/trigger-crypto/', trigger_crypto_fetch, name='trigger_crypto_fetch'),
 router.register(r'stocks', InstrumentViewSet, basename='stock')
+
 router.register(r'instruments', InstrumentViewSet, basename='instrument')
+
 router.register(r'portfolios', PortfolioViewSet, basename='portfolio')
+
 router.register(r'portfolio-items', PortfolioItemViewSet, basename='portfolio-item')
+
 router.register(r'watchlists', WatchlistViewSet, basename='watchlist')
 # Free Data Layer (Sprint 1: F-04..F-08)
+
 router.register(r'bonds', BondInstrumentViewSet, basename='bond')
+
 router.register(r'commercial-papers', CommercialPaperViewSet, basename='commercial-paper')
+
 router.register(r'auctions', AuctionCalendarViewSet, basename='auction')
+
 router.register(r'funds', FundViewSet, basename='fund')
+
 router.register(r'fx-rates', FxRateViewSet, basename='fx-rate')
+
 router.register(r'companies', CompanyProfileViewSet, basename='company')
+
 router.register(r'alerts', AlertViewSet, basename='alert')
 
 # Analytics: fire-and-forget event collection (CGO instrumentation ask, go-live)

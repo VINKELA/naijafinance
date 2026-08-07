@@ -1656,3 +1656,40 @@ def create_post(request):
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
     post = ser.save()
     return Response(PostSerializer(post).data, status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Live Data Pipeline Endpoints (CTO-admin, zero-licence, 2026-08-07)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def upload_eod_csv(request):
+    """Admin endpoint: upload a CSV of end-of-day stock prices."""
+    csv_text = request.data.get('csv', '') or request.body.decode('utf-8', errors='replace')
+    if not csv_text.strip():
+        return Response({'error': 'Empty CSV body'}, status=status.HTTP_400_BAD_REQUEST)
+    from .live_data import process_eod_csv
+    result = process_eod_csv(csv_text)
+    return Response(result)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def trigger_rss_fetch(_request):
+    from .live_data import fetch_news_rss
+    return Response(fetch_news_rss())
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def trigger_fx_fetch(_request):
+    from .live_data import fetch_fx_rates
+    return Response(fetch_fx_rates())
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def trigger_crypto_fetch(_request):
+    from .live_data import fetch_crypto_prices
+    return Response(fetch_crypto_prices())

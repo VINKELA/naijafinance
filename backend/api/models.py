@@ -461,3 +461,5 @@ class Post(TimeStampedModel):
     asset_url = models.CharField(max_length=300, blank=True, null=True)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
     is_published = models.BooleanField(default=True)
+    ext_link = models.URLField(blank=True, null=True, help_text='External source URL (RSS imports)')
+    is_rss = models.BooleanField(default=False, help_text='Auto-imported from RSS feed')
