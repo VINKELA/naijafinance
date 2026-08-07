@@ -69,7 +69,7 @@ export class IngestPage {
   get isAuthed() { return this.api.isAuthed; }
   ngOnInit() { if (this.isAuthed) this.loadDataStatus(); }
   loadDataStatus() {
-    this.http.get(API_BASE + '/data-status/').subscribe((d: any) => this.dataStatus.set(d));
+    this.http.get(API_BASE + '/data-status-public/').subscribe((d: any) => this.dataStatus.set(d));
   }
 
   onFile(e: Event) {

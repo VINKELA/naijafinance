@@ -170,7 +170,7 @@ export class MarketPage implements OnInit {
     this.api.fxRates(true).subscribe(f => this.fx.set(f));
     this.api.funds().subscribe(fd => this.funds.set(fd));
     this.api.news(5).subscribe(n => this.news.set(n));
-    this.http.get(API_BASE + '/data-status/').subscribe((d: any) => this.dataStatus.set(d));
+    this.http.get(API_BASE + '/data-status-public/').subscribe((d: any) => this.dataStatus.set(d));
   }
 
   volume(symbol: string): number {
