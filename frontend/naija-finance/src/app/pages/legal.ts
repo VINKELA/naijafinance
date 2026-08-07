@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
   imports: [CommonModule, RouterLink],
   template: `
     <h2>Terms &amp; Conditions</h2>
-    <p class="sub">Effective 2026-08-04 · NaijaFinance Hub (data &amp; analytics platform)</p>
+    <p class="sub">Effective 4 Aug 2026 · NaijaFinance Hub (data &amp; analytics platform)</p>
     <div class="card" style="margin-bottom:20px;">
       <h3>1. Service nature</h3>
       <p class="muted" style="font-size:13px;line-height:1.6;">NaijaFinance Hub is a data and analytics platform only. Nothing on this platform is investment advice, a recommendation, or an offer to buy or sell any security. Market data is delayed or indicative unless marked otherwise, and demo/simulated data is labelled as such.</p>

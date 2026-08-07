@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
-import { fmtMoney, fmtPrice, fmtPct } from '../format';
+import { fmtDate, fmtMoney, fmtPrice, fmtPct } from '../format';
 import { ShareButton } from '../share-button';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -82,9 +82,10 @@ export class AssetPage implements OnInit, AfterViewInit {
     if (!value || value === '—') return '—';
     if (/market cap/i.test(label)) return fmtMoney(value);
     if (/^(eps|pe|book value)/i.test(label)) return fmtPrice(value);
+    if (/maturity|nav date|as of/i.test(label)) return fmtDate(value);
     return value;
   }
-  fmtPct = fmtPct;
+  fmtPct = fmtPct; fmtDate = fmtDate;
   shareLink(): string {
     const d = this.detail();
     if (!d) return '/market';

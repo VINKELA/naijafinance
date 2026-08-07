@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
-import { fmtMoney, fmtPrice, fmtPct } from '../format';
+import { fmtDate, fmtMoney, fmtPrice, fmtPct } from '../format';
 import { IS_DEMO } from '../env';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
@@ -73,9 +73,10 @@ export class SymbolPage implements OnInit, AfterViewInit {
     if (!value || value === '—') return '—';
     if (/market cap/i.test(label)) return fmtMoney(value);
     if (/^(eps|pe|book value)/i.test(label)) return fmtPrice(value);
+    if (/maturity|nav date|as of/i.test(label)) return fmtDate(value);
     return value;
   }
-  fmtPrice = fmtPrice; fmtPct = fmtPct;
+  fmtPrice = fmtPrice; fmtPct = fmtPct; fmtDate = fmtDate;
   load() {
     const sym = this.symbol.trim().toUpperCase();
     if (!sym) return;
