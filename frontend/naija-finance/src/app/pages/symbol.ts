@@ -30,7 +30,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <div class="stat-grid" style="margin-bottom: 0;">
         <div class="stat-tile">
           <div class="label">{{ detail().symbol }} · {{ detail().name }}</div>
-          <div class="value">{{ detail().price }}</div>
+          <div class="value">{{ fmtPrice(detail().price) }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ fmtPct(detail().changePct) }}</div>
           <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="'/symbol?symbol=' + detail().symbol"></app-share-btn></div>
         </div>

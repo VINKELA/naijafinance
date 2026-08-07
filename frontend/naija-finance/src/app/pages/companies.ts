@@ -27,9 +27,9 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <div *ngIf="selected()" class="stat-grid" style="margin-bottom: 10px;">
         <div class="stat-tile"><div class="label">{{ selected()!.symbol }} · {{ selected()!.name }}</div>
           <div class="value" style="font-size:15px;">{{ selected()!.sector ?? '—' }}</div></div>
-        <div class="stat-tile"><div class="label">EPS</div><div class="value" style="font-size:16px;">{{ selected()!.eps ?? '—' }}</div></div>
-        <div class="stat-tile"><div class="label">P/E</div><div class="value" style="font-size:16px;">{{ selected()!.pe_ratio ?? '—' }}</div></div>
-        <div class="stat-tile"><div class="label">Book value</div><div class="value" style="font-size:16px;">{{ selected()!.book_value ?? '—' }}</div></div>
+        <div class="stat-tile"><div class="label">EPS</div><div class="value" style="font-size:16px;">{{ fmtPrice(selected()!.eps) }}</div></div>
+        <div class="stat-tile"><div class="label">P/E</div><div class="value" style="font-size:16px;">{{ fmtPrice(selected()!.pe_ratio) }}</div></div>
+        <div class="stat-tile"><div class="label">Book value</div><div class="value" style="font-size:16px;">{{ fmtPrice(selected()!.book_value) }}</div></div>
         <div class="stat-tile"><div class="label">Market cap</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
       </div>
       <p *ngIf="selected()?.description" class="muted" style="font-size:12.5px;margin-bottom:10px;">{{ selected()!.description }}</p>

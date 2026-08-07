@@ -142,13 +142,29 @@ FUNDS = [
     ('United Capital Fixed Income Fund', 'United Capital Asset Management', 'FIXED_INCOME', [(0, 1.5247), (7, 1.5222), (14, 1.5196), (30, 1.5118), (60, 1.5015), (90, 1.4913), (180, 1.4647), (365, 1.4112)]),
 ]
 FX_RATES = [
-    # pair, rate, date
+    # pair, rate, date — major global + African pairs relevant to Nigeria
+    # USD (global reference + parallel market)
     ('USD/NGN', '1496.5300', '2026-07-31'),
+    ('USD/NGN', '1535.4500', '2026-08-07'),
+    ('USD/NGN-PARALLEL', '1610.0000', '2026-08-04'),
+    # GBP (historical colonial + trade)
     ('GBP/NGN', '1923.1500', '2026-07-31'),
+    ('GBP/NGN', '1964.7000', '2026-08-07'),
+    # EUR (major trade partner)
     ('EUR/NGN', '1620.7800', '2026-07-31'),
-    ('USD/NGN', '1501.2100', '2026-07-24'),
-    ('GBP/NGN', '1938.4200', '2026-07-24'),
-    ('EUR/NGN', '1631.9000', '2026-07-24'),
+    ('EUR/NGN', '1665.3000', '2026-08-07'),
+    # African trade partners
+    ('GHS/NGN', '102.5800', '2026-08-07'),
+    ('XOF/NGN', '2.5100', '2026-08-07'),
+    ('ZAR/NGN', '85.2200', '2026-08-07'),
+    ('KES/NGN', '11.8500', '2026-08-07'),
+    # Global majors
+    ('CAD/NGN', '1108.9000', '2026-08-07'),
+    ('CHF/NGN', '1765.4000', '2026-08-07'),
+    ('INR/NGN', '18.3000', '2026-08-07'),
+    ('CNY/NGN', '213.4000', '2026-08-07'),
+    ('JPY/NGN', '10.4800', '2026-08-07'),
+    ('SAR/NGN', '409.3500', '2026-08-07'),
 ]
 
 COMPANIES = [

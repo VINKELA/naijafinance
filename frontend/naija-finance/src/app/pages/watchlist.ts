@@ -26,7 +26,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <p class="loading" *ngIf="!authed">Sign in to see performance.</p>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
+    <div class="card" style="margin-bottom: 20px;" *ngIf="authed">
       <form class="form-row" (ngSubmit)="toggle()">
         <input type="text" placeholder="Symbol — stock, bond, CP (e.g. MTNN, FGN-14.55-2029)" [(ngModel)]="symbol" name="symbol">
         <button type="submit" [disabled]="!symbol && !fundId">Add / remove</button>
@@ -40,7 +40,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       </form>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" *ngIf="authed">
       <h3>My watchlist</h3>
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th>Class</th><th class="num">Last price</th><th></th></tr></thead>

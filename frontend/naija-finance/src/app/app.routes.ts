@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from './auth.guard';
 import { BondsPage } from './pages/bonds';
 import { FundsPage } from './pages/funds';
 import { FxPage } from './pages/fx';
@@ -24,9 +25,9 @@ export const routes: Routes = [
   { path: 'funds', component: FundsPage, title: 'Mutual Funds' },
   { path: 'fx', component: FxPage, title: 'CBN FX Rates' },
   { path: 'companies', component: CompaniesPage, title: 'Company Profiles' },
-  { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },
-  { path: 'watchlist', component: WatchlistPage, title: 'Watchlist' },
-  { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
+  { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts', canActivate: [AuthGuard] },
+  { path: 'watchlist', component: WatchlistPage, title: 'Watchlist', canActivate: [AuthGuard] },
+  { path: 'portfolio', component: PortfolioPage, title: 'Portfolio', canActivate: [AuthGuard] },
   { path: 'symbol', component: SymbolPage, title: 'Symbol & Chart' },
   { path: 'asset', component: AssetPage, title: 'Asset Information' },
   { path: 'asset-mix', component: AssetMixPage, title: 'Asset Mix' },

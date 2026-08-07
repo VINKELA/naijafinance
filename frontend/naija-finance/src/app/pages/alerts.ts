@@ -14,7 +14,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <p class="sub">Set thresholds for price, yield, or NAV, and we'll notify you when they're crossed.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
 
-    <div class="card" style="margin-bottom: 20px;">
+    <div class="card" style="margin-bottom: 20px;" *ngIf="authed">
       <form class="form-row" (ngSubmit)="create()">
         <select [(ngModel)]="form.alert_type" name="alert_type" required>
           <option value="PRICE">Price</option>
@@ -36,7 +36,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       </form>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" *ngIf="authed">
       <h3>Your alerts</h3>
       <table class="data">
         <thead><tr><th>Type</th><th>Target</th><th class="num">Threshold</th><th>Direction</th><th>Triggered</th><th class="num">Last value</th><th></th></tr></thead>
@@ -66,6 +66,7 @@ export class AlertsPage implements OnInit {
   form = { alert_type: 'PRICE', instrument: null as number | null, fund: null as number | null, threshold: '', direction: 'ABOVE' };
 
   constructor(private api: ApiService) {}
+  get authed() { return this.api.isAuthed; }
 
   ngOnInit() {
     this.api.alerts().subscribe(a => this.alerts.set(a), () => this.error = 'Could not load alerts — are you logged in?');
