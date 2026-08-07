@@ -8,6 +8,8 @@ from django.http import HttpResponse
 from django.db.models import Q, Case, IntegerField, Value, When, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, generics, status
+import csv, io
+from datetime import date, datetime
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -1693,3 +1695,114 @@ def trigger_fx_fetch(_request):
 def trigger_crypto_fetch(_request):
     from .live_data import fetch_crypto_prices
     return Response(fetch_crypto_prices())
+
+
+# ==========================================
+# CSV Ingest endpoint (LIVE-DATA-1)
+# ==========================================
+import csv, io
+from datetime import date, datetime
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def ingest_csv(request):
+    '''Multipart CSV upload. type=fx|nav|bonds|instruments'''
+    ingest_type = request.data.get('type', '').lower()
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'No file uploaded'}, status=400)
+    if ingest_type not in ('fx', 'nav', 'bonds', 'instruments'):
+        return Response({'error': f'Unknown type: {ingest_type}'}, status=400)
+
+    try:
+        text = file.read().decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(text))
+        rows = list(reader)
+    except Exception as e:
+        return Response({'error': f'CSV parse failed: {e}'}, status=400)
+
+    created, updated, errors = 0, 0, []
+
+    if ingest_type == 'fx':
+        for i, row in enumerate(rows):
+            try:
+                pair = row.get('pair', '').strip().upper()
+                rate_date = date.fromisoformat(row.get('date', '').strip())
+                rate_val = row.get('rate', '').strip()
+                if not pair or not rate_val:
+                    errors.append(f'Row {i+1}: missing pair/date/rate')
+                    continue
+                _, is_new = FxRate.objects.update_or_create(
+                    pair=pair, date=rate_date,
+                    defaults={'rate': rate_val, 'source': 'CSV'}
+                )
+                if is_new: created += 1
+                else: updated += 1
+            except Exception as e:
+                errors.append(f'Row {i+1}: {e}')
+
+    elif ingest_type == 'nav':
+        for i, row in enumerate(rows):
+            try:
+                fund_name = row.get('fund_name', '').strip()
+                nav_date = date.fromisoformat(row.get('date', '').strip())
+                nav_val = row.get('nav', '').strip()
+                fund = Fund.objects.filter(name__iexact=fund_name, is_active=True).first()
+                if not fund:
+                    errors.append(f'Row {i+1}: fund "{fund_name}" not found')
+                    continue
+                _, is_new = NavSnapshot.objects.update_or_create(
+                    fund=fund, date=nav_date,
+                    defaults={'nav': nav_val}
+                )
+                if is_new: created += 1
+                else: updated += 1
+            except Exception as e:
+                errors.append(f'Row {i+1}: {e}')
+
+    elif ingest_type == 'instruments':
+        for i, row in enumerate(rows):
+            try:
+                symbol = row.get('symbol', '').strip().upper()
+                last_price = row.get('last_price', '').strip()
+                if not symbol:
+                    continue
+                inst = Instrument.objects.filter(symbol=symbol).first()
+                if inst and last_price:
+                    inst.last_price = last_price
+                    inst.save(update_fields=['last_price'])
+                    updated += 1
+                else:
+                    errors.append(f'Row {i+1}: instrument "{symbol}" not found')
+            except Exception as e:
+                errors.append(f'Row {i+1}: {e}')
+
+    elif ingest_type == 'bonds':
+        from .models import AuctionCalendar
+        for i, row in enumerate(rows):
+            try:
+                symbol = row.get('symbol', '').strip().upper()
+                auc_date = date.fromisoformat(row.get('date', '').strip())
+                tenor = row.get('tenor', '').strip()
+                offer = row.get('offer_size', '').strip() or None
+                stop = row.get('stop_rate', '').strip() or None
+                inst = Instrument.objects.filter(symbol__iexact=symbol, asset_class='BOND').first()
+                if not inst:
+                    errors.append(f'Row {i+1}: bond "{symbol}" not found')
+                    continue
+                _, is_new = AuctionCalendar.objects.update_or_create(
+                    instrument=inst, auction_date=auc_date,
+                    defaults={'tenor': tenor, 'offer_size': offer, 'stop_rate': stop}
+                )
+                if is_new: created += 1
+                else: updated += 1
+            except Exception as e:
+                errors.append(f'Row {i+1}: {e}')
+
+    return Response({
+        'type': ingest_type,
+        'rows': len(rows),
+        'created': created,
+        'updated': updated,
+        'errors': errors[:20],  # cap error list
+    })

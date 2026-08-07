@@ -14,30 +14,29 @@ logger = logging.getLogger('live_data')
 
 UA = 'NaijaFinanceHub/1.0 (data aggregation; https://naijafinancehub.com)'
 
-# ── FRANKFURTER FX (free, no key, daily CBN-adjacent) ──────────────────────
+# ── FX RATES: open.er-api.com (free, no key, no rate limit) ───────────────
 
-FRANKFURTER_BASE = 'https://api.frankfurter.dev'
+ER_API_BASE = 'https://open.er-api.com/v6'
 TARGET_PAIRS = ['USD', 'GBP', 'EUR', 'CAD', 'CHF', 'CNY', 'JPY', 'INR', 'SAR',
                 'GHS', 'KES', 'ZAR', 'XOF']
 
 
 def fetch_fx_rates() -> dict:
-    """Pull latest NGN cross-rates from Frankfurter free API.  Returns count report."""
+    """Pull latest NGN cross-rates from open.er-api.com free API."""
     created = 0
     try:
-        resp = requests.get(f'{FRANKFURTER_BASE}/latest',
-                            params={'from': 'NGN', 'to': ','.join(TARGET_PAIRS)},
-                            headers={'User-Agent': UA}, timeout=15)
+        resp = requests.get(f'{ER_API_BASE}/latest/NGN',
+                            headers={'User-Agent': UA}, timeout=20)
         resp.raise_for_status()
         data = resp.json()
-        rate_date = data.get('date', str(date.today()))
+        rate_date = data.get('time_last_update_utc', str(date.today()))[:10]
         rates = data.get('rates', {})
 
         for pair_code in TARGET_PAIRS:
             rate_val = rates.get(pair_code)
             if rate_val is None:
                 continue
-            # Frankfurter gives NGN→USD=0.00067; we want USD/NGN = 1/rate
+            # ER-API gives NGN→USD=0.00067; we want USD/NGN = 1/rate
             pair = f'{pair_code}/NGN'
             display_rate = round(Decimal('1') / Decimal(str(rate_val)), 4)
 

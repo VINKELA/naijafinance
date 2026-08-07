@@ -17,6 +17,7 @@ import { ComparePage } from './pages/compare';
 import { BlogPage } from './pages/blog';
 import { BlogPostPage } from './pages/blog-post';
 import { BlogEditorPage } from './pages/blog-editor';
+import { IngestPage } from './pages/ingest';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -37,4 +38,5 @@ export const routes: Routes = [
   { path: 'blog', component: BlogPage, title: 'Blog' },
   { path: 'blog/new', component: BlogEditorPage, title: 'Write a Post' },
   { path: 'blog/:id', component: BlogPostPage, title: 'Post' },
+  { path: 'data/ingest', component: IngestPage, title: 'Data Ingest', canActivate: [AuthGuard] },
 ];

@@ -101,6 +101,7 @@ urlpatterns = [
     path('posts/create/', views.create_post, name='create_post'),
     path('posts/<int:pk>/', views.post_detail, name='post_detail'),
     path('analytics/', analytics_collect, name='analytics_collect'),
+    path('ingest/csv/', views.ingest_csv, name='ingest_csv'),
 
 
 ]
