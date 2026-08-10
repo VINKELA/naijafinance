@@ -26,3 +26,11 @@ urlpatterns = [
     path('auth/', include('djoser.urls.jwt')),
     path('admin/', admin.site.urls),
 ]
+
+from api.views import request_login_code, verify_login_code, check_email, user_me
+
+urlpatterns += [
+    path('auth/request-code/', request_login_code, name='root_request_code'),
+    path('auth/verify-code/', verify_login_code, name='root_verify_code'),
+    path('auth/check-email/', check_email, name='root_check_email'),
+]

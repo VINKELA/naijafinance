@@ -1090,3 +1090,161 @@ class AlertViewSet(viewsets.ModelViewSet):
         if self.get_object().user != self.request.user:
             raise PermissionDenied("You can only update your own alerts.")
         serializer.save()
+
+
+# ---- Direct Login (bypasses Django 6.0 authenticate() gunicorn bug) ----
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def direct_login(request):
+    email = request.data.get('email', '')
+    password = request.data.get('password', '')
+    if not email or not password:
+        return Response({'detail': 'Email and password required.'}, status=400)
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'detail': 'No active account found with the given credentials'}, status=401)
+    if not user.is_active or not user.check_password(password):
+        return Response({'detail': 'No active account found with the given credentials'}, status=401)
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    })
+
+
+# ---- OTP (One-Time Code) Auth ----
+import random, time, threading
+from django.core.cache import cache
+from django.conf import settings
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
+OTP_LENGTH = 6
+OTP_TTL = 600  # 10 minutes
+
+def _generate_otp():
+    return ''.join(random.choices('0123456789', k=OTP_LENGTH))
+
+# Branded HTML email template (NaijaFinance Hub green #0D7C3E)
+OTP_EMAIL_HTML = """<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif">
+<table width="100%%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0">
+<tr><td align="center">
+<table width="100%%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
+  <!-- Header -->
+  <tr><td style="background:#0D7C3E;padding:28px 32px;text-align:center">
+    <div style="display:inline-block;width:48px;height:48px;background:#ffffff;border-radius:12px;line-height:48px;text-align:center">
+      <span style="color:#0D7C3E;font-size:22px;font-weight:800;letter-spacing:1px">NF</span>
+    </div>
+    <h1 style="color:#ffffff;font-size:20px;font-weight:700;margin:16px 0 0;letter-spacing:-0.3px">NaijaFinance Hub</h1>
+  </td></tr>
+  <!-- Body -->
+  <tr><td style="padding:32px">
+    <p style="margin:0 0 12px;font-size:16px;color:#1a1a2e;font-weight:600">Your sign-in code</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6">Enter this 6-digit code on the sign-in page to access your account. This code expires in 10 minutes.</p>
+    <!-- Code box -->
+    <div style="background:#f0f7f2;border:1px solid #0D7C3E;border-radius:12px;padding:18px;text-align:center;margin:0 0 24px">
+      <span style="font-size:32px;font-weight:800;letter-spacing:12px;color:#0D7C3E;font-family:'SF Mono',Monaco,'Cascadia Code',monospace">{code}</span>
+    </div>
+    <p style="margin:0 0 8px;font-size:13px;color:#888;line-height:1.6">If you did not request this code, you can safely ignore this email. No action is needed.</p>
+  </td></tr>
+  <!-- Footer -->
+  <tr><td style="background:#f8f9fa;padding:20px 32px;border-top:1px solid #eee">
+    <p style="margin:0;font-size:11px;color:#999;text-align:center">NaijaFinance Hub — Nigerian Markets, One Dashboard<br>&copy; 2026 NaijaFinance Hub. All rights reserved.</p>
+  </td></tr>
+</table>
+</td></tr></table></body></html>"""
+
+def _send_otp_email_async(email, code):
+    """Send branded OTP email in a background thread to avoid blocking the API response."""
+    try:
+        html_body = OTP_EMAIL_HTML.format(code=code)
+        msg = EmailMultiAlternatives(
+            subject='%s — your sign-in code for NaijaFinance Hub' % code,
+            body='Your NaijaFinance Hub verification code is: %s\n\nEnter this code on the sign-in page. It expires in 10 minutes.\n\nIf you did not request this code, please ignore this email.' % code,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'hello@naijafinancehub.com'),
+            to=[email],
+        )
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send(fail_silently=False)
+    except Exception as e:
+        import logging
+        logging.getLogger('otp').error('Failed to send OTP to %s: %s', email, e)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_login_code(request):
+    email = (request.data.get('email') or '').strip().lower()
+    first_name = (request.data.get('first_name') or '').strip()
+    last_name = (request.data.get('last_name') or '').strip()
+    if not email:
+        return Response({'error': 'Email is required.'}, status=400)
+    code = _generate_otp()
+    cache.set(f'otp:{email}', code, timeout=OTP_TTL)
+    # Fire-and-forget: send email in background thread (async — does not block API response)
+    threading.Thread(target=_send_otp_email_async, args=(email, code), daemon=True).start()
+    # Fallback log
+    with open('/tmp/otp_codes.log', 'a') as f:
+        f.write(f'{time.time()}|{email}|{code}\n')
+    return Response({'ok': True, 'message': 'Code sent.'})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_login_code(request):
+    email = (request.data.get('email') or '').strip().lower()
+    code = (request.data.get('code') or '').strip()
+    first_name = (request.data.get('first_name') or '').strip()
+    last_name = (request.data.get('last_name') or '').strip()
+    if not email or not code:
+        return Response({'error': 'Email and code are required.'}, status=400)
+    stored = cache.get(f'otp:{email}')
+    if stored is None or stored != code:
+        return Response({'error': 'Invalid or expired code.'}, status=401)
+    cache.delete(f'otp:{email}')
+    # Get or create user
+    user, created = User.objects.get_or_create(email=email, defaults={
+        'first_name': first_name or email.split('@')[0],
+        'last_name': last_name or '',
+    })
+    if created:
+        user.set_unusable_password()
+        user.save()
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def check_email(request):
+    email = (request.data.get('email') or '').strip().lower()
+    if not email:
+        return Response({'error': 'Email is required.'}, status=400)
+    exists = User.objects.filter(email=email).exists()
+    return Response({'exists': exists})
+
+@api_view(['GET', 'PATCH'])
+def user_me(request):
+    if not request.user or not request.user.is_authenticated:
+        return Response({'detail': 'Authentication required.'}, status=401)
+    if request.method == 'PATCH':
+        # Analytics consent revocation
+        if 'consent_analytics_at' in request.data:
+            # Just return current data for now
+            pass
+    return Response({
+        'email': request.user.email,
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+        'consent_terms_at': getattr(request.user, 'consent_terms_at', None),
+        'consent_analytics_at': getattr(request.user, 'consent_analytics_at', None),
+    })

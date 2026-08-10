@@ -1,4 +1,19 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-naijafinance}"
+      POSTGRES_USER: "${POSTGRES_USER:-naijafinance}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-naijafinance} -d ${POSTGRES_DB:-naijafinance}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -17,7 +32,18 @@ services:
       DJANGO_CSRF_TRUSTED_ORIGINS: "${DJANGO_CSRF_TRUSTED_ORIGINS:-}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
-      SQLITE_PATH: "/app/data/db.sqlite3"
+      DATABASE_URL: "${DATABASE_URL}"
+      POSTGRES_DB: "${POSTGRES_DB:-naijafinance}"
+      POSTGRES_USER: "${POSTGRES_USER:-naijafinance}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_HOST: "db"
+      POSTGRES_PORT: "5432"
+      EMAIL_HOST: "${EMAIL_HOST:-smtp.gmail.com}"
+      EMAIL_PORT: "${EMAIL_PORT:-587}"
+      EMAIL_USE_TLS: "${EMAIL_USE_TLS:-True}"
+      EMAIL_HOST_USER: "${EMAIL_HOST_USER}"
+      EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD}"
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-hello@naijafinancehub.com}"
       STATIC_ROOT: "/app/staticfiles"
       CSCS_USERNAME: "${CSCS_USERNAME:-}"
       CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
@@ -27,14 +53,16 @@ services:
       CHROME_BINARY_PATH: "/usr/bin/chromium"
       CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
     volumes:
-      - sqlite_data:/app/data
       - django_static:/app/staticfiles
     depends_on:
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
-             gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+             gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1"
 
   worker:
     profiles: ["legacy-celery"]
@@ -96,6 +124,7 @@ services:
       - backend
 
 volumes:
+  postgres_data:
   redis_data:
   sqlite_data:
   django_static:

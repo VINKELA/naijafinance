@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import *
+from .views import direct_login
+from .views import request_login_code, verify_login_code, check_email, user_me
 from . import views
 router = DefaultRouter()
 router.register(r'stocks', InstrumentViewSet, basename='stock')
@@ -9,7 +11,6 @@ router.register(r'instruments', InstrumentViewSet, basename='instrument')
 router.register(r'portfolios', PortfolioViewSet, basename='portfolio')
 router.register(r'portfolio-items', PortfolioItemViewSet, basename='portfolio-item')
 router.register(r'watchlists', WatchlistViewSet, basename='watchlist')
-# Free Data Layer (Sprint 1: F-04..F-08)
 router.register(r'bonds', BondInstrumentViewSet, basename='bond')
 router.register(r'commercial-papers', CommercialPaperViewSet, basename='commercial-paper')
 router.register(r'auctions', AuctionCalendarViewSet, basename='auction')
@@ -18,7 +19,6 @@ router.register(r'fx-rates', FxRateViewSet, basename='fx-rate')
 router.register(r'companies', CompanyProfileViewSet, basename='company')
 router.register(r'alerts', AlertViewSet, basename='alert')
 
-# Analytics: fire-and-forget event collection (CGO instrumentation ask, go-live)
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -40,14 +40,15 @@ def analytics_collect(request):
         return JsonResponse({"ok": False, "error": str(e)}, status=400)
 
 urlpatterns = [
-    # Auth Endpoints
     path('auth/register/', RegisterView.as_view(), name='register'),
-    path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/login/', direct_login, name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-# Celery Scraping Endpoints
+    path('auth/request-code/', request_login_code, name='request_code'),
+    path('auth/verify-code/', verify_login_code, name='verify_code'),
+    path('auth/check-email/', check_email, name='check_email'),
+    path('user/me/', user_me, name='user_me'),
     path('scrape/trigger/', trigger_scrape, name='trigger_scrape'),
-    path('scrape/status/<int:job_id>/', check_scrape_status, name='check_scrape_status'),    # API Routes
-    # NEW: Dashboard Data Endpoints
+    path('scrape/status/<int:job_id>/', check_scrape_status, name='check_scrape_status'),
     path('stocks/movers/', views.get_top_movers, name='get_movers'),
     path('stocks/trends/', views.get_market_trends, name='get_trends'),
     path('overview/', views.market_overview, name='market_overview'),
@@ -63,7 +64,6 @@ urlpatterns = [
     path('mix/<str:token>/', views.mix_card, name='mix_card'),
     path('mix/<str:token>/performance/', views.mix_performance, name='mix_performance'),
     path('earnings/', views.get_earnings, name='get_earnings'),
-    # Add this to your urlpatterns:
     path('stock/<str:symbol>/', views.get_stock_detail, name='get_stock_detail'),
     path('fund/<int:pk>/', views.get_fund_detail, name='get_fund_detail'),
     path('company/<str:symbol>/', views.get_company_detail, name='get_company_detail'),
@@ -72,7 +72,4 @@ urlpatterns = [
     path('indexes/<str:symbol>/', MarketIndexDetailView.as_view(), name='index-detail'),
     path('', include(router.urls)),
     path('analytics/', analytics_collect, name='analytics_collect'),
-
-
 ]
-

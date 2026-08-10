@@ -32,6 +32,11 @@ class User(AbstractUser):
     REQUIRED_FIELDS = [] 
     objects = CustomUserManager()
 
+    # Compliance: consent tracking for MVP sign-off
+    consent_terms_at = models.DateTimeField(null=True, blank=True, help_text="ISO timestamp when user accepted T&C + Privacy Policy")
+    consent_analytics_at = models.DateTimeField(null=True, blank=True, help_text="ISO timestamp when user opted into anonymized usage analytics")
+    is_premium = models.BooleanField(default=False, help_text="Premium subscription tier (Voice Learn + advanced features)")
+
     def __str__(self): return self.email
 
 
@@ -212,10 +217,24 @@ class Watchlist(TimeStampedModel):
 
 
 class MixShare(TimeStampedModel):
-    """Public, shareable snapshot of a user's portfolio (REQ-11 'Asset Mix' card)."""
+    """Public, shareable 'Asset Mix' card.
+
+    Privacy boundary (CEO 16:46): a mix is a deliberate, public snapshot that
+    carries ONLY allocation-level data (symbol, class, value, pct) — never
+    quantities, cost basis, P&L, or user identity. It is decoupled from the
+    source portfolio: the card stays live as a frozen snapshot if the
+    portfolio is deleted, and can be revoked by the owner at any time.
+    """
     token = models.CharField(max_length=32, unique=True, db_index=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.CASCADE)
+    portfolio = models.ForeignKey(Portfolio, related_name='mix_shares', on_delete=models.SET_NULL, null=True, blank=True)
+    snapshot = models.JSONField(default=dict, blank=True)  # frozen card data
+    visibility = models.CharField(
+        max_length=10,
+        choices=[('public', 'Public'), ('private', 'Private')],
+        default='public',
+        help_text="Public mixes are viewable by anyone (no account); private mixes are owner-only.",
+    )
 
     class Meta:
         ordering = ['-created_at']
@@ -429,3 +448,19 @@ class Alert(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user.email} {self.get_alert_type_display()} {self.direction} {self.threshold}"
+
+
+class Post(TimeStampedModel):
+    """NaijaFinanceHub content (CEO 20:14) — 'the YouTube of finance in Nigeria'.
+    Public marketing surface: write about an asset, embed a YouTube video
+    (video_url -> oEmbed thumbnail/player) and link an asset's info page
+    (asset_url -> inline commodity card preview). Read = public; write = signed-up users.
+    """
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, default='')
+    video_url = models.URLField(blank=True, null=True)
+    asset_url = models.CharField(max_length=300, blank=True, null=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='posts')
+    is_published = models.BooleanField(default=True)
+    ext_link = models.URLField(blank=True, null=True, help_text='External source URL (RSS imports)')
+    is_rss = models.BooleanField(default=False, help_text='Auto-imported from RSS feed')
