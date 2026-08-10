@@ -1187,6 +1187,14 @@ def request_login_code(request):
     last_name = (request.data.get('last_name') or '').strip()
     if not email:
         return Response({'error': 'Email is required.'}, status=400)
+    is_registration = bool(first_name and last_name)
+    user_exists = User.objects.filter(email=email).exists()
+    # Sign-in: reject unregistered emails
+    if not is_registration and not user_exists:
+        return Response({'ok': False, 'error': 'No account found with this email. Please register first.'})
+    # Registration: reject already-registered emails
+    if is_registration and user_exists:
+        return Response({'ok': False, 'error': 'An account with this email already exists. Sign in instead.'})
     code = _generate_otp()
     cache.set(f'otp:{email}', code, timeout=OTP_TTL)
     # Fire-and-forget: send email in background thread (async — does not block API response)

@@ -1,7 +1,5 @@
-<div class="demo-banner">⚠️ Demo preview — prices are simulated for demonstration, not live NGX market data</div>
 <header class="topbar">
-  <a routerLink="/market" class="logo"><img src="favicon.svg" alt="" class="mark"><span>Naija <b>Finance</b></span></a>
-  <div class="status"><i></i> Demo data · as of {{ asOf() }}</div>
+  <a routerLink="/market" class="logo"><img src="favicon.svg" alt="" class="mark"><span>NaijaFinance<b>Hub</b></span></a>
   <div class="search">
     <input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query"
       (input)="onSearchInput()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onSearchKey($event)" (keyup.enter)="search()" autocomplete="off">
@@ -40,7 +38,7 @@
 </div>
 
 <footer class="app-footer">
-  <span>⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing here is investment advice. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.</span>
+  <span>⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing here is investment advice. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.</span>
   <span><a routerLink="/legal" class="link" style="font-size:11.5px;color:var(--txt3);text-decoration:underline;">Terms &amp; Privacy</a></span>
 </footer>
 

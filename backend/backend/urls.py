@@ -18,19 +18,18 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import path, include
 
+from api.views import request_login_code, verify_login_code, check_email, user_me
+
 urlpatterns = [
     path('api/', include('api.urls')),
-    # This gives you /users/ (register), /users/me/ (profile), /users/reset_password/
+    path('auth/request-code/', request_login_code, name='root_request_code'),
+    path('auth/verify-code/', verify_login_code, name='root_verify_code'),
+    path('auth/check-email/', check_email, name='root_check_email'),
+    # Djoser below — OTP paths above to avoid being caught by djoser
     path('auth/', include('djoser.urls')),
-    # This gives you /jwt/create/ (login) and /jwt/refresh/
     path('auth/', include('djoser.urls.jwt')),
     path('admin/', admin.site.urls),
 ]
 
-from api.views import request_login_code, verify_login_code, check_email, user_me
 
-urlpatterns += [
-    path('auth/request-code/', request_login_code, name='root_request_code'),
-    path('auth/verify-code/', verify_login_code, name='root_verify_code'),
-    path('auth/check-email/', check_email, name='root_check_email'),
-]
+
