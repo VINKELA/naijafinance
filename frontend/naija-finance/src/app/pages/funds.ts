@@ -44,6 +44,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Fund NAV chart — ' + (selected()?.name ?? '')" [link]="'/funds?fund=' + (selected()?.id ?? '')"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="selected() && histPoints() < 2">{{ t('Chart builds as weekly NAVs are published — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').', 'Chart dey build as NAVs dey publish evri wik — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').') }}</div>
