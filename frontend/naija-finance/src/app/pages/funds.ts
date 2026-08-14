@@ -42,6 +42,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
+      <div class="chart-empty" *ngIf="selected() && histPoints() < 2">{{ t('Chart builds as weekly NAVs are published — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').', 'Chart dey build as NAVs dey publish evri wik — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').') }}</div>
       <p class="loading" *ngIf="!selected()">Loading funds…</p>
     </div>
 
@@ -87,6 +88,7 @@ export class FundsPage implements OnInit, AfterViewInit {
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
+  histPoints(): number { return this.selected()?.nav_history?.length ?? 0; }
   visibleFunds(): Fund[] {
     const s = this.q.trim().toLowerCase();
     if (!s) return this.funds();
@@ -156,13 +158,16 @@ export class FundsPage implements OnInit, AfterViewInit {
     const f = this.selected();
     if (!f || !this.series) return;
     const pts = [...f.nav_history].sort((a, b) => a.date.localeCompare(b.date));
-    this.series.setData(pts.map(p => ({ time: p.date, value: Number(p.nav) })));
-    this.chart?.timeScale().fitContent();
     if (pts.length >= 2) {
+      this.series.setData(pts.map(p => ({ time: p.date, value: Number(p.nav) })));
+      this.chart?.timeScale().fitContent();
       const first = Number(pts[0].nav), last = Number(pts[pts.length - 1].nav);
       const days = Math.max(1, Math.round((new Date(pts[pts.length - 1].date).getTime() - new Date(pts[0].date).getTime()) / 86400000));
       const label = days >= 300 ? '1Y' : days >= 150 ? '6M' : days >= 45 ? '3M' : days >= 20 ? '1M' : `${days}D`;
       this.perf.set({ label, pct: Math.round((last / first - 1) * 10000) / 100 });
-    } else this.perf.set(null);
+    } else {
+      this.series.setData([]);
+      this.perf.set(null);
+    }
   }
 }
