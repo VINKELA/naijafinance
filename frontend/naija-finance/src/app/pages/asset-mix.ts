@@ -3,12 +3,14 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
 @Component({
   selector: 'app-asset-mix',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, EduCard],
   template: `
     <h2>My Asset Mix</h2>
     <p class="sub" *ngIf="card()">Shareable performance card · as of {{ card().asOf }}</p>
@@ -16,6 +18,12 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <p class="error" *ngIf="error">{{ error }}</p>
     <p class="loading" *ngIf="loading">Loading…</p>
     <p *ngIf="!card() && !error && !loading && !isAuthed">Sign in to create your Asset Mix. <a routerLink="/account" class="link">Go to Account →</a></p>
+
+    <app-edu-card
+      moduleLabel="Asset Mix"
+      [questions]="edu['assetMix'].questions"
+      [defaultExpanded]="edu['assetMix'].defaultExpanded"
+    ></app-edu-card>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="card()">
       <div class="stat-grid" style="margin-bottom: 0;">
@@ -44,6 +52,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   `,
 })
 export class AssetMixPage implements OnInit, AfterViewInit {
+  edu = EDU_CONTENT;
   perfNote = PERF_NOTE;
   periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
   period = 90;

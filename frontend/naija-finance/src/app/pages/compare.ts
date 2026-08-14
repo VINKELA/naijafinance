@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
@@ -18,21 +20,28 @@ interface CmpItem {
 
 @Component({
   selector: 'app-compare',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, EduCard],
   template: `
     <h2>Compare</h2>
     <p class="sub">Side-by-side NAV / price history overlay for funds, bonds, commercial papers &amp; FX.</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
+    <app-edu-card
+      moduleLabel="Compare"
+      [questions]="edu['compare'].questions"
+      [defaultExpanded]="edu['compare'].defaultExpanded"
+    ></app-edu-card>
+
     <div class="card" style="margin-bottom: 20px;">
+      <input type="search" placeholder="Search funds, bonds, commercial papers, FX…" [(ngModel)]="q" name="cmpSearch" style="width:100%;margin-bottom:10px;">
       <div class="form-row" style="margin-bottom: 10px;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">Asset A:</label>
         <select [(ngModel)]="keyA" name="cmpA" style="flex:1;min-width:180px;" (ngModelChange)="rebuild()">
-          <option *ngFor="let i of items()" [ngValue]="i.key">{{ i.label }} — {{ i.sub }}</option>
+          <option *ngFor="let i of filteredItems()" [ngValue]="i.key">{{ i.label }} — {{ i.sub }}</option>
         </select>
         <label style="font-size:12px;color:var(--txt2);font-weight:700;margin-left:10px;">Asset B:</label>
         <select [(ngModel)]="keyB" name="cmpB" style="flex:1;min-width:180px;" (ngModelChange)="rebuild()">
-          <option *ngFor="let i of items()" [ngValue]="i.key">{{ i.label }} — {{ i.sub }}</option>
+          <option *ngFor="let i of filteredItems()" [ngValue]="i.key">{{ i.label }} — {{ i.sub }}</option>
         </select>
       </div>
       <div #chartRef style="width: 100%; height: 280px;"></div>
@@ -53,8 +62,10 @@ interface CmpItem {
   `,
 })
 export class ComparePage implements OnInit, AfterViewInit {
+  edu = EDU_CONTENT;
   perfNote = PERF_NOTE;
   items = signal<CmpItem[]>([]);
+  q = '';
   keyA = '';
   keyB = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
@@ -65,6 +76,11 @@ export class ComparePage implements OnInit, AfterViewInit {
   a(): CmpItem | null { return this.items().find(i => i.key === this.keyA) ?? null; }
   b(): CmpItem | null { return this.items().find(i => i.key === this.keyB) ?? null; }
   pair(): CmpItem[] { const a = this.a(), b = this.b(); return a && b ? [a, b] : []; }
+  filteredItems(): CmpItem[] {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return this.items();
+    return this.items().filter(i => (i.label + ' ' + i.sub + ' ' + i.kind).toLowerCase().includes(s));
+  }
 
   ngOnInit() {
     const all: CmpItem[] = [];
