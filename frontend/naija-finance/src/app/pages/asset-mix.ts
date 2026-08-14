@@ -12,7 +12,10 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   template: `
     <h2>My Asset Mix</h2>
     <p class="sub" *ngIf="card()">Shareable performance card · as of {{ card().asOf }}</p>
+    <p class="sub" *ngIf="!card() && !error && !loading">Build your mix from your portfolio — or open a shared mix link.</p>
     <p class="error" *ngIf="error">{{ error }}</p>
+    <p class="loading" *ngIf="loading">Loading…</p>
+    <p *ngIf="!card() && !error && !loading && !isAuthed">Sign in to create your Asset Mix. <a routerLink="/account" class="link">Go to Account →</a></p>
 
     <div class="card" style="margin-bottom: 20px;" *ngIf="card()">
       <div class="stat-grid" style="margin-bottom: 0;">
@@ -47,6 +50,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   card = signal<any>(null);
   yieldVal = signal<number | null>(null);
   error = '';
+  loading = false;
   token = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
@@ -54,15 +58,50 @@ export class AssetMixPage implements OnInit, AfterViewInit {
 
   constructor(private api: ApiService, private route: ActivatedRoute) {}
 
+  get isAuthed() { return this.api.isAuthed; }
+
   ngOnInit() {
     this.route.queryParams.subscribe(p => {
       this.token = p['token'] ?? '';
-      if (!this.token) { this.error = 'No Asset Mix token in the link.'; return; }
-      this.api.mixCard(this.token).subscribe({
-        next: (c) => { this.card.set(c); this.error = ''; },
-        error: () => this.error = 'Mix not found — the link may be invalid or expired.',
-      });
-      if (this.api.isAuthed || true) this.loadPerformance(this.period);
+      if (this.token) {
+        this.loading = false;
+        this.api.mixCard(this.token).subscribe({
+          next: (c) => { this.card.set(c); this.error = ''; },
+          error: () => this.error = 'Mix not found — the link may be invalid or expired.',
+        });
+        this.loadPerformance(this.period);
+        return;
+      }
+      // No token: if signed in, auto-create a mix from the first portfolio
+      if (this.api.isAuthed) {
+        this.loading = true;
+        this.api.portfolios().subscribe({
+          next: (ps) => {
+            if (ps && ps.length) {
+              this.api.createMixShare(ps[0].id).subscribe({
+                next: (r) => {
+                  this.token = r?.token ?? '';
+                  this.loading = false;
+                  if (this.token) {
+                    this.api.mixCard(this.token).subscribe({
+                      next: (c) => { this.card.set(c); this.error = ''; },
+                      error: () => this.error = 'Could not load your mix.',
+                    });
+                    this.loadPerformance(this.period);
+                  } else {
+                    this.error = 'Could not create your mix — no portfolio yet.';
+                  }
+                },
+                error: () => { this.loading = false; this.error = 'Could not create your mix.'; },
+              });
+            } else {
+              this.loading = false;
+              this.error = 'No portfolio yet — add holdings to create your Asset Mix.';
+            }
+          },
+          error: () => { this.loading = false; this.error = 'Could not load portfolios.'; },
+        });
+      }
     });
   }
 
