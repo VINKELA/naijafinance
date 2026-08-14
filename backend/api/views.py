@@ -506,8 +506,6 @@ def portfolio_performance(request, pk):
     return Response({"period_days": period, "points": points})
 
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
 def _mix_card_rows(portfolio, item_ids=None):
     """Sanitized allocation-level rows: symbol, class, value, pct. NO quantities,
     NO cost basis, NO P&L, NO user identity — the public Asset Mix contract.
@@ -543,6 +541,8 @@ def _mix_card_rows(portfolio, item_ids=None):
 
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def mix_card(request, token):
     """Public card data for a shared Asset Mix (no login).
 
@@ -567,6 +567,8 @@ def mix_card(request, token):
     return Response({"name": "Asset Mix", "asOf": timezone.localdate().isoformat(), "totalValue": 0, "items": []})
 
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def mix_performance(request, token):
     """Public value-over-time series for a shared Asset Mix (no login)."""
     share = get_object_or_404(MixShare, token=token)
@@ -579,6 +581,8 @@ def mix_performance(request, token):
         points = []  # frozen card — allocation stays, history is gone
     return Response({"period_days": period, "points": points})
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def create_mix_share(request):
     """Create a public 'Asset Mix' share card from one of the user's portfolios."""
     portfolio_id = request.data.get('portfolio_id')
@@ -588,10 +592,6 @@ def create_mix_share(request):
     return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-@api_view(['GET'])
-@permission_classes([AllowAny])
 def build_portfolio_value_series(portfolio, period_days=90):
     """Daily total-value series for one portfolio over the period.
 
