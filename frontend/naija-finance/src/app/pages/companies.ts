@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
@@ -32,7 +32,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile"><div class="label">Market cap (₦)</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
       </div>
       <p *ngIf="selected()?.description" class="muted" style="font-size:12.5px;margin-bottom:10px;">{{ selected()!.description }}</p>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies'"></app-share-btn></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies?symbol=' + (selected()?.symbol ?? '')"></app-share-btn></div>
       <div #chartRef style="width: 100%; height: 240px;"></div>
       <p class="loading" *ngIf="!selected()">Loading companies…</p>
     </div>
@@ -58,11 +58,12 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   companies = signal<CompanyProfile[]>([]);
   selectedId = signal<number | null>(null);
+  private requestedSymbol = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private route: ActivatedRoute) {}
   selected(): CompanyProfile | null { return this.companies().find(c => c.id === this.selectedId()) ?? this.companies()[0] ?? null; }
   naira(v: string | null): string {
     if (!v) return '—';
@@ -71,9 +72,16 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   }
   shareText(c: CompanyProfile): string { return `${c.name} (${c.symbol}) — company profile`; }
   ngOnInit() {
+    this.route.queryParams.subscribe(p => {
+      const sym = (p['symbol'] ?? '').toString().toUpperCase();
+      if (sym) this.requestedSymbol = sym;
+    });
     this.api.companies().subscribe(cs => {
       this.companies.set(cs);
-      if (cs.length && this.selectedId() === null) this.selectedId.set(cs[0].id);
+      if (cs.length && this.selectedId() === null) {
+        const target = this.requestedSymbol ? cs.find(c => (c.symbol ?? '').toUpperCase() === this.requestedSymbol) : null;
+        this.selectedId.set((target ?? cs[0]).id);
+      }
       this.render();
     });
   }

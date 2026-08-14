@@ -59,7 +59,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="label">{{ r.pair }}</div>
         <div class="value">{{ r.rate }}</div>
         <div class="delta muted">{{ r.date }} · {{ r.source }}</div>
-        <div style="margin-top:8px"><app-share-btn [iconOnly]="true" [text]="shareText(r)" link="/fx"></app-share-btn></div>
+        <div style="margin-top:8px"><app-share-btn [iconOnly]="true" [text]="shareText(r)" [link]="'/fx?pair=' + r.pair"></app-share-btn></div>
       </div>
     </div>
     <div class="pager" *ngIf="visibleRates().length > pageSize">

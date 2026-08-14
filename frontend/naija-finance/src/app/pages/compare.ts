@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
@@ -56,7 +56,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let iv of intervals()" class="pill interval" [class.active]="iv === interval()" (click)="setInterval(iv)" style="cursor:pointer;">{{ iv }}</button>
         <span style="flex:1"></span>
-        <app-share-btn [text]="'Compare — ' + pair().map(p => p.label).join(' vs ')" [link]="'/compare'"></app-share-btn>
+        <app-share-btn [text]="'Compare — ' + pair().map(p => p.label).join(' vs ')" [link]="shareLink()"></app-share-btn>
       </div>
 
       <div #chartRef style="width: 100%; height: 300px;"></div>
@@ -100,11 +100,14 @@ export class ComparePage implements OnInit, AfterViewInit {
   activeIndex = signal(-1);
   defaultsApplied = signal(false);
   interval = signal<Interval>('3M');
+  private sharedKeys: string[] = [];
+  private sharedInterval: Interval | null = null;
+  private loadedSources = 0;
   intervals(): readonly Interval[] { return INTERVALS; }
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
-  constructor(private api: ApiService, private lang: LangService) {}
+  constructor(private api: ApiService, private lang: LangService, private route: ActivatedRoute) {}
 
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
@@ -143,6 +146,12 @@ export class ComparePage implements OnInit, AfterViewInit {
   labelOf(k: string): string { return this.items().find(i => i.key === k)?.label ?? k; }
   defaultHint(): boolean { return this.defaultsApplied(); }
   setInterval(iv: Interval) { this.interval.set(iv); this.render(); }
+  shareLink(): string {
+    const keys = this.selectedKeys();
+    if (!keys.length) return '/compare';
+    const assets = keys.map(k => encodeURIComponent(k)).join(',');
+    return `/compare?assets=${assets}&interval=${this.interval()}`;
+  }
   asOf(): string {
     const dates = this.pair().map(it => this.windowed(it.points).map(p => p.date)).flat().filter(Boolean);
     return dates.length ? dates.sort()[dates.length - 1] : '—';
@@ -153,6 +162,22 @@ export class ComparePage implements OnInit, AfterViewInit {
     const days = INTERVAL_DAYS[this.interval()];
     const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     return pts.filter(p => p.date >= cutoff);
+  }
+
+  private applySelection() {
+    if (this.defaultsApplied() || this.selected().length) return;
+    if (this.loadedSources < 4) return; // wait for funds+bonds+CP+FX
+    if (this.sharedInterval) this.interval.set(this.sharedInterval);
+    if (this.sharedKeys.length) {
+      const valid = this.sharedKeys.filter(k => this.items().some(i => i.key === k));
+      if (valid.length) {
+        this.selected.set(valid.slice(0, 5));
+        this.defaultsApplied.set(true);
+        this.render();
+        return;
+      }
+    }
+    this.applyDefaultsIfEmpty();
   }
 
   private applyDefaultsIfEmpty() {
@@ -222,8 +247,14 @@ export class ComparePage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.route.queryParams.subscribe(p => {
+      const assets = (p['assets'] ?? '').toString();
+      if (assets) this.sharedKeys = assets.split(',').map((x: string) => decodeURIComponent(x)).filter(Boolean);
+      const iv = (p['interval'] ?? '').toString();
+      if ((INTERVALS as readonly string[]).includes(iv)) this.sharedInterval = iv as Interval;
+    });
     const all: CmpItem[] = [];
-    const push = () => { this.items.set([...all]); this.applyDefaultsIfEmpty(); };
+    const push = () => { this.items.set([...all]); this.loadedSources++; this.applySelection(); };
     this.api.funds().subscribe(fs => {
       for (const f of fs) {
         const pts = (f.nav_history ?? []).slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((p: any) => ({ date: p.date, value: Number(p.nav) }));

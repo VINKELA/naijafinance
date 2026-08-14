@@ -62,7 +62,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
             <td class="num muted">{{ f.latest_nav?.date ?? '—' }}</td>
-            <td><app-share-btn [text]="shareText(f)" link="/funds"></app-share-btn></td>
+            <td><app-share-btn [text]="shareText(f)" [link]="'/funds?fund=' + f.id"></app-share-btn></td>
           </tr>
         </tbody>
       </table>
