@@ -26,13 +26,18 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     ></app-edu-card>
 
     <div class="card" style="margin-bottom: 20px;">
-      <div class="form-row" style="margin-bottom: 10px;">
-        <input type="search" placeholder="Search funds by name or manager…" [(ngModel)]="q" name="fundSearch" style="flex:1;min-width:220px;">
+      <div class="form-row" style="margin-bottom: 10px; position:relative;">
+        <input type="search" placeholder="{{ t('Type to search funds by name or manager…', 'Type make e search fands by name or manager…') }}" [(ngModel)]="q" name="fundSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+        <div class="sugg-dd" *ngIf="suggestions().length">
+          <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="pick(s)">
+            <span class="s">{{ s.name }}</span><span class="n">{{ s.manager }}</span><span class="t">{{ s.asset_class_display }}</span>
+          </button>
+        </div>
       </div>
       <div class="form-row" style="margin-bottom: 10px;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">Fund:</label>
         <select [ngModel]="selectedId()" (ngModelChange)="select($event)" name="fundSelect" style="flex:1;min-width:220px;">
-          <option *ngFor="let f of visibleFunds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
+          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
         </select>
         <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
       </div>
@@ -45,7 +50,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Fund</th><th>Manager</th><th>Class</th><th class="num">Latest NAV</th><th class="num">NAV date</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let f of visibleFunds()">
+          <tr *ngFor="let f of pagedFunds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
@@ -54,6 +59,11 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           </tr>
         </tbody>
       </table>
+      <div class="pager" *ngIf="visibleFunds().length > pageSize">
+        <button type="button" (click)="page = page - 1" [disabled]="page === 0">← Prev</button>
+        <span class="muted">Page {{ page + 1 }} / {{ pageCount() }} · {{ visibleFunds().length }} funds</span>
+        <button type="button" (click)="page = page + 1" [disabled]="page >= pageCount() - 1">Next →</button>
+      </div>
       <p class="loading" *ngIf="funds().length === 0">Loading funds…</p>
     </div>
   `,
@@ -63,6 +73,10 @@ export class FundsPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   funds = signal<Fund[]>([]);
   q = '';
+  page = 0;
+  pageSize = 10;
+  suggestions = signal<Fund[]>([]);
+  activeIndex = signal(-1);
   selectedId = signal<number | null>(null);
   perf = signal<{ label: string; pct: number } | null>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
@@ -77,6 +91,46 @@ export class FundsPage implements OnInit, AfterViewInit {
     const s = this.q.trim().toLowerCase();
     if (!s) return this.funds();
     return this.funds().filter(f => (f.name ?? '').toLowerCase().includes(s) || (f.manager ?? '').toLowerCase().includes(s));
+  }
+  pagedFunds(): Fund[] {
+    const v = this.visibleFunds();
+    const start = this.page * this.pageSize;
+    return v.slice(start, start + this.pageSize);
+  }
+  pageCount(): number { return Math.max(1, Math.ceil(this.visibleFunds().length / this.pageSize)); }
+  onQuery() {
+    this.page = 0;
+    const s = this.q.trim().toLowerCase();
+    const list = s
+      ? this.funds().filter(f => (f.name ?? '').toLowerCase().includes(s) || (f.manager ?? '').toLowerCase().includes(s)).slice(0, 8)
+      : [];
+    this.suggestions.set(list);
+    this.activeIndex.set(-1);
+  }
+  onKey(e: KeyboardEvent) {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!n) return;
+      e.preventDefault();
+      let idx = this.activeIndex() + (e.key === 'ArrowDown' ? 1 : -1);
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : list[0];
+      if (target) { e.preventDefault(); this.pick(target); }
+    } else if (e.key === 'Escape') {
+      this.suggestions.set([]);
+    }
+  }
+  pick(f: Fund) {
+    this.q = f.name;
+    this.suggestions.set([]);
+    this.activeIndex.set(-1);
+    this.selectedId.set(f.id);
+    this.render();
   }
   shareText(f: Fund): string { return `${f.name} — NAV ${f.latest_nav?.nav ?? '—'} (${f.asset_class_display})`; }
   ngOnInit() {

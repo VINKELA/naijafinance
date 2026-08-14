@@ -24,8 +24,13 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       [defaultExpanded]="edu['bonds'].defaultExpanded"
     ></app-edu-card>
 
-    <div class="card" style="margin-bottom: 20px;">
-      <input type="search" placeholder="Search bonds, commercial papers, auctions…" [(ngModel)]="q" name="bondSearch" style="width:100%;">
+    <div class="card" style="margin-bottom: 20px; position:relative;">
+      <input type="search" placeholder="{{ t('Type to search bonds, commercial papers, auctions…', 'Type make e search bonds, commercial papers, auctions…') }}" [(ngModel)]="q" name="bondSearch" style="width:100%;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+      <div class="sugg-dd" *ngIf="suggestions().length">
+        <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="pick(s)">
+          <span class="s">{{ s.label }}</span><span class="n">{{ s.sub }}</span><span class="t">{{ s.kind }}</span>
+        </button>
+      </div>
     </div>
 
     <div class="table-wrap">
@@ -33,7 +38,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Coupon</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let b of visibleBonds()">
+          <tr *ngFor="let b of pagedBonds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
@@ -41,6 +46,11 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           </tr>
         </tbody>
       </table>
+      <div class="pager" *ngIf="visibleBonds().length > pageSize">
+        <button type="button" (click)="bondPage = bondPage - 1" [disabled]="bondPage === 0">← Prev</button>
+        <span class="muted">Page {{ bondPage + 1 }} / {{ bondPageCount() }} · {{ visibleBonds().length }} bonds</span>
+        <button type="button" (click)="bondPage = bondPage + 1" [disabled]="bondPage >= bondPageCount() - 1">Next →</button>
+      </div>
       <p class="loading" *ngIf="bonds().length === 0">Loading bonds…</p>
     </div>
 
@@ -49,7 +59,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let cp of visibleCps()">
+          <tr *ngFor="let cp of pagedCps()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
             <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ cp.maturity_date ?? '—' }}</td>
@@ -57,6 +67,11 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           </tr>
         </tbody>
       </table>
+      <div class="pager" *ngIf="visibleCps().length > pageSize">
+        <button type="button" (click)="cpPage = cpPage - 1" [disabled]="cpPage === 0">← Prev</button>
+        <span class="muted">Page {{ cpPage + 1 }} / {{ cpPageCount() }} · {{ visibleCps().length }} papers</span>
+        <button type="button" (click)="cpPage = cpPage + 1" [disabled]="cpPage >= cpPageCount() - 1">Next →</button>
+      </div>
       <p class="loading" *ngIf="cps().length === 0">Loading commercial papers…</p>
     </div>
 
@@ -65,12 +80,17 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Date</th><th>Instrument</th><th>Tenor</th><th class="num">Offer (₦bn)</th><th class="num">Stop rate</th></tr></thead>
         <tbody>
-          <tr *ngFor="let a of visibleAuctions()">
+          <tr *ngFor="let a of pagedAuctions()">
             <td>{{ a.auction_date }}</td><td>{{ a.instrument_name }}</td>
             <td>{{ a.tenor }}</td><td class="num">{{ a.offer_size ?? '—' }}</td><td class="num">{{ a.stop_rate ?? '—' }}</td>
           </tr>
         </tbody>
       </table>
+      <div class="pager" *ngIf="visibleAuctions().length > pageSize">
+        <button type="button" (click)="aucPage = aucPage - 1" [disabled]="aucPage === 0">← Prev</button>
+        <span class="muted">Page {{ aucPage + 1 }} / {{ aucPageCount() }} · {{ visibleAuctions().length }} auctions</span>
+        <button type="button" (click)="aucPage = aucPage + 1" [disabled]="aucPage >= aucPageCount() - 1">Next →</button>
+      </div>
       <p class="loading" *ngIf="auctions().length === 0">Loading auctions…</p>
     </div>
   `,
@@ -82,6 +102,12 @@ export class BondsPage implements OnInit {
   cps = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
   q = '';
+  pageSize = 10;
+  bondPage = 0;
+  cpPage = 0;
+  aucPage = 0;
+  suggestions = signal<{ label: string; sub: string; kind: string }[]>([]);
+  activeIndex = signal(-1);
   constructor(private api: ApiService, private lang: LangService) {}
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
@@ -95,6 +121,53 @@ export class BondsPage implements OnInit {
   visibleBonds(): Bond[] { return this.bonds().filter(b => this.matches(b.symbol) || this.matches(b.name)); }
   visibleCps(): Bond[] { return this.cps().filter(c => this.matches(c.symbol) || this.matches(c.name)); }
   visibleAuctions(): Auction[] { return this.auctions().filter(a => this.matches(a.instrument_name) || this.matches(a.tenor) || this.matches(a.auction_date)); }
+  pagedBonds(): Bond[] { const s = this.bondPage * this.pageSize; return this.visibleBonds().slice(s, s + this.pageSize); }
+  pagedCps(): Bond[] { const s = this.cpPage * this.pageSize; return this.visibleCps().slice(s, s + this.pageSize); }
+  pagedAuctions(): Auction[] { const s = this.aucPage * this.pageSize; return this.visibleAuctions().slice(s, s + this.pageSize); }
+  bondPageCount(): number { return Math.max(1, Math.ceil(this.visibleBonds().length / this.pageSize)); }
+  cpPageCount(): number { return Math.max(1, Math.ceil(this.visibleCps().length / this.pageSize)); }
+  aucPageCount(): number { return Math.max(1, Math.ceil(this.visibleAuctions().length / this.pageSize)); }
+  onQuery() {
+    this.bondPage = 0; this.cpPage = 0; this.aucPage = 0;
+    const s = this.q.trim().toLowerCase();
+    const out: { label: string; sub: string; kind: string }[] = [];
+    if (s) {
+      for (const b of this.bonds()) {
+        if ((b.symbol + ' ' + b.name).toLowerCase().includes(s)) { out.push({ label: b.symbol, sub: b.name, kind: 'bond' }); if (out.length >= 8) break; }
+      }
+      if (out.length < 8) {
+        for (const c of this.cps()) {
+          if ((c.symbol + ' ' + c.name).toLowerCase().includes(s)) { out.push({ label: c.symbol, sub: c.name, kind: 'CP' }); if (out.length >= 8) break; }
+        }
+      }
+    }
+    this.suggestions.set(out);
+    this.activeIndex.set(-1);
+  }
+  onKey(e: KeyboardEvent) {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!n) return;
+      e.preventDefault();
+      let idx = this.activeIndex() + (e.key === 'ArrowDown' ? 1 : -1);
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : list[0];
+      if (target) { e.preventDefault(); this.pick(target); }
+    } else if (e.key === 'Escape') {
+      this.suggestions.set([]);
+    }
+  }
+  pick(s: { label: string }) {
+    this.q = s.label;
+    this.suggestions.set([]);
+    this.activeIndex.set(-1);
+    this.bondPage = 0; this.cpPage = 0; this.aucPage = 0;
+  }
   ngOnInit() {
     this.api.bonds().subscribe(b => this.bonds.set(b));
     this.api.commercialPapers().subscribe(cp => this.cps.set(cp));
