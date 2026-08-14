@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
+import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
@@ -14,9 +15,9 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-funds',
   imports: [CommonModule, FormsModule, RouterLink, ShareButton, EduCard],
   template: `
-    <h2>Mutual Funds &amp; Public NAVs</h2>
+    <h2>{{ t('Mutual Funds &amp; Public NAVs', 'Fands &amp; Public NAV-Dem') }}</h2>
     <p class="sub">Fund list with published NAV snapshots and historical performance.</p>
-    <p class="disclaimer">{{ disclaimer }}</p>
+    <p class="disclaimer">{{ t(disclaimer, 'All di data for dis page na for information and education only — e no be investment advice.') }}</p>
 
     <app-edu-card
       moduleLabel="Mutual Funds"
@@ -68,7 +69,9 @@ export class FundsPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
   visibleFunds(): Fund[] {
     const s = this.q.trim().toLowerCase();

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { LangService } from '../lang.service';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -22,8 +23,8 @@ interface CmpItem {
   selector: 'app-compare',
   imports: [CommonModule, FormsModule, RouterLink, EduCard],
   template: `
-    <h2>Compare</h2>
-    <p class="sub">Side-by-side NAV / price history overlay for funds, bonds, commercial papers &amp; FX.</p>
+    <h2>{{ t('Compare', 'Kompare') }}</h2>
+    <p class="sub">{{ t('Side-by-side NAV / price history overlay for funds, bonds, commercial papers &amp; FX.', 'NAV / price history wey dey side-by-side for fands, bonds, commercial paper &amp; FX.') }}</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
     <app-edu-card
@@ -71,7 +72,9 @@ export class ComparePage implements OnInit, AfterViewInit {
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   a(): CmpItem | null { return this.items().find(i => i.key === this.keyA) ?? null; }
   b(): CmpItem | null { return this.items().find(i => i.key === this.keyB) ?? null; }

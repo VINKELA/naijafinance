@@ -3,21 +3,22 @@
   <div class="search" style="display:none">
     <input type="text" placeholder="Search…" aria-label="Search" style="opacity:0" disabled>
   </div>
-  <button class="langBtn" (click)="toggleLang()">{{ langLabel }}</button>
+  <button class="langBtn" (click)="toggleLang()" title="English / Pidgin">{{ langLabel }}</button>
   <button class="langBtn" (click)="toggleTheme()" title="Toggle light/dark theme">{{ themeLabel }}</button>
   <a routerLink="/account" class="avatar" title="Account">{{ isAuthed ? '👤' : 'AK' }}</a>
   <button class="langBtn signout" *ngIf="isAuthed" (click)="logout()">Sign out</button>
 </header>
 
 <nav class="dnav">
-  <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}">Home</a>
-  <a routerLink="/bonds" routerLinkActive="on">Markets</a>
-  <a routerLink="/funds" routerLinkActive="on">Funds</a>
+  <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}">{{ t('Home','Home') }}</a>
+  <a routerLink="/bonds" routerLinkActive="on">{{ t('Markets','Makis') }}</a>
+  <a routerLink="/funds" routerLinkActive="on">{{ t('Funds','Fands') }}</a>
   <a routerLink="/fx" routerLinkActive="on">FX</a>
-  <a routerLink="/compare" routerLinkActive="on">Compare</a>
-  <a routerLink="/asset-mix" routerLinkActive="on">Asset Mix</a>
-  <a routerLink="/alerts" routerLinkActive="on">Alerts</a>
-  <a routerLink="/account" routerLinkActive="on">Account</a>
+  <a routerLink="/compare" routerLinkActive="on">{{ t('Compare','Kompare') }}</a>
+  <a routerLink="/asset-mix" routerLinkActive="on">{{ t('Asset Mix','Aset Mix') }}</a>
+  <a routerLink="/learn" routerLinkActive="on" *ngIf="false"></a>
+  <a routerLink="/alerts" routerLinkActive="on">{{ t('Alerts','Alats') }}</a>
+  <a routerLink="/account" routerLinkActive="on">{{ t('Account','Akaunt') }}</a>
 </nav>
 
 <div class="tape"><div class="tape-track">
@@ -31,15 +32,16 @@
 </div>
 
 <footer class="app-footer">
-  <span>⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing here is investment advice. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.</span>
-  <span><a routerLink="/legal" class="link" style="font-size:11.5px;color:var(--txt3);text-decoration:underline;">Terms &amp; Privacy</a></span>
+  <span *ngIf="!isPidgin">⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing here is investment advice. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX.</span>
+  <span *ngIf="isPidgin">⚠️ NaijaFinance Hub na <b>data &amp; analytics platform only</b>. Nothing here na investment advice. Market data dey 30-minute delay unless dem mark am. Sources: NGX, DMO, CBN, SEC, AFEX.</span>
+  <span><a routerLink="/legal" class="link" style="font-size:11.5px;color:var(--txt3);text-decoration:underline;">{{ t('Terms &amp; Privacy','Tems &amp; Privasi') }}</a></span>
 </footer>
 
 <nav class="mnav">
   <div class="in">
-    <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>Home</a>
-    <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>Markets</a>
-    <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>Funds</a>
-    <a routerLink="/compare" routerLinkActive="on"><span class="e">⚖️</span>Compare</a>
+    <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>{{ t('Home','Home') }}</a>
+    <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>{{ t('Markets','Makis') }}</a>
+    <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>{{ t('Funds','Fands') }}</a>
+    <a routerLink="/compare" routerLinkActive="on"><span class="e">⚖️</span>{{ t('Compare','Kompare') }}</a>
   </div>
 </nav>

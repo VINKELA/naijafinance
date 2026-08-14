@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Alert, Bond, Fund } from '../api.service';
+import { LangService } from '../lang.service';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -11,9 +12,9 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-alerts',
   imports: [CommonModule, FormsModule, EduCard],
   template: `
-    <h2>Threshold Alerts</h2>
+    <h2>{{ t('Threshold Alerts', 'Alats') }}</h2>
     <p class="sub">Create alerts; a triggered flag is set by <code>run_alert_eval</code>.</p>
-    <p class="disclaimer">{{ disclaimer }}</p>
+    <p class="disclaimer">{{ t(disclaimer, 'All di data for dis page na for information and education only — e no be investment advice.') }}</p>
 
     <app-edu-card
       moduleLabel="Alerts"
@@ -74,7 +75,9 @@ export class AlertsPage implements OnInit {
   error = '';
   form = { alert_type: 'PRICE', instrument: null as number | null, fund: null as number | null, threshold: '', direction: 'ABOVE' };
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   visibleAlerts(): Alert[] {
     const s = this.q.trim().toLowerCase();

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
+import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
@@ -39,7 +40,7 @@ import { EDU_CONTENT } from '../edu-content';
       [defaultExpanded]="edu['market'].defaultExpanded"
     ></app-edu-card>
 
-    <div class="secHead"><h2>FGN Bond yields <span class="tag">DMO</span></h2></div>
+    <div class="secHead"><h2>{{ t('FGN Bond yields', 'FGN Bond Yield-Dem') }} <span class="tag">DMO</span></h2></div>
     <input type="search" placeholder="Search funds, news, FX…" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
@@ -112,7 +113,9 @@ export class MarketPage implements OnInit {
   news = signal<any[]>([]);
   q = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   topNav() { return this.funds()?.[0]?.latest_nav ?? null; }
   topFundName() { return this.funds()?.[0]?.name ?? '—'; }

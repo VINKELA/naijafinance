@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
+import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
@@ -13,9 +14,9 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-bonds',
   imports: [CommonModule, FormsModule, RouterLink, ShareButton, EduCard],
   template: `
-    <h2>Bonds &amp; Treasury Bills</h2>
+    <h2>{{ t('Bonds &amp; Treasury Bills', 'Bonds &amp; T-Bill-Dem') }}</h2>
     <p class="sub">FGN fixed-income instruments and the public DMO auction calendar.</p>
-    <p class="disclaimer">{{ disclaimer }}</p>
+    <p class="disclaimer">{{ t(disclaimer, 'All di data for dis page na for information and education only — e no be investment advice.') }}</p>
 
     <app-edu-card
       moduleLabel="Bonds &amp; Commercial Papers"
@@ -81,7 +82,9 @@ export class BondsPage implements OnInit {
   cps = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
   q = '';
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   shareText(b: Bond): string { return `${b.symbol} — ${b.name} (FGN bond)`; }
   shareCpText(cp: Bond): string { return `${cp.symbol} — ${cp.name} (commercial paper)`; }
   private matches(v: string | null | undefined): boolean {

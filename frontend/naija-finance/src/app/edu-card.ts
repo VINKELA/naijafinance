@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EduQuestion } from './edu-content';
+import { LangService } from './lang.service';
 
 /**
  * REQ-EDU-1 — Q&A Education Card (formerly TTC).
@@ -17,8 +18,8 @@ import { EduQuestion } from './edu-content';
       <div class="edu-card-header" (click)="toggleModule()" (keydown.enter)="toggleModule()" tabindex="0" role="button" [attr.aria-expanded]="moduleExpanded">
         <div class="edu-title-row">
           <span class="edu-icon">📚</span>
-          <h3>Learn {{ moduleLabel }}</h3>
-          <span class="edu-count">{{ questions.length }} questions</span>
+          <h3>{{ isPidgin ? 'Lan' : 'Learn' }} {{ moduleLabel }}</h3>
+          <span class="edu-count">{{ questions.length }} {{ isPidgin ? 'kweshon-dem' : 'questions' }}</span>
         </div>
         <span class="edu-arrow" [class.open]="moduleExpanded">{{ moduleExpanded ? '▾' : '▸' }}</span>
       </div>
@@ -27,14 +28,14 @@ import { EduQuestion } from './edu-content';
         <div class="edu-q" *ngFor="let q of questions; let i = index">
           <div class="edu-q-header" (click)="toggleQuestion(i)" (keydown.enter)="toggleQuestion(i)" tabindex="0" role="button" [attr.aria-expanded]="expandedQuestions[i]">
             <div class="edu-q-title">
-              <span class="edu-pidgin">{{ q.pidginHook }}</span>
-              <span class="edu-english">{{ q.englishTitle }}</span>
+              <span class="edu-pidgin">{{ isPidgin ? q.pidginHook : q.englishTitle }}</span>
+              <span class="edu-english" *ngIf="!isPidgin">{{ q.pidginHook }}</span>
             </div>
             <span class="edu-q-arrow" [class.open]="expandedQuestions[i]">{{ expandedQuestions[i] ? '▾' : '▸' }}</span>
           </div>
 
           <div class="edu-q-body" *ngIf="expandedQuestions[i]">
-            <p class="edu-answer">{{ q.answer }}</p>
+            <p class="edu-answer">{{ isPidgin ? (q.pidginAnswer || q.answer) : q.answer }}</p>
 
             <div class="edu-tags" *ngIf="q.keyTerms?.length">
               <span class="pill" *ngFor="let t of q.keyTerms">
@@ -49,7 +50,7 @@ import { EduQuestion } from './edu-content';
           </div>
         </div>
 
-        <p class="disc">{{ disclaimer }}</p>
+        <p class="disc">{{ isPidgin ? 'Na educational information only. No be investment advice.' : disclaimer }}</p>
       </div>
     </div>
   `,
@@ -123,6 +124,9 @@ export class EduCard implements OnInit {
 
   moduleExpanded = true;
   expandedQuestions: boolean[] = [];
+
+  constructor(private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
 
   ngOnInit() {
     this.moduleExpanded = this.defaultExpanded;

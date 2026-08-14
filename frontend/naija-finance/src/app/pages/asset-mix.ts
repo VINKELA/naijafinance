@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
+import { LangService } from '../lang.service';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -12,7 +13,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   selector: 'app-asset-mix',
   imports: [CommonModule, RouterLink, EduCard],
   template: `
-    <h2>My Asset Mix</h2>
+    <h2>{{ t('My Asset Mix', 'My Aset Mix') }}</h2>
     <p class="sub" *ngIf="card()">Shareable performance card · as of {{ card().asOf }}</p>
     <p class="sub" *ngIf="!card() && !error && !loading">Build your mix from your portfolio — or open a shared mix link.</p>
     <p class="error" *ngIf="error">{{ error }}</p>
@@ -65,7 +66,9 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  constructor(private api: ApiService, private route: ActivatedRoute) {}
+  constructor(private api: ApiService, private route: ActivatedRoute, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   get isAuthed() { return this.api.isAuthed; }
 

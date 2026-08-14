@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
+import { LangService } from './lang.service';
 import { track } from './analytics';
 
 @Component({
@@ -13,7 +14,6 @@ import { track } from './analytics';
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  langLabel = '🇳🇬 Pidgin';
   themeLabel = '🌙';
   asOf = signal('');
   tape = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
@@ -22,8 +22,13 @@ export class App implements OnInit, OnDestroy {
   private cdTimer: any;
 
   get isAuthed() { return this.api.isAuthed; }
+  get isPidgin() { return this.lang.isPidgin; }
+  get langLabel() { return this.isPidgin ? '🇳🇬 Pidgin' : '🇳🇬 English'; }
 
-  constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router) {}
+  constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router, private lang: LangService) {}
+
+  /** Pick the active-language string: t(english, pidgin). */
+  t(en: string, pidgin?: string): string { return this.lang.t(en, pidgin); }
 
   ngOnInit() {
     track('visit', { path: location.pathname });
@@ -43,7 +48,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   toggleLang() {
-    this.langLabel = this.langLabel.includes('Pidgin') ? '🇳🇬 English' : '🇳🇬 Pidgin';
+    this.lang.toggle();
   }
 
   initTheme() {
