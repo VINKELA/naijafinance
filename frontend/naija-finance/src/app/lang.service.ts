@@ -16,7 +16,14 @@ export class LangService {
 
   constructor() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    this.lang.set(saved === 'pidgin' ? 'pidgin' : 'en');
+    // Allow deep-link override: ?lang=pidgin / ?lang=en
+    const qp = new URLSearchParams(location.search).get('lang');
+    if (qp === 'pidgin' || qp === 'en') {
+      this.lang.set(qp);
+      localStorage.setItem(STORAGE_KEY, qp);
+    } else {
+      this.lang.set(saved === 'pidgin' ? 'pidgin' : 'en');
+    }
   }
 
   get current(): AppLang { return this.lang(); }
