@@ -41,6 +41,10 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         </select>
         <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
       </div>
+      <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+        <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
+        <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
+      </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="selected() && histPoints() < 2">{{ t('Chart builds as weekly NAVs are published — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').', 'Chart dey build as NAVs dey publish evri wik — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').') }}</div>
       <p class="loading" *ngIf="!selected()">Loading funds…</p>
@@ -72,6 +76,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 export class FundsPage implements OnInit, AfterViewInit {
   edu = EDU_CONTENT;
   disclaimer = DISCLAIMER;
+  periods = [{ label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '6M', days: 180 }, { label: '1Y', days: 365 }];
+  period = 365;
   funds = signal<Fund[]>([]);
   q = '';
   page = 0;
@@ -89,6 +95,13 @@ export class FundsPage implements OnInit, AfterViewInit {
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
   histPoints(): number { return this.selected()?.nav_history?.length ?? 0; }
+  setPeriod(days: number) { this.period = days; this.render(); }
+  private windowed(pts: any[]): any[] {
+    if (!pts.length) return [];
+    const cutoff = new Date(Date.now() - this.period * 86400000).toISOString().slice(0, 10);
+    const w = pts.filter(p => p.date >= cutoff);
+    return w.length >= 2 ? w : pts;
+  }
   visibleFunds(): Fund[] {
     const s = this.q.trim().toLowerCase();
     if (!s) return this.funds();
@@ -160,7 +173,7 @@ export class FundsPage implements OnInit, AfterViewInit {
     }
     const f = this.selected();
     if (!f || !this.series) return;
-    const pts = [...f.nav_history].sort((a, b) => a.date.localeCompare(b.date));
+    const pts = this.windowed([...f.nav_history].sort((a, b) => a.date.localeCompare(b.date)));
     if (pts.length >= 2) {
       this.series.setData(pts.map(p => ({ time: p.date, value: Number(p.nav) })));
       this.chart?.timeScale().fitContent();
