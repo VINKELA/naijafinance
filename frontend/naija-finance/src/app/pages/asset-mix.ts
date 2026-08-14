@@ -16,6 +16,7 @@ interface BuilderRow {
   kind: 'bond' | 'cp' | 'fund';
   symbol: string | null;
   fundId: number | null;
+  label: string;
   value: number;
 }
 
@@ -80,19 +81,14 @@ interface BuilderRow {
         <button type="button" class="ghost" (click)="addRow()">+ {{ t('Add asset', 'Add aset') }}</button>
       </div>
       <div class="form-row" style="margin-bottom: 8px; flex-wrap: wrap;" *ngFor="let r of builder.rows; let i = index">
-        <select [(ngModel)]="r.kind" [name]="'bkind'+i" style="width: 110px;">
-          <option value="bond">{{ t('Bond', 'Bond') }}</option>
-          <option value="cp">{{ t('CP', 'CP') }}</option>
-          <option value="fund">{{ t('Fund', 'Fund') }}</option>
-        </select>
-        <select *ngIf="r.kind !== 'fund'" [(ngModel)]="r.symbol" [name]="'bsym'+i" style="flex:1;min-width:180px;">
-          <option [ngValue]="null" disabled>{{ t('Select bond / CP…', 'Select bond / CP…') }}</option>
-          <option *ngFor="let x of bondCps()" [ngValue]="x.symbol">{{ x.symbol }} — {{ x.name }}</option>
-        </select>
-        <select *ngIf="r.kind === 'fund'" [(ngModel)]="r.fundId" [name]="'bfund'+i" style="flex:1;min-width:180px;">
-          <option [ngValue]="null" disabled>{{ t('Select fund…', 'Select fund…') }}</option>
-          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
-        </select>
+        <div style="position:relative; flex:1; min-width:200px;">
+          <input type="text" placeholder="{{ t('Search bond, CP or fund…', 'Sarch bond, CP or fund…') }}" [(ngModel)]="r.label" [name]="'bq'+i" (input)="onRowQuery(i)" (focus)="onRowQuery(i)" (keydown)="onRowKey($event, i)" autocomplete="off">
+          <div class="sugg-dd" *ngIf="activeRow() === i && suggestions().length">
+            <button type="button" class="sugg" *ngFor="let sg of suggestions(); let j = index" [class.on]="j === activeIndex()" (mousedown)="pickRow(i, sg)">
+              <span class="s">{{ sg.label }}</span><span class="n">{{ sg.sub }}</span><span class="t">{{ sg.kind }}</span>
+            </button>
+          </div>
+        </div>
         <input type="number" step="any" min="1" placeholder="₦" [(ngModel)]="r.value" [name]="'bval'+i" style="width: 120px;">
         <button type="button" class="ghost" (click)="builder.rows.splice(i,1)" *ngIf="builder.rows.length > 1">✕</button>
       </div>
@@ -150,7 +146,10 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   funds = signal<any[]>([]);
   myMixes = signal<any[]>([]);
   pubMixes = signal<any[]>([]);
-  builder: { name: string; visibility: string; rows: BuilderRow[] } = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, value: 0 }] };
+  builder: { name: string; visibility: string; rows: BuilderRow[] } = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, label: '', value: 0 }] };
+  activeRow = signal<number | null>(null);
+  suggestions = signal<any[]>([]);
+  activeIndex = signal(-1);
   @ViewChild('chartRef') chartRef!: ElementRef;
   chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
@@ -189,7 +188,59 @@ export class AssetMixPage implements OnInit, AfterViewInit {
 
   ngAfterViewInit() { if (this.token) setTimeout(() => this.loadPerformance(this.period), 0); }
 
-  addRow() { this.builder.rows.push({ kind: 'bond', symbol: null, fundId: null, value: 0 }); }
+  addRow() { this.builder.rows.push({ kind: 'bond', symbol: null, fundId: null, label: '', value: 0 }); }
+
+  onRowQuery(i: number) {
+    this.activeRow.set(i);
+    const q = (this.builder.rows[i]?.label ?? '').trim().toLowerCase();
+    const out: any[] = [];
+    if (q) {
+      for (const x of this.bondCps()) {
+        if ((x.symbol ?? '').toLowerCase().includes(q) || (x.name ?? '').toLowerCase().includes(q)) {
+          const at = (x.asset_type ?? '').toLowerCase();
+          out.push({ label: x.symbol, sub: x.name, kind: at.includes('commercial paper') ? 'cp' : 'bond', symbol: x.symbol, fundId: null });
+        }
+      }
+      for (const f of this.funds()) {
+        if ((f.name ?? '').toLowerCase().includes(q) || (f.manager ?? '').toLowerCase().includes(q)) {
+          out.push({ label: f.name, sub: f.asset_class_display, kind: 'fund', symbol: null, fundId: f.id });
+        }
+      }
+    }
+    this.suggestions.set(out.slice(0, 8));
+    this.activeIndex.set(-1);
+  }
+
+  onRowKey(e: KeyboardEvent, i: number) {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!n) return;
+      e.preventDefault();
+      let idx = this.activeIndex() + (e.key === 'ArrowDown' ? 1 : -1);
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : list[0];
+      if (target) { e.preventDefault(); this.pickRow(i, target); }
+    } else if (e.key === 'Escape') {
+      this.suggestions.set([]);
+    }
+  }
+
+  pickRow(i: number, sg: any) {
+    const r = this.builder.rows[i];
+    if (!r) return;
+    r.kind = sg.kind;
+    r.symbol = sg.symbol;
+    r.fundId = sg.fundId;
+    r.label = sg.label;
+    this.activeRow.set(null);
+    this.suggestions.set([]);
+    this.activeIndex.set(-1);
+  }
 
   createMix() {
     const name = this.builder.name.trim();
@@ -214,7 +265,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
         this.creating = false;
         this.token = r?.token ?? '';
         if (this.token) {
-          this.builder = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, value: 0 }] };
+          this.builder = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, label: '', value: 0 }] };
           this.api.mixCard(this.token).subscribe({
             next: (c) => { this.card.set(c); this.error = ''; },
             error: () => this.error = 'Could not load your mix.',
