@@ -27,6 +27,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
     <p class="sub">{{ t('Side-by-side NAV / price history overlay for funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'NAV / price history wey dey side-by-side for fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
+    <p class="sub" *ngIf="defaultHint()" style="color:var(--accent);font-size:12px;">{{ t('Showing a default comparison — search above to add or swap assets.', 'De dey show default komparison — sarch above make you add or swap assets.') }}</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
     <div class="card" style="margin-bottom: 20px;">
@@ -54,12 +55,13 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
     <div class="table-wrap" *ngIf="pair().length >= 2">
       <h3>{{ t('Comparison table', 'Kompare table') }}</h3>
       <table class="data">
-        <thead><tr><th>{{ t('Asset', 'Asset') }}</th><th class="num">{{ t('Return (period)', 'Return (period)') }}</th><th class="num">{{ t('Latest', 'Latest') }}</th><th>{{ t('Class', 'Class') }}</th></tr></thead>
+        <thead><tr><th>{{ t('Asset', 'Asset') }}</th><th class="num">{{ t('Return (period)', 'Return (period)') }}</th><th class="num">{{ t('Latest', 'Latest') }}</th><th class="num">{{ t('Yield/Coupon', 'Yield/Coupon') }}</th><th>{{ t('Class', 'Class') }}</th></tr></thead>
         <tbody>
           <tr *ngFor="let it of ranked()" [class]="rowClass(it)">
             <td class="sym">{{ it.label }} <small>{{ it.sub }}</small></td>
             <td class="num">{{ it.pct }}%</td>
             <td class="num">{{ it.latest }}</td>
+            <td class="num">{{ it.yieldStr }}</td>
             <td>{{ it.kind }}</td>
           </tr>
         </tbody>
@@ -84,6 +86,7 @@ export class ComparePage implements OnInit, AfterViewInit {
   q = '';
   suggestions = signal<CmpItem[]>([]);
   activeIndex = signal(-1);
+  defaultsApplied = signal(false);
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
@@ -124,6 +127,24 @@ export class ComparePage implements OnInit, AfterViewInit {
   pair(): CmpItem[] { return this.selectedKeys().map(k => this.items().find(i => i.key === k)).filter(Boolean) as CmpItem[]; }
   color(i: number): string { return PALETTE[i % PALETTE.length]; }
   labelOf(k: string): string { return this.items().find(i => i.key === k)?.label ?? k; }
+  defaultHint(): boolean { return this.defaultsApplied(); }
+
+  private applyDefaultsIfEmpty() {
+    if (this.defaultsApplied() || this.selected().length) return;
+    const all = this.items();
+    if (all.length < 2) return;
+    const withHistory = all.filter(i => i.points.length >= 2).sort((a, b) => b.points.length - a.points.length);
+    const picks = withHistory.slice(0, 3);
+    if (picks.length < 2) {
+      const rest = all.filter(i => !picks.includes(i));
+      picks.push(...rest.slice(0, 3 - picks.length));
+    }
+    if (picks.length >= 2) {
+      this.selected.set(picks.slice(0, 5).map(p => p.key));
+      this.defaultsApplied.set(true);
+      this.render();
+    }
+  }
 
   add(key: string) {
     if (!key) return;
@@ -143,7 +164,7 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   eduQuestions() { return EDU_CONTENT['compare']?.questions ?? []; }
 
-  ranked(): (CmpItem & { pct: number; latest: string })[] {
+  ranked(): (CmpItem & { pct: number; latest: string; yieldStr: string })[] {
     const list = this.pair();
     return list.map(it => {
       const pts = it.points;
@@ -159,7 +180,9 @@ export class ComparePage implements OnInit, AfterViewInit {
         const s = it.stats.find(x => x.k.toLowerCase().includes('nav') || x.k.toLowerCase().includes('price') || x.k.toLowerCase().includes('rate'));
         if (s) latest = s.v;
       }
-      return { ...it, pct, latest };
+      const y = it.stats.find(x => x.k.toLowerCase().includes('yield') || x.k.toLowerCase().includes('coupon'));
+      const yieldStr = y ? y.v : '—';
+      return { ...it, pct, latest, yieldStr };
     });
   }
   rowClass(it: any): string {
@@ -174,7 +197,7 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   ngOnInit() {
     const all: CmpItem[] = [];
-    const push = () => { this.items.set([...all]); };
+    const push = () => { this.items.set([...all]); this.applyDefaultsIfEmpty(); };
     this.api.funds().subscribe(fs => {
       for (const f of fs) {
         const pts = (f.nav_history ?? []).slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((p: any) => ({ date: p.date, value: Number(p.nav) }));
@@ -197,7 +220,7 @@ export class ComparePage implements OnInit, AfterViewInit {
           key: 'bond:' + b.symbol, label: b.symbol, sub: b.name, kind: 'bond', points: [],
           stats: [
             { k: 'Name', v: b.name },
-            { k: 'Coupon', v: b.coupon_rate ? b.coupon_rate + '%' : '—' },
+            { k: 'Coupon/Yield', v: b.coupon_rate ? b.coupon_rate + '%' : '—' },
             { k: 'Maturity', v: b.maturity_date ?? '—' },
             { k: 'Price', v: b.last_price ?? '—' },
           ],
@@ -211,7 +234,7 @@ export class ComparePage implements OnInit, AfterViewInit {
           key: 'cp:' + c.symbol, label: c.symbol, sub: c.name, kind: 'cp', points: [],
           stats: [
             { k: 'Name', v: c.name },
-            { k: 'Discount rate', v: c.coupon_rate ? c.coupon_rate + '%' : '—' },
+            { k: 'Coupon/Yield', v: c.coupon_rate ? c.coupon_rate + '%' : '—' },
             { k: 'Maturity', v: c.maturity_date ?? '—' },
             { k: 'Price', v: c.last_price ?? '—' },
           ],
