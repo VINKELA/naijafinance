@@ -30,7 +30,7 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
       { pidginHook: "How I go sabi wetin stock dey worth?", englishTitle: "How do I know what a stock is worth?", answer: "Compare price to fundamentals: P/E ratio, earnings, dividends — not just price.", pidginAnswer: "Compare price with fundamentals: P/E ratio, earnings, dividends — no be price alone.", keyTerms: [{ label: 'P/E', link: '/glossary/pe_ratio_pricetoearnings' }, { label: 'earnings' }] },
       { pidginHook: "Wetin be gainers and losers?", englishTitle: "What are gainers and losers?", answer: "Today's biggest price risers and fallers on the market; a quick scan of where money is moving.", pidginAnswer: "Na di biggest risers and fallers today; quick look at where money dey move.", keyTerms: [] },
     ],
-    defaultExpanded: true,
+    defaultExpanded: false,
   },
   bonds: {
     questions: [
@@ -48,7 +48,7 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
       { pidginHook: "Wetin be discount?", englishTitle: "What is a discount (in CP context)?", answer: "You buy below face value and receive face value at maturity — the difference is your return.", pidginAnswer: "You buy below face value and get face value at maturity — di difference na your return.", keyTerms: [{ label: 'face value', link: '/glossary/face_value' }] },
       { pidginHook: "I fit sell am before maturity?", englishTitle: "Can I sell before maturity?", answer: "Yes, on the secondary market — but price depends on market conditions.", pidginAnswer: "Yes, for secondary market — but price dey depend on market condition.", keyTerms: [{ label: 'secondary market', link: '/glossary/secondary_market' }, { label: 'liquidity', link: '/glossary/liquidity' }] },
     ],
-    defaultExpanded: true,
+    defaultExpanded: false,
   },
   funds: {
     questions: [
@@ -59,7 +59,7 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
       { pidginHook: "Fund vs stock — which one?", englishTitle: "Fund vs stock — what is the difference?", answer: "A fund spreads your money across many assets (diversification); a stock is one company.", pidginAnswer: "Fund dey spread your money across many assets; stock na one company.", keyTerms: [{ label: 'diversification', link: '/glossary/diversification' }] },
       { pidginHook: "I fit withdraw my money anytime?", englishTitle: "Can I withdraw anytime?", answer: "Depends on fund type: money-market and equity funds are usually redeemable; some have lock-ins.", pidginAnswer: "E dey depend on fund type: money-market and equity funds usually dey allow; some get lock-in.", keyTerms: [{ label: 'liquidity', link: '/glossary/liquidity' }] },
     ],
-    defaultExpanded: true,
+    defaultExpanded: false,
   },
   fx: {
     questions: [
@@ -71,7 +71,7 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
       { pidginHook: "I fit use app to change money?", englishTitle: "Can I use this app to exchange money?", answer: "No — the app shows rates for information; it does not do currency transactions.", pidginAnswer: "No — di app dey show rates for information; e no dey do currency transaction.", keyTerms: [] },
       { pidginHook: "Wetin be CBN official rate?", englishTitle: "What is the CBN official rate?", answer: "The exchange rate published by the Central Bank of Nigeria; other market rates may differ.", pidginAnswer: "Na di exchange rate wey Central Bank of Nigeria publish; other market rates fit differ.", keyTerms: [{ label: 'CBN', link: '/glossary/central_bank_of_nigeria_cbn' }] },
     ],
-    defaultExpanded: true,
+    defaultExpanded: false,
   },
   companies: {
     questions: [
@@ -79,7 +79,7 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
       { pidginHook: "How I go read company fundamentals?", englishTitle: "How do I read company fundamentals?", answer: "Focus on P/E ratio, earnings per share (EPS), and revenue trends.", pidginAnswer: "Focus on P/E ratio, earnings per share (EPS), and revenue trend.", keyTerms: [{ label: 'P/E', link: '/glossary/pe_ratio_pricetoearnings' }, { label: 'EPS', link: '/glossary/earnings_per_share_eps' }] },
       { pidginHook: "Wetin be sector?", englishTitle: "What is a sector?", answer: "A group of companies in the same line of business — for example, banking, telecoms, or consumer goods.", pidginAnswer: "Na group of companies for same line of business — like banking, telecoms, or consumer goods.", keyTerms: [] },
     ],
-    defaultExpanded: true,
+    defaultExpanded: false,
   },
   watchlist: {
     questions: [

@@ -118,7 +118,7 @@ import { LangService } from './lang.service';
 export class EduCard implements OnInit {
   @Input() moduleLabel = '';
   @Input() questions: EduQuestion[] = [];
-  @Input() defaultExpanded = true;
+  @Input() defaultExpanded = false;
   @Input() disclaimer = 'Educational information only. Not investment advice.';
 
   private static readonly LABEL_PIDGIN: Record<string, string> = {
