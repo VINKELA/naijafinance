@@ -47,7 +47,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
         <span style="flex:1"></span>
-        <app-share-btn [text]="'FX chart — ' + chartPair()" [link]="'/fx?pair=' + chartPair()"></app-share-btn>
+        <app-share-btn [text]="'FX chart — ' + chartPair()" [link]="'/fx?pair=' + chartPair() + '&days=' + period"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="chartPts() < 2">{{ t('Chart builds as CBN rates are published — ' + chartPts() + ' point so far.', 'Chart dey build as CBN rates dey publish — ' + chartPts() + ' point so far.') }}</div>
@@ -168,6 +168,8 @@ export class FxPage implements OnInit, AfterViewInit {
   ngOnInit() {
     this.route.queryParams.subscribe(p => {
       if (p['pair']) this.chartPair.set(String(p['pair']).toUpperCase());
+      const days = p['days'] ? Number(p['days']) : NaN;
+      if (days && !isNaN(days) && this.periods.some(x => x.days === days)) this.period = days;
     });
     this.api.fxRates(false).subscribe(r => {
       this.rates.set(r);

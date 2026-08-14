@@ -45,7 +45,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
         <span style="flex:1"></span>
-        <app-share-btn [text]="'Fund NAV chart — ' + (selected()?.name ?? '')" [link]="'/funds?fund=' + (selected()?.id ?? '')"></app-share-btn>
+        <app-share-btn [text]="'Fund NAV chart — ' + (selected()?.name ?? '')" [link]="'/funds?fund=' + (selected()?.id ?? '') + '&days=' + period"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="selected() && histPoints() < 2">{{ t('Chart builds as weekly NAVs are published — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').', 'Chart dey build as NAVs dey publish evri wik — only ' + histPoints() + ' point so far (latest ' + (selected()!.latest_nav?.date ?? '—') + ').') }}</div>
@@ -154,6 +154,8 @@ export class FundsPage implements OnInit, AfterViewInit {
     this.route.queryParams.subscribe(p => {
       const fundId = p['fund'] ? Number(p['fund']) : null;
       if (fundId && !isNaN(fundId)) this.selectedId.set(fundId);
+      const days = p['days'] ? Number(p['days']) : NaN;
+      if (days && !isNaN(days) && this.periods.some(x => x.days === days)) this.period = days;
     });
     this.api.funds().subscribe(fs => {
       this.funds.set(fs);
