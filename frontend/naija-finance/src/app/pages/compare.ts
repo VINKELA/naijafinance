@@ -75,6 +75,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
         </tbody>
       </table>
       <p class="muted" style="font-size:11px;">{{ t('Yield = % change over the selected period. Green = best, red = worst.', 'Yield na di % change for di period wey you pick. Green na best, red na worst.') }}</p>
+      <p class="muted" style="font-size:11px;">{{ t('As of', 'As of') }} {{ asOf() }} — {{ t('sources: SEC NAV, DMO, CBN, fund publications.', 'sources: SEC NAV, DMO, CBN, fund publications.') }}</p>
     </div>
 
     <app-edu-card
@@ -95,7 +96,7 @@ export class ComparePage implements OnInit, AfterViewInit {
   suggestions = signal<CmpItem[]>([]);
   activeIndex = signal(-1);
   defaultsApplied = signal(false);
-  interval = signal<Interval>('6M');
+  interval = signal<Interval>('3M');
   intervals(): readonly Interval[] { return INTERVALS; }
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
@@ -139,6 +140,10 @@ export class ComparePage implements OnInit, AfterViewInit {
   labelOf(k: string): string { return this.items().find(i => i.key === k)?.label ?? k; }
   defaultHint(): boolean { return this.defaultsApplied(); }
   setInterval(iv: Interval) { this.interval.set(iv); this.render(); }
+  asOf(): string {
+    const dates = this.pair().map(it => this.windowed(it.points).map(p => p.date)).flat().filter(Boolean);
+    return dates.length ? dates.sort()[dates.length - 1] : '—';
+  }
 
   private windowed(pts: { date: string; value: number }[]): { date: string; value: number }[] {
     if (!pts.length) return [];
