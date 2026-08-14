@@ -14,17 +14,12 @@
   <a routerLink="/bonds" routerLinkActive="on">{{ t('Markets','Makis') }}</a>
   <a routerLink="/funds" routerLinkActive="on">{{ t('Funds','Fands') }}</a>
   <a routerLink="/fx" routerLinkActive="on">FX</a>
-  <div class="navmore">
-    <button type="button" class="navmore-btn" [class.on]="navMore()" (click)="navMore.set(!navMore())">{{ t('More','More') }} <span class="chev">{{ navMore() ? '▴' : '▾' }}</span></button>
-    <div class="navmore-dd" *ngIf="navMore()">
-      <a routerLink="/compare" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Compare','Kompare') }}</a>
-      <a routerLink="/asset-mix" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Asset Mix','Aset Mix') }}</a>
-      <a routerLink="/alerts" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Alerts','Alats') }}</a>
-      <a routerLink="/portfolio" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Portfolio','Portfolio') }}</a>
-      <a routerLink="/watchlist" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Watchlist','Watchlist') }}</a>
-      <a routerLink="/account" routerLinkActive="on" (click)="navMore.set(false)">{{ t('Account','Akaunt') }}</a>
-    </div>
-  </div>
+  <a routerLink="/compare" routerLinkActive="on">{{ t('Compare','Kompare') }}</a>
+  <a routerLink="/asset-mix" routerLinkActive="on">{{ t('Asset Mix','Aset Mix') }}</a>
+  <a routerLink="/alerts" routerLinkActive="on">{{ t('Alerts','Alats') }}</a>
+  <a routerLink="/portfolio" routerLinkActive="on">{{ t('Portfolio','Portfolio') }}</a>
+  <a routerLink="/watchlist" routerLinkActive="on">{{ t('Watchlist','Watchlist') }}</a>
+  <a routerLink="/account" routerLinkActive="on">{{ t('Account','Akaunt') }}</a>
 </nav>
 
 <div class="tape"><div class="tape-track">
@@ -49,14 +44,13 @@
     <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>{{ t('Markets','Makis') }}</a>
     <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>{{ t('Funds','Fands') }}</a>
     <a routerLink="/fx" routerLinkActive="on"><span class="e">💱</span>FX</a>
-    <button type="button" class="more" [class.on]="navMore()" (click)="navMore.set(!navMore())"><span class="e">☰</span>{{ t('More','More') }}</button>
+    <a routerLink="/compare" routerLinkActive="on"><span class="e">⚖️</span>{{ t('Compare','Kompare') }}</a>
+    <a routerLink="/asset-mix" routerLinkActive="on"><span class="e">🧺</span>{{ t('Asset Mix','Aset Mix') }}</a>
   </div>
-  <div class="in page2" *ngIf="navMore()">
-    <a routerLink="/compare" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">⚖️</span>{{ t('Compare','Kompare') }}</a>
-    <a routerLink="/asset-mix" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">🧺</span>{{ t('Asset Mix','Aset Mix') }}</a>
-    <a routerLink="/alerts" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">🔔</span>{{ t('Alerts','Alats') }}</a>
-    <a routerLink="/watchlist" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">⭐</span>{{ t('Watchlist','Watchlist') }}</a>
-    <a routerLink="/portfolio" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">💼</span>{{ t('Portfolio','Portfolio') }}</a>
-    <a routerLink="/account" routerLinkActive="on" (click)="navMore.set(false)"><span class="e">👤</span>{{ t('Account','Akaunt') }}</a>
+  <div class="in">
+    <a routerLink="/alerts" routerLinkActive="on"><span class="e">🔔</span>{{ t('Alerts','Alats') }}</a>
+    <a routerLink="/watchlist" routerLinkActive="on"><span class="e">⭐</span>{{ t('Watchlist','Watchlist') }}</a>
+    <a routerLink="/portfolio" routerLinkActive="on"><span class="e">💼</span>{{ t('Portfolio','Portfolio') }}</a>
+    <a routerLink="/account" routerLinkActive="on"><span class="e">👤</span>{{ t('Account','Akaunt') }}</a>
   </div>
 </nav>
