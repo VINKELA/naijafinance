@@ -40,15 +40,20 @@ class InstrumentSerializer(serializers.ModelSerializer):
     asset_type = serializers.CharField(source='get_asset_class_display', read_only=True)
     sector = serializers.CharField(source='issuer.industry_sector', read_only=True, default="")
     name = serializers.SerializerMethodField()
+    price_history = serializers.SerializerMethodField()
     
     class Meta:
         model = Instrument
         # Replaced 'sector' with asset_type since Instrument handles bonds, forex, etc.
         fields = ['id', 'symbol', 'name', 'last_price', 'exchange_code', 'exchange_name', 'asset_type', 'sector',
-                  'maturity_date', 'coupon_rate']
+                  'maturity_date', 'coupon_rate', 'price_history']
 
     def get_name(self, obj):
         return display_instrument_name(obj)
+
+    def get_price_history(self, obj):
+        rows = PriceHistory.objects.filter(instrument=obj).order_by('date').values('date', 'close_price')
+        return [{"date": r['date'].isoformat(), "price": float(r['close_price'])} for r in rows]
 
 # --- Portfolio Serializers ---
 class PortfolioItemSerializer(serializers.ModelSerializer):

@@ -239,8 +239,9 @@ export class ComparePage implements OnInit, AfterViewInit {
     });
     this.api.bonds().subscribe(bs => {
       for (const b of bs) {
+        const bpts = (b.price_history ?? []).slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((h: any) => ({ date: h.date, value: Number(h.price) }));
         all.push({
-          key: 'bond:' + b.symbol, label: b.symbol, sub: b.name, kind: 'bond', points: [],
+          key: 'bond:' + b.symbol, label: b.symbol, sub: b.name, kind: 'bond', points: bpts,
           stats: [
             { k: 'Name', v: b.name },
             { k: 'Coupon/Yield', v: b.coupon_rate ? b.coupon_rate + '%' : '—' },
@@ -253,8 +254,9 @@ export class ComparePage implements OnInit, AfterViewInit {
     });
     this.api.commercialPapers().subscribe(cs => {
       for (const c of cs) {
+        const cpts = (c.price_history ?? []).slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((h: any) => ({ date: h.date, value: Number(h.price) }));
         all.push({
-          key: 'cp:' + c.symbol, label: c.symbol, sub: c.name, kind: 'cp', points: [],
+          key: 'cp:' + c.symbol, label: c.symbol, sub: c.name, kind: 'cp', points: cpts,
           stats: [
             { k: 'Name', v: c.name },
             { k: 'Coupon/Yield', v: c.coupon_rate ? c.coupon_rate + '%' : '—' },
@@ -265,15 +267,22 @@ export class ComparePage implements OnInit, AfterViewInit {
       }
       push();
     });
-    this.api.fxRates(true).subscribe(fs => {
+    this.api.fxRates(false).subscribe(fs => {
+      const byPair = new Map<string, any[]>();
       for (const r of fs) {
+        if (!byPair.has(r.pair)) byPair.set(r.pair, []);
+        byPair.get(r.pair)!.push(r);
+      }
+      for (const [pair, rows] of byPair) {
+        const fpts = rows.slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((r: any) => ({ date: r.date, value: Number(r.rate) }));
+        const latest = rows[rows.length - 1];
         all.push({
-          key: 'fx:' + r.pair, label: r.pair, sub: r.source, kind: 'fx', points: [],
+          key: 'fx:' + pair, label: pair, sub: latest?.source ?? 'CBN', kind: 'fx', points: fpts,
           stats: [
-            { k: 'Pair', v: r.pair },
-            { k: 'Rate', v: r.rate },
-            { k: 'Date', v: r.date },
-            { k: 'Source', v: r.source },
+            { k: 'Pair', v: pair },
+            { k: 'Rate', v: latest?.rate ?? '—' },
+            { k: 'Date', v: latest?.date ?? '—' },
+            { k: 'Source', v: latest?.source ?? '—' },
           ],
         });
       }
@@ -295,9 +304,10 @@ export class ComparePage implements OnInit, AfterViewInit {
     if (!this.chartRef?.nativeElement) return;
     if (!this.chart) {
       this.chart = createChart(this.chartRef.nativeElement, {
+        autoSize: true,
         layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
-        width: this.chartRef.nativeElement.clientWidth, height: 300,
+        height: 300,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
       });
     }
