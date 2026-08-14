@@ -13,7 +13,7 @@
 :root[data-theme="light"]{
   --bg:#f4f6fa; --bg2:#e9edf4; --card:#ffffff; --card2:#eef2f8;
   --line:#d7deea; --line2:#c3cddd;
-  --txt:#0f172a; --txt2:#475569; --txt3:#94a3b8;
+  --txt:#0b1526; --txt2:#33455e; --txt3:#5b6b84;
   --green:#0f9d6c; --red:#dc2626; --amber:#b45309; --blue:#2563eb;
   --accent:#0f9d6c;
 }
