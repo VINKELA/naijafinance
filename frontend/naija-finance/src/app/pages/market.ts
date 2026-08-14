@@ -4,10 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 @Component({
   selector: 'app-market',
-  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton, EduCard],
   template: `
     <!-- Bond yields hero -->
     <div class="hero">
@@ -30,6 +32,12 @@ import { ShareButton } from '../share-button';
         <div [innerHTML]="spark(null, 'NAV')"></div>
       </div>
     </div>
+
+    <app-edu-card
+      moduleLabel="Market Overview"
+      [questions]="edu['market'].questions"
+      [defaultExpanded]="edu['market'].defaultExpanded"
+    ></app-edu-card>
 
     <div class="secHead"><h2>FGN Bond yields <span class="tag">DMO</span></h2></div>
     <input type="search" placeholder="Search funds, news, FX…" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
@@ -97,6 +105,7 @@ import { ShareButton } from '../share-button';
   `,
 })
 export class MarketPage implements OnInit {
+  edu = EDU_CONTENT;
   auctions = signal<any[]>([]);
   fx = signal<any[]>([]);
   funds = signal<any[]>([]);

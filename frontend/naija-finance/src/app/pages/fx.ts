@@ -3,16 +3,24 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, FxRate } from '../api.service';
 import { ShareButton } from '../share-button';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-fx',
-  imports: [CommonModule, FormsModule, ShareButton],
+  imports: [CommonModule, FormsModule, ShareButton, EduCard],
   template: `
     <h2>CBN FX Rates</h2>
     <p class="sub">Official published exchange rates.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <app-edu-card
+      moduleLabel="FX"
+      [questions]="edu['fx'].questions"
+      [defaultExpanded]="edu['fx'].defaultExpanded"
+    ></app-edu-card>
 
     <input type="search" placeholder="Search FX pairs… e.g. USD/NGN" [(ngModel)]="q" name="fxSearch" style="width:100%;margin-bottom:14px;">
 
@@ -28,6 +36,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class FxPage implements OnInit {
+  edu = EDU_CONTENT;
   disclaimer = DISCLAIMER;
   rates = signal<FxRate[]>([]);
   q = '';

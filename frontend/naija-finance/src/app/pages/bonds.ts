@@ -4,16 +4,24 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
 import { ShareButton } from '../share-button';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-bonds',
-  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton, EduCard],
   template: `
     <h2>Bonds &amp; Treasury Bills</h2>
     <p class="sub">FGN fixed-income instruments and the public DMO auction calendar.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <app-edu-card
+      moduleLabel="Bonds &amp; Commercial Papers"
+      [questions]="edu['bonds'].questions"
+      [defaultExpanded]="edu['bonds'].defaultExpanded"
+    ></app-edu-card>
 
     <div class="card" style="margin-bottom: 20px;">
       <input type="search" placeholder="Search bonds, commercial papers, auctions…" [(ngModel)]="q" name="bondSearch" style="width:100%;">
@@ -67,6 +75,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class BondsPage implements OnInit {
+  edu = EDU_CONTENT;
   disclaimer = DISCLAIMER;
   bonds = signal<Bond[]>([]);
   cps = signal<Bond[]>([]);

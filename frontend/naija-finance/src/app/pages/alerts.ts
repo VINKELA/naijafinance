@@ -2,16 +2,24 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Alert, Bond, Fund } from '../api.service';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-alerts',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EduCard],
   template: `
     <h2>Threshold Alerts</h2>
     <p class="sub">Create alerts; a triggered flag is set by <code>run_alert_eval</code>.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <app-edu-card
+      moduleLabel="Alerts"
+      [questions]="edu['alerts'].questions"
+      [defaultExpanded]="edu['alerts'].defaultExpanded"
+    ></app-edu-card>
 
     <div class="card" style="margin-bottom: 20px;">
       <form class="form-row" (ngSubmit)="create()">
@@ -57,6 +65,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class AlertsPage implements OnInit {
+  edu = EDU_CONTENT;
   disclaimer = DISCLAIMER;
   alerts = signal<Alert[]>([]);
   bonds = signal<Bond[]>([]);

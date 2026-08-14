@@ -5,16 +5,24 @@ import { RouterLink } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { ShareButton } from '../share-button';
+import { EduCard } from '../edu-card';
+import { EDU_CONTENT } from '../edu-content';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-funds',
-  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton, EduCard],
   template: `
     <h2>Mutual Funds &amp; Public NAVs</h2>
     <p class="sub">Fund list with published NAV snapshots and historical performance.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <app-edu-card
+      moduleLabel="Mutual Funds"
+      [questions]="edu['funds'].questions"
+      [defaultExpanded]="edu['funds'].defaultExpanded"
+    ></app-edu-card>
 
     <div class="card" style="margin-bottom: 20px;">
       <div class="form-row" style="margin-bottom: 10px;">
@@ -50,6 +58,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   `,
 })
 export class FundsPage implements OnInit, AfterViewInit {
+  edu = EDU_CONTENT;
   disclaimer = DISCLAIMER;
   funds = signal<Fund[]>([]);
   q = '';
