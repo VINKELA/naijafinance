@@ -8,6 +8,8 @@ import { LearnPage } from './pages/learn';
 import { AssetPage } from './pages/asset';
 import { AuthPage } from './pages/auth';
 import { LegalPage } from './pages/legal';
+import { ComparePage } from './pages/compare';
+import { AssetMixPage } from './pages/asset-mix';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -15,6 +17,8 @@ export const routes: Routes = [
   { path: 'bonds', component: BondsPage, title: 'Bonds & Auctions' },
   { path: 'funds', component: FundsPage, title: 'Mutual Funds' },
   { path: 'fx', component: FxPage, title: 'CBN FX Rates' },
+  { path: 'compare', component: ComparePage, title: 'Compare' },
+  { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'learn', component: LearnPage, title: 'Learn — Education' },
   { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },
   { path: 'asset', component: AssetPage, title: 'Asset Information' },
