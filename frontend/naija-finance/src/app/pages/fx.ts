@@ -185,7 +185,8 @@ export class FxPage implements OnInit, AfterViewInit {
       this.chart = createChart(this.chartRef.nativeElement, {
         layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
-        width: this.chartRef.nativeElement.clientWidth, height: 260,
+        autoSize: true,
+        height: 260,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#4e9bff', topColor: 'rgba(78,155,255,0.3)', bottomColor: 'rgba(78,155,255,0.02)', lineWidth: 2 });

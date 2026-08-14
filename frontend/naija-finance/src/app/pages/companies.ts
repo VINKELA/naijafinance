@@ -95,7 +95,8 @@ export class CompaniesPage implements OnInit, AfterViewInit {
       this.chart = createChart(this.chartRef.nativeElement, {
         layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
-        width: this.chartRef.nativeElement.clientWidth, height: 240,
+        autoSize: true,
+        height: 240,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },
       });
       this.series = this.chart.addSeries(AreaSeries, { lineColor: '#f0b90b', topColor: 'rgba(240,185,11,0.3)', bottomColor: 'rgba(240,185,11,0.02)', lineWidth: 2 });

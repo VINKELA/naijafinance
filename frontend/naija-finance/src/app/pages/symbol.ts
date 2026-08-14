@@ -99,7 +99,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
       this.chart = createChart(this.chartRef.nativeElement, {
         layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
-        width: this.chartRef.nativeElement.clientWidth,
+        autoSize: true,
         height: 340,
         timeScale: { borderColor: '#223053' },
         rightPriceScale: { borderColor: '#223053' },
