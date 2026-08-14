@@ -30,12 +30,14 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
     <p class="disclaimer">{{ perfNote }}</p>
 
     <div class="card" style="margin-bottom: 20px;">
-      <div class="form-row" style="margin-bottom: 10px;">
+      <div class="form-row" style="margin-bottom: 10px; position:relative;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">{{ t('Add asset', 'Add asset') }}:</label>
-        <select [ngModel]="''" name="cmpAdd" style="flex:1;min-width:220px;" (ngModelChange)="add($event)">
-          <option value="" disabled>{{ t('Choose an asset to add…', 'Choose asset wey you want add…') }}</option>
-          <option *ngFor="let i of items()" [ngValue]="i.key" [disabled]="selectedKeys().includes(i.key)">{{ i.label }} — {{ i.sub }}</option>
-        </select>
+        <input type="search" placeholder="{{ t('Type to search assets… e.g. Stanbic, FGN, USD/NGN', 'Type make e search assets… e.g. Stanbic, FGN, USD/NGN') }}" [(ngModel)]="q" name="cmpSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+        <div class="sugg-dd" *ngIf="suggestions().length" style="position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2,#121a2e); border:1px solid var(--line); border-radius:8px; margin-top:2px; max-height:260px; overflow:auto;">
+          <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="add(s.key)" style="display:flex; width:100%; justify-content:space-between; gap:10px; padding:8px 12px; background:none; border:0; cursor:pointer; color:inherit; font:inherit; text-align:left;">
+            <span style="font-weight:700;">{{ s.label }}</span><span class="muted" style="font-size:11px;">{{ s.sub }} · {{ s.kind }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="pill-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap;">
@@ -79,6 +81,9 @@ export class ComparePage implements OnInit, AfterViewInit {
   perfNote = PERF_NOTE;
   items = signal<CmpItem[]>([]);
   selected = signal<string[]>([]);
+  q = '';
+  suggestions = signal<CmpItem[]>([]);
+  activeIndex = signal(-1);
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
@@ -86,6 +91,34 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
+
+  onQuery() {
+    const s = this.q.trim().toLowerCase();
+    const pool = this.items().filter(i => !this.selectedKeys().includes(i.key));
+    const list = s
+      ? pool.filter(i => (i.label + ' ' + i.sub + ' ' + i.kind).toLowerCase().includes(s)).slice(0, 8)
+      : pool.slice(0, 8);
+    this.suggestions.set(list);
+    this.activeIndex.set(-1);
+  }
+  onKey(e: KeyboardEvent) {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!n) return;
+      let idx = this.activeIndex() + (e.key === 'ArrowDown' ? 1 : -1);
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : list[0];
+      if (target) { e.preventDefault(); this.add(target.key); }
+    } else if (e.key === 'Escape') {
+      this.suggestions.set([]);
+    }
+  }
 
   selectedKeys(): string[] { return this.selected(); }
   pair(): CmpItem[] { return this.selectedKeys().map(k => this.items().find(i => i.key === k)).filter(Boolean) as CmpItem[]; }
@@ -98,6 +131,9 @@ export class ComparePage implements OnInit, AfterViewInit {
     if (cur.includes(key)) return;
     if (cur.length >= 5) return;
     this.selected.set([...cur, key]);
+    this.q = '';
+    this.suggestions.set([]);
+    this.activeIndex.set(-1);
     this.render();
   }
   remove(key: string) {
