@@ -12,7 +12,7 @@ import { track } from './analytics';
   imports: [CommonModule],
   template: `
     <button type="button" class="share-btn" (click)="share()" title="Share">
-      <span class="ico">📤</span><span *ngIf="!iconOnly" class="lbl">Share</span>
+      <span class="ico">{{ copied ? '✅' : '📤' }}</span><span *ngIf="!iconOnly" class="lbl">{{ copied ? 'Copied!' : 'Share' }}</span>
     </button>
   `,
 })
@@ -31,6 +31,7 @@ export class ShareButton {
     try {
       if (navigator.share) { await navigator.share({ title: 'Naija Finance', text, url }); return; }
     } catch { /* cancelled/failed — fall through */ }
+    // Desktop: clipboard copy with visible feedback; fall back to wa.me deep link.
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);
       this.copied = true;
