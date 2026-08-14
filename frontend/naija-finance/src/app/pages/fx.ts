@@ -163,7 +163,7 @@ export class FxPage implements OnInit, AfterViewInit {
     this.render();
   }
   ngOnInit() {
-    this.api.fxRates(true).subscribe(r => {
+    this.api.fxRates(false).subscribe(r => {
       this.rates.set(r);
       this.render();
     });
