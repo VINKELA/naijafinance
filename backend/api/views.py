@@ -1256,3 +1256,213 @@ def user_me(request):
         'consent_terms_at': getattr(request.user, 'consent_terms_at', None),
         'consent_analytics_at': getattr(request.user, 'consent_analytics_at', None),
     })
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def list_mix_shares(request):
+    """Auth-only list of the user's Asset Mixes (token, name, total, asOf).
+
+    ?q= filters by mix name; ?limit=N (default 10) caps results. Ordered by
+    created_at descending so the latest mixes appear first.
+    """
+    limit = int(request.query_params.get('limit', 10))
+    shares = MixShare.objects.filter(user=request.user).order_by('-created_at')
+    q = (request.query_params.get('q') or '').strip().lower()
+    if q:
+        shares = [sh for sh in shares if q in (sh.snapshot or {}).get("name", "").lower()][:limit]
+    else:
+        shares = list(shares)[:limit]
+    out = []
+    for sh in shares:
+        snap = sh.snapshot or {}
+        out.append({
+            "token": sh.token,
+            "name": snap.get("name") or (sh.portfolio.name if sh.portfolio_id else "Asset Mix"),
+            "totalValue": snap.get("totalValue", 0),
+            "asOf": snap.get("asOf"),
+            "itemCount": len(snap.get("items", [])),
+            "created_at": sh.created_at.isoformat() if sh.created_at else None,
+            "visibility": sh.visibility,
+            "url": f"/asset-mix?token={sh.token}",
+        })
+    return Response(out)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_public_mixes(request):
+    """Public Asset Mix gallery — no login required. Only public mixes,
+    latest 20 by default; ?q= filters by mix name (rest via search)."""
+    qs = MixShare.objects.filter(visibility='public')
+    q = (request.query_params.get('q') or '').strip().lower()
+    out = []
+    for sh in qs.order_by('-created_at')[:200]:
+        snap = sh.snapshot or {}
+        name = snap.get("name") or (sh.portfolio.name if sh.portfolio_id else "Asset Mix")
+        if q and q not in name.lower():
+            continue
+        out.append({
+            "token": sh.token,
+            "name": name,
+            "creator": snap.get("creator") or "NaijaFinance Hub user",
+            "totalValue": snap.get("totalValue", 0),
+            "asOf": snap.get("asOf"),
+            "itemCount": len(snap.get("items", [])),
+            "url": f"/asset-mix?token={sh.token}",
+        })
+        if not q and len(out) >= 20:
+            break
+    return Response(out[:20] if q else out)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def create_standalone_mix(request):
+    """Create an Asset Mix directly (no portfolio required): pick assets by
+    symbol/fund + a value each; snapshot is frozen + sanitized (allocation
+    only). visibility defaults to public. Returns the public token/link."""
+    name = (request.data.get('name') or '').strip()
+    if not name:
+        return Response({'detail': 'Mix name is required.'}, status=400)
+    raw_items = request.data.get('items')
+    if not isinstance(raw_items, list) or not raw_items:
+        return Response({'detail': 'Add at least one asset (symbol or fund) to the mix.'}, status=400)
+    vis = (request.data.get('visibility') or 'public').strip().lower()
+    if vis not in ('public', 'private'):
+        vis = 'public'
+    rows = []
+    total = Decimal('0.00')
+    for it in raw_items[:20]:
+        value = Decimal(str(it.get('value') or '0'))
+        if value <= 0:
+            continue
+        fund_id = it.get('fund_id')
+        symbol = (it.get('symbol') or '').strip().upper()
+        if fund_id:
+            fund = Fund.objects.filter(pk=fund_id).first()
+            if not fund:
+                continue
+            rows.append({"symbol": fund.name, "class": f"Fund · {fund.get_asset_class_display()}", "value": float(value)})
+        elif symbol:
+            inst = Instrument.objects.filter(symbol__iexact=symbol, is_active=True).first()
+            if not inst:
+                continue
+            rows.append({"symbol": inst.symbol, "class": inst.get_asset_class_display(), "value": float(value)})
+        else:
+            continue
+        total += value
+    if not rows:
+        return Response({'detail': 'No valid assets in the mix — check symbols and values.'}, status=400)
+    pct = [round(float(r["value"]) / float(total) * 100, 2) for r in rows]
+    for r, p in zip(rows, pct):
+        r["pct"] = p
+    token = secrets.token_hex(6)
+    share = MixShare.objects.create(
+        token=token,
+        user=request.user,
+        portfolio=None,
+        visibility=vis,
+        snapshot={
+            "name": name,
+            "asOf": timezone.localdate().isoformat(),
+            "totalValue": float(total),
+            "items": rows,
+            "creator": (request.user.first_name or "NaijaFinance Hub user").strip(),
+        },
+    )
+    return Response({"token": token, "url": f"/asset-mix?token={token}", "visibility": vis}, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def set_mix_visibility(request, token):
+    """Owner-only: flip an Asset Mix between public and private.
+
+    Public = viewable by anyone (no account needed). Private = owner-only
+    (everyone else gets 404), per CEO product decision 19:11.
+    """
+    share = get_object_or_404(MixShare, token=token, user=request.user)
+    vis = (request.data.get('visibility') or '').strip().lower()
+    if vis not in ('public', 'private'):
+        return Response({'detail': "visibility must be 'public' or 'private'."}, status=400)
+    share.visibility = vis
+    share.save(update_fields=['visibility', 'updated_at'])
+    return Response({'token': share.token, 'visibility': share.visibility})
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def revoke_mix(request, token):
+    """Owner-only revoke: deletes a public Asset Mix share (CCO privacy control).
+
+    After revoke the share link stops resolving (404) — deliberate, immediate.
+    """
+    share = get_object_or_404(MixShare, token=token, user=request.user)
+    share.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def build_portfolio_value_series(portfolio, period_days=90):
+    """Daily total-value series for one portfolio over the period.
+
+    Instruments are valued with PriceHistory close prices; funds with
+    NavSnapshot NAVs. Returns [{date, value}] oldest-first; forward-fills
+    missing days with the last known price.
+    """
+    today = timezone.localdate()
+    start = today - timedelta(days=period_days)
+    items = list(portfolio.items.all())
+    if not items:
+        return []
+
+    # quantities per instrument / fund
+    inst_qty = defaultdict(lambda: Decimal('0.00'))
+    fund_qty = defaultdict(lambda: Decimal('0.00'))
+    for it in items:
+        if it.instrument_id:
+            inst_qty[it.instrument_id] += it.quantity
+        elif it.fund_id:
+            fund_qty[it.fund_id] += it.quantity
+
+    price_series = {}  # inst_id -> {date: price}
+    nav_series = {}    # fund_id -> {date: nav}
+
+    if inst_qty:
+        rows = list(
+            PriceHistory.objects
+            .filter(instrument_id__in=list(inst_qty.keys()), date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('instrument_id', 'date', 'close_price')
+        )
+        for r in rows:
+            price_series.setdefault(r['instrument_id'], {})[r['date']] = float(r['close_price'] or 0)
+    if fund_qty:
+        rows = list(
+            NavSnapshot.objects
+            .filter(fund_id__in=list(fund_qty.keys()), date__gte=start, date__lte=today)
+            .order_by('date')
+            .values('fund_id', 'date', 'nav')
+        )
+        for r in rows:
+            nav_series.setdefault(r['fund_id'], {})[r['date']] = float(r['nav'] or 0)
+
+    all_dates = sorted({d for s in price_series.values() for d in s} | {d for s in nav_series.values() for d in s})
+    if not all_dates:
+        return []
+
+    last_price = {iid: None for iid in inst_qty}
+    last_nav = {fid: None for fid in fund_qty}
+    points = []
+    for d in all_dates:
+        for iid, s in price_series.items():
+            if d in s:
+                last_price[iid] = s[d]
+        for fid, s in nav_series.items():
+            if d in s:
+                last_nav[fid] = s[d]
+        value = Decimal('0.00')
+        for iid, qty in inst_qty.items():
+            p = last_price.get(iid)
+            if p is not None:
+                value += qty * Decimal(str(p))
+        for fid, qty in fund_qty.items():
+            n = last_nav.get(fid)
+            if n is not None:
+                value += qty * Decimal(str(n))
+        points.append({"date": d.isoformat(), "value": round(float(value), 2)})
+    return points
