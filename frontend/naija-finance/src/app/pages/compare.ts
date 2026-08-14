@@ -9,6 +9,9 @@ import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
+const INTERVALS = ['1W', '1M', '3M', '6M', '1Y'] as const;
+type Interval = typeof INTERVALS[number];
+const INTERVAL_DAYS: Record<Interval, number> = { '1W': 7, '1M': 30, '3M': 91, '6M': 182, '1Y': 365 };
 
 interface CmpItem {
   key: string;
@@ -26,7 +29,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
   imports: [CommonModule, FormsModule, RouterLink, EduCard],
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
-    <p class="sub">{{ t('Side-by-side NAV / price history overlay for funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'NAV / price history wey dey side-by-side for fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
+    <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
     <p class="sub" *ngIf="defaultHint()" style="color:var(--accent);font-size:12px;">{{ t('Showing a default comparison — search above to add or swap assets.', 'De dey show default komparison — sarch above make you add or swap assets.') }}</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
@@ -48,6 +51,11 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
         <span class="muted" style="font-size:11.5px; align-self:center;" *ngIf="selectedKeys().length === 0">{{ t('No assets selected yet — add 2–5 above.', 'No asset wey you pick yet — add 2–5.') }}</span>
       </div>
 
+      <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+        <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
+        <button type="button" *ngFor="let iv of intervals()" class="pill interval" [class.active]="iv === interval()" (click)="setInterval(iv)" style="cursor:pointer;">{{ iv }}</button>
+      </div>
+
       <div #chartRef style="width: 100%; height: 300px;"></div>
       <p class="loading" *ngIf="items().length === 0">{{ t('Loading…', 'De dey load…') }}</p>
     </div>
@@ -55,18 +63,18 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
     <div class="table-wrap" *ngIf="pair().length >= 2">
       <h3>{{ t('Comparison table', 'Kompare table') }}</h3>
       <table class="data">
-        <thead><tr><th>{{ t('Asset', 'Asset') }}</th><th class="num">{{ t('Return (period)', 'Return (period)') }}</th><th class="num">{{ t('Latest', 'Latest') }}</th><th class="num">{{ t('Yield/Coupon', 'Yield/Coupon') }}</th><th>{{ t('Class', 'Class') }}</th></tr></thead>
+        <thead><tr><th>{{ t('Asset', 'Asset') }}</th><th class="num">{{ t('Yield (' + interval() + ')', 'Yield (' + interval() + ')') }}</th><th class="num">{{ t('Latest', 'Latest') }}</th><th class="num">{{ t('Yield/Coupon', 'Yield/Coupon') }}</th><th>{{ t('Class', 'Class') }}</th></tr></thead>
         <tbody>
           <tr *ngFor="let it of ranked()" [class]="rowClass(it)">
             <td class="sym">{{ it.label }} <small>{{ it.sub }}</small></td>
-            <td class="num">{{ it.pct }}%</td>
+            <td class="num">{{ it.pct === null ? '—' : it.pct + '%' }}</td>
             <td class="num">{{ it.latest }}</td>
             <td class="num">{{ it.yieldStr }}</td>
             <td>{{ it.kind }}</td>
           </tr>
         </tbody>
       </table>
-      <p class="muted" style="font-size:11px;">{{ t('Green = best, red = worst over the shown period.', 'Green na di best, red na di worst for di period wey dey show.') }}</p>
+      <p class="muted" style="font-size:11px;">{{ t('Yield = % change over the selected period. Green = best, red = worst.', 'Yield na di % change for di period wey you pick. Green na best, red na worst.') }}</p>
     </div>
 
     <app-edu-card
@@ -87,6 +95,8 @@ export class ComparePage implements OnInit, AfterViewInit {
   suggestions = signal<CmpItem[]>([]);
   activeIndex = signal(-1);
   defaultsApplied = signal(false);
+  interval = signal<Interval>('6M');
+  intervals(): readonly Interval[] { return INTERVALS; }
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
@@ -128,6 +138,14 @@ export class ComparePage implements OnInit, AfterViewInit {
   color(i: number): string { return PALETTE[i % PALETTE.length]; }
   labelOf(k: string): string { return this.items().find(i => i.key === k)?.label ?? k; }
   defaultHint(): boolean { return this.defaultsApplied(); }
+  setInterval(iv: Interval) { this.interval.set(iv); this.render(); }
+
+  private windowed(pts: { date: string; value: number }[]): { date: string; value: number }[] {
+    if (!pts.length) return [];
+    const days = INTERVAL_DAYS[this.interval()];
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    return pts.filter(p => p.date >= cutoff);
+  }
 
   private applyDefaultsIfEmpty() {
     if (this.defaultsApplied() || this.selected().length) return;
@@ -164,15 +182,15 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   eduQuestions() { return EDU_CONTENT['compare']?.questions ?? []; }
 
-  ranked(): (CmpItem & { pct: number; latest: string; yieldStr: string })[] {
+  ranked(): (CmpItem & { pct: number | null; latest: string; yieldStr: string })[] {
     const list = this.pair();
     return list.map(it => {
-      const pts = it.points;
-      let pct = 0;
+      const pts = this.windowed(it.points);
+      let pct: number | null = null;
       let latest = '—';
       if (pts.length >= 2) {
         const first = Number(pts[0].value), last = Number(pts[pts.length - 1].value);
-        pct = first ? Math.round((last / first - 1) * 10000) / 100 : 0;
+        pct = first ? Math.round((last / first - 1) * 10000) / 100 : null;
         latest = String(last);
       } else if (pts.length === 1) {
         latest = String(pts[0].value);
@@ -186,10 +204,10 @@ export class ComparePage implements OnInit, AfterViewInit {
     });
   }
   rowClass(it: any): string {
-    const r = this.ranked();
+    const r = this.ranked().filter(x => x.pct !== null);
     if (r.length < 2) return '';
-    const best = Math.max(...r.map(x => x.pct));
-    const worst = Math.min(...r.map(x => x.pct));
+    const best = Math.max(...r.map(x => x.pct as number));
+    const worst = Math.min(...r.map(x => x.pct as number));
     if (it.pct === best && best !== worst) return 'row-best';
     if (it.pct === worst) return 'row-worst';
     return '';
@@ -260,9 +278,12 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   ngAfterViewInit() { setTimeout(() => this.render(), 0); }
 
-  private norm(pts: { date: string; value: number }[]): { time: string; value: number }[] {
-    const base = pts.length ? pts[0].value : 1;
-    return pts.map(p => ({ time: p.date, value: base ? Math.round((p.value / base) * 10000) / 100 : 0 }));
+  private normPct(pts: { date: string; value: number }[]): { time: string; value: number }[] {
+    const win = this.windowed(pts);
+    if (win.length < 2) return [];
+    const base = Number(win[0].value);
+    if (!base) return [];
+    return win.map(p => ({ time: p.date, value: Math.round((Number(p.value) / base - 1) * 10000) / 100 }));
   }
 
   private render() {
@@ -278,7 +299,7 @@ export class ComparePage implements OnInit, AfterViewInit {
     for (const s of this.series) { try { this.chart?.removeSeries(s); } catch { /* noop */ } }
     this.series = [];
     this.pair().forEach((it, i) => {
-      const pts = this.norm(it.points);
+      const pts = this.normPct(it.points);
       if (!pts.length) return;
       const s = this.chart!.addSeries(LineSeries, { color: this.color(i), lineWidth: 2 });
       s.setData(pts);
