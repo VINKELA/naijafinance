@@ -40,8 +40,7 @@ jobs:
 
           # 2. Validate PRODUCTION_ENV before overwriting .env (guards against partial secrets)
           if [ -n "$PRODUCTION_ENV" ]; then
-            REQUIRED_KEYS="DJANGO_SECRET_KEY DJANGO_ALLOWED_HOSTS POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST_USER"
-            for key in $REQUIRED_KEYS; do
+            for key in DJANGO_SECRET_KEY DJANGO_ALLOWED_HOSTS POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST_USER; do
               if ! printf '%s\n' "$PRODUCTION_ENV" | grep -q "^${key}="; then
                 echo "::error::Deploy aborted — PRODUCTION_ENV missing required key: $key"
                 exit 1
