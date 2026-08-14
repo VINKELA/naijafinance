@@ -30,10 +30,54 @@ jobs:
 
           git remote set-url origin "$REPO_URL"
           git fetch --all
+
+          # 1. Guard: abort if tracked files have uncommitted changes (prevents silent data loss)
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            echo "::error::Deploy aborted — uncommitted changes to tracked files in $DEPLOY_DIR"
+            git status --short
+            exit 1
+          fi
+
+          # 2. Validate PRODUCTION_ENV before overwriting .env (guards against partial secrets)
+          if [ -n "$PRODUCTION_ENV" ]; then
+            REQUIRED_KEYS="DJANGO_SECRET_KEY DJANGO_ALLOWED_HOSTS POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST_USER"
+            for key in $REQUIRED_KEYS; do
+              if ! printf '%s\n' "$PRODUCTION_ENV" | grep -q "^${key}="; then
+                echo "::error::Deploy aborted — PRODUCTION_ENV missing required key: $key"
+                exit 1
+              fi
+            done
+          fi
+
           git reset --hard origin/main
 
+          # 3. Back up existing .env before overwrite
           if [ -n "$PRODUCTION_ENV" ]; then
+            if [ -f .env ]; then cp .env ".env.bak-$(date +%Y%m%d-%H%M%S)"; fi
             printf "%s\n" "$PRODUCTION_ENV" > .env
           fi
 
           colima ssh -- sh -lc "cd '$DEPLOY_DIR' && docker compose up -d --build"
+
+      - name: Backend unit tests
+        shell: zsh -e {0}
+        run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+          cd /Users/kalu/finance-app
+          colima ssh -- sh -lc "cd /Users/kalu/finance-app && docker compose exec -T backend python manage.py test api --noinput"
+
+      - name: Post-deploy healthcheck
+        shell: zsh -e {0}
+        run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:4200/api/funds/ 2>/dev/null || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "::notice::Healthcheck OK: /api/funds/ -> 200"
+              exit 0
+            fi
+            echo "healthcheck attempt $i/12: got $code"
+            sleep 5
+          done
+          echo "::error::Healthcheck failed: /api/funds/ did not return 200"
+          exit 1
