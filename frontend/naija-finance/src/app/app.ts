@@ -15,6 +15,7 @@ import { track } from './analytics';
 })
 export class App implements OnInit, OnDestroy {
   themeLabel = '🌙';
+  navMore = signal(false);
   asOf = signal('');
   tape = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
   tapeLoop = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
