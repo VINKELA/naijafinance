@@ -5,12 +5,13 @@ import { FormsModule } from '@angular/forms';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 
 const DISCLAIMER = 'All data on this page is illustrative mock data for demo purposes and does not constitute investment advice.';
 
 @Component({
   selector: 'app-symbol',
-  imports: [CommonModule, FormsModule, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, ShareButton],
   template: `
     <h2>Symbol &amp; Chart</h2>
     <p class="sub">OHLCV price chart with company profile.</p>
@@ -29,7 +30,8 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
           <div class="label">{{ detail().symbol }} · {{ detail().name }}</div>
           <div class="value">{{ detail().price }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
-          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="'/symbol?symbol=' + detail().symbol"></app-share-btn></div>
+          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="'/symbol?symbol=' + detail().symbol"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'Price chart — ' + symbol" [link]="'/symbol?symbol=' + symbol"></app-chart-img-share></div>
         </div>
         <div class="stat-tile" *ngFor="let s of detail().stats">
           <div class="label">{{ s.label }}</div>
@@ -61,7 +63,7 @@ export class SymbolPage implements OnInit, AfterViewInit {
   period = 365;
   detail = signal<any>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService, private route: ActivatedRoute) {}

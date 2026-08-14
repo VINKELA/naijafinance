@@ -4,12 +4,13 @@ import { CommonModule } from '@angular/common';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-asset',
-  imports: [CommonModule, RouterLink, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, RouterLink, ShareButton],
   template: `
     <h2>{{ kindLabel() }} · {{ detail()?.name ?? 'Loading…' }}</h2>
     <p class="sub">{{ detail()?.asset_type ?? ' ' }}</p>
@@ -21,7 +22,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
           <div class="label">{{ detail().symbol }}</div>
           <div class="value">{{ detail().price }}</div>
           <div class="delta" [class.up]="detail().isUp" [class.down]="!detail().isUp && detail().changePct !== '—'">{{ detail().isUp ? '▲' : '▼' }} {{ detail().changePct }}%</div>
-          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn></div>
+          <div style="margin-top:8px"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="shareText()" [link]="shareLink()"></app-chart-img-share></div>
         </div>
         <div class="stat-tile" *ngFor="let st of detail().stats">
           <div class="label">{{ st.label }}</div>
@@ -51,7 +53,7 @@ export class AssetPage implements OnInit, AfterViewInit {
   kind = 'instrument';
   period = 90;
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService, private route: ActivatedRoute) {}

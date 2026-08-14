@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
@@ -11,7 +12,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-watchlist',
-  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Watchlist</h2>
     <p class="sub">Your saved instruments — toggle from the search box.</p>
@@ -23,6 +24,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadHistory(p.days)">{{ p.label }}</span>
         <span style="flex:1"></span>
         <app-share-btn [text]="'Watchlist price chart'" [link]="'/watchlist'"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'Watchlist price chart'" [link]="'/watchlist'"></app-chart-img-share>
       </div>
       <div #chartRef style="width: 100%; height: 220px;"></div>
       <p class="loading" *ngIf="!authed">Sign in to see performance.</p>
@@ -82,7 +84,7 @@ export class WatchlistPage implements OnInit, AfterViewInit {
   periods = [{ label: '1W', days: 7 }, { label: '1M', days: 30 }, { label: '3M', days: 90 }, { label: '1Y', days: 365 }];
   period = 90;
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService) {}

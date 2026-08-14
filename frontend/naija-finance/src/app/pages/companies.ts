@@ -5,12 +5,13 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, CompanyProfile } from '../api.service';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 
 const DISCLAIMER = 'All data on this page is provided for information and education only and does not constitute investment advice.';
 
 @Component({
   selector: 'app-companies',
-  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Company Profiles &amp; Fundamentals</h2>
     <p class="sub">Public company profiles with key fundamentals and historical revenue, for display only.</p>
@@ -32,7 +33,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile"><div class="label">Market cap (₦)</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
       </div>
       <p *ngIf="selected()?.description" class="muted" style="font-size:12.5px;margin-bottom:10px;">{{ selected()!.description }}</p>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies?symbol=' + (selected()?.symbol ?? '')"></app-share-btn></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies?symbol=' + (selected()?.symbol ?? '')"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies'"></app-chart-img-share></div>
       <div #chartRef style="width: 100%; height: 240px;"></div>
       <p class="loading" *ngIf="!selected()">Loading companies…</p>
     </div>
@@ -60,7 +62,7 @@ export class CompaniesPage implements OnInit, AfterViewInit {
   selectedId = signal<number | null>(null);
   private requestedSymbol = '';
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService, private route: ActivatedRoute) {}

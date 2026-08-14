@@ -6,6 +6,7 @@ import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'light
 import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -27,7 +28,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
 
 @Component({
   selector: 'app-compare',
-  imports: [CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
     <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
@@ -57,6 +58,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
         <button type="button" *ngFor="let iv of intervals()" class="pill interval" [class.active]="iv === interval()" (click)="setInterval(iv)" style="cursor:pointer;">{{ iv }}</button>
         <span style="flex:1"></span>
         <app-share-btn [text]="'Compare — ' + pair().map(p => p.label).join(' vs ')" [link]="shareLink()"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'Compare — ' + pair().map(p => p.label).join(' vs ')" [link]="shareLink()"></app-chart-img-share>
       </div>
 
       <div #chartRef style="width: 100%; height: 300px;"></div>
@@ -105,7 +107,7 @@ export class ComparePage implements OnInit, AfterViewInit {
   private loadedSources = 0;
   intervals(): readonly Interval[] { return INTERVALS; }
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Line'>[] = [];
   constructor(private api: ApiService, private lang: LangService, private route: ActivatedRoute) {}
 

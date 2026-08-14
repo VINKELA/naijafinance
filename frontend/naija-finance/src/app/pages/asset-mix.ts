@@ -7,6 +7,7 @@ import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
 import { EduCard } from '../edu-card';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 import { EDU_CONTENT } from '../edu-content';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
@@ -20,7 +21,7 @@ interface BuilderRow {
 
 @Component({
   selector: 'app-asset-mix',
-  imports: [CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('My Asset Mix', 'My Aset Mix') }}</h2>
     <p class="sub" *ngIf="card()">{{ t('Shareable performance card · as of', 'Shareable performance card · as of') }} {{ card().asOf }}</p>
@@ -55,6 +56,7 @@ interface BuilderRow {
         <span class="muted" style="font-size:11.5px;">{{ t('Mix value over time', 'Mix value over time') }}</span>
         <span style="flex:1"></span>
         <app-share-btn [text]="'Asset Mix — ' + (card()?.name ?? '')" [link]="'/asset-mix' + (token ? '?token=' + token : '')"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'Asset Mix — ' + (card()?.name ?? '')" [link]="'/asset-mix' + (token ? '?token=' + token : '')"></app-chart-img-share>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <p class="disclaimer" style="margin:8px 0 0;">{{ perfNote }}</p>
@@ -150,7 +152,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   pubMixes = signal<any[]>([]);
   builder: { name: string; visibility: string; rows: BuilderRow[] } = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, value: 0 }] };
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
   constructor(private api: ApiService, private route: ActivatedRoute, private lang: LangService) {}

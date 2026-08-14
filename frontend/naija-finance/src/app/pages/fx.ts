@@ -6,6 +6,7 @@ import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'light
 import { ApiService, FxRate } from '../api.service';
 import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
+import { ChartImgShareButton } from '../chart-share-img';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -13,7 +14,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-fx',
-  imports: [CommonModule, FormsModule, ShareButton, EduCard],
+  imports: [ChartImgShareButton, CommonModule, FormsModule, ShareButton, EduCard],
   template: `
     <h2>{{ t('CBN FX Rates', 'CBN FX Rate-Dem') }}</h2>
     <p class="sub">Official published exchange rates.</p>
@@ -48,6 +49,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
         <span style="flex:1"></span>
         <app-share-btn [text]="'FX chart — ' + chartPair()" [link]="'/fx?pair=' + chartPair() + '&days=' + period"></app-share-btn>
+        <app-chart-img-share [chart]="chart" [title]="'FX chart — ' + chartPair()" [link]="'/fx?pair=' + chartPair() + '&days=' + period"></app-chart-img-share>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="chartPts() < 2">{{ t('Chart builds as CBN rates are published — ' + chartPts() + ' point so far.', 'Chart dey build as CBN rates dey publish — ' + chartPts() + ' point so far.') }}</div>
@@ -84,7 +86,7 @@ export class FxPage implements OnInit, AfterViewInit {
   chartPair = signal<string>('USD/NGN');
   fxPerf = signal<{ label: string; pct: number } | null>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
-  private chart: IChartApi | null = null;
+  chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
   constructor(private api: ApiService, private lang: LangService, private route: ActivatedRoute) {}
   get isPidgin() { return this.lang.isPidgin; }
