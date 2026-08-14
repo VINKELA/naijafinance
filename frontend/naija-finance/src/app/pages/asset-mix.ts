@@ -59,7 +59,8 @@ interface BuilderRow {
 
     <!-- Not signed in -->
     <div class="card" style="margin-bottom: 20px;" *ngIf="!isAuthed && !card()">
-      <p>{{ t('Sign in to create and manage your Asset Mixes.', 'Sign in make you create and manage your Aset Mix.') }} <a routerLink="/account" class="link">{{ t('Go to Account →', 'Go to Account →') }}</a></p>
+      <p style="margin:0 0 12px;">{{ t('Sign in to create and manage your Asset Mixes.', 'Sign in make you create and manage your Aset Mix.') }}</p>
+      <button type="button" class="ghost" routerLink="/account" style="display:inline-flex;align-items:center;gap:8px;">👤 {{ t('Go to Account', 'Go to Account') }} →</button>
     </div>
 
     <!-- Builder (signed in) -->
@@ -114,9 +115,14 @@ interface BuilderRow {
     <div class="card" style="margin-bottom: 20px;" *ngIf="pubMixes().length">
       <h3 style="margin:0 0 10px;">{{ t('Public mixes', 'Public mix-dem') }} <span class="tag">{{ pubMixes().length }}</span></h3>
       <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="stat-tile" *ngFor="let m of pubMixes()" style="border:1px solid var(--line);border-radius:10px;padding:10px;">
+        <div class="stat-tile" *ngFor="let m of pubMixes()" style="border:1px solid var(--line);border-radius:10px;padding:12px;">
           <div class="label">{{ m.name }}</div>
-          <div class="muted" style="font-size:11.5px;">{{ t('by', 'by') }} {{ m.creator }} · {{ fmt(m.totalValue) }} · {{ m.itemCount }} {{ t('assets', 'asets') }}</div>
+          <div class="muted" style="font-size:11.5px;">{{ t('by', 'by') }} {{ m.creator }} · {{ fmt(m.totalValue) }} · {{ m.asOf }}</div>
+          <div style="margin:8px 0;display:flex;flex-direction:column;gap:4px;">
+            <div *ngFor="let it of (m.items || [])" style="display:flex;justify-content:space-between;gap:8px;font-size:12px;">
+              <span>{{ it.symbol }}</span><span class="muted">{{ it.pct ?? it.percent ?? '' }}{{ (it.pct !== undefined || it.percent !== undefined) ? '%' : '' }}</span>
+            </div>
+          </div>
           <a class="link" style="font-size:12px;" [routerLink]="'/asset-mix'" [queryParams]="{token: m.token}">{{ t('View mix →', 'See mix →') }}</a>
         </div>
       </div>
