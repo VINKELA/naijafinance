@@ -180,7 +180,7 @@ class MarketIndexSerializer(serializers.ModelSerializer):
         return []
 
 
-# --- Free Data Layer Serializers (F-04..F-08) ---
+# --- Free Data Layer Serializers ---
 from .models import AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert
 
 DISCLAIMER = (

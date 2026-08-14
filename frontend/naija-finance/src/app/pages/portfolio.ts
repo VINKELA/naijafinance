@@ -13,7 +13,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
   selector: 'app-portfolio',
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <h2>Portfolio (F-09)</h2>
+    <h2>Portfolio</h2>
     <p class="sub">Manual positions, P&L and allocation.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>

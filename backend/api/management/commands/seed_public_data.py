@@ -213,7 +213,7 @@ class Command(BaseCommand):
         )
         currency, exchange = _get_exchange()
 
-        # F-04: Bonds + auction calendar
+        # Bonds + auction calendar
         bond_map = {}
         for symbol, name, maturity, coupon in FGN_BONDS:
             bond_map[symbol] = _get_or_create_bond(exchange, currency, symbol, name, maturity, coupon)
@@ -232,7 +232,7 @@ class Command(BaseCommand):
             )
             auctions += 1 if created else 0
 
-        # F-05: Funds + NAV snapshots
+        # Funds + NAV snapshots
         funds = 0
         navs = 0
         for name, manager, asset_class, snapshots in FUNDS:
@@ -249,7 +249,7 @@ class Command(BaseCommand):
                 )
                 navs += 1 if nav_created else 0
 
-        # F-06: CBN FX rates
+        # CBN FX rates
         fx = 0
         for pair, rate, fx_date in FX_RATES:
             _, created = FxRate.objects.update_or_create(
@@ -258,7 +258,7 @@ class Command(BaseCommand):
             )
             fx += 1 if created else 0
 
-        # F-07: Company profiles
+        # Company profiles
         companies = 0
         for symbol, name, sector, description, eps, pe, book_value, market_cap in COMPANIES:
             _, created = CompanyProfile.objects.update_or_create(

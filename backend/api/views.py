@@ -997,7 +997,7 @@ class MarketIndexDetailView(generics.RetrieveAPIView):
     lookup_field = 'symbol'
 
 # ==========================================
-# FREE DATA LAYER VIEWS (Sprint 1: F-04..F-08)
+# Free public data layer views
 # ==========================================
 # Public read endpoints below serve is_active rows only. User-scoped
 # endpoints use request.user. Data is display/education only and is never
@@ -1010,7 +1010,7 @@ DISCLAIMER = (
 
 
 class BondInstrumentViewSet(viewsets.ReadOnlyModelViewSet):
-    """F-04: Public FGN bond / fixed-income instruments."""
+    """Public FGN bond / fixed-income instruments."""
     serializer_class = InstrumentSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -1028,7 +1028,7 @@ class CommercialPaperViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AuctionCalendarViewSet(viewsets.ReadOnlyModelViewSet):
-    """F-04: Public DMO auction calendar & results."""
+    """Public DMO auction calendar & results."""
     serializer_class = AuctionCalendarSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -1041,7 +1041,7 @@ class AuctionCalendarViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FundViewSet(viewsets.ReadOnlyModelViewSet):
-    """F-05: Public mutual fund list + published NAV snapshots."""
+    """Public mutual fund list + published NAV snapshots."""
     serializer_class = FundSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -1050,7 +1050,7 @@ class FundViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class FxRateViewSet(viewsets.ReadOnlyModelViewSet):
-    """F-06: Public CBN published FX rates."""
+    """Public CBN published FX rates."""
     serializer_class = FxRateSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -1066,7 +1066,7 @@ class FxRateViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CompanyProfileViewSet(viewsets.ReadOnlyModelViewSet):
-    """F-07: Public company profiles + fundamentals (display only)."""
+    """Public company profiles + fundamentals (display only)."""
     serializer_class = CompanyProfileSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -1075,7 +1075,7 @@ class CompanyProfileViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AlertViewSet(viewsets.ModelViewSet):
-    """F-08: User-scoped threshold alerts (CRUD)."""
+    """User-scoped threshold alerts (CRUD)."""
     serializer_class = AlertSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

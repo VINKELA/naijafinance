@@ -1,13 +1,7 @@
 <header class="topbar">
   <a routerLink="/market" class="logo"><img src="favicon.svg" alt="" class="mark"><span>NaijaFinance<b>Hub</b></span></a>
-  <div class="search">
-    <input type="text" placeholder="Search symbols, companies, funds… e.g. MTNN, DANGCEM" [(ngModel)]="query" name="query"
-      (input)="onSearchInput()" (focus)="onSearchFocus()" (blur)="onSearchBlur()" (keydown)="onSearchKey($event)" (keyup.enter)="search()" autocomplete="off">
-    <div class="sugg-dd" *ngIf="showSuggestions()">
-      <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="selectSuggestion(s)">
-        <span class="s">{{ s.symbol }}</span><span class="n">{{ s.name }}</span><span class="t">{{ s.type }}</span>
-      </button>
-    </div>
+  <div class="search" style="display:none">
+    <input type="text" placeholder="Search…" aria-label="Search" style="opacity:0" disabled>
   </div>
   <button class="langBtn" (click)="toggleLang()">{{ langLabel }}</button>
   <button class="langBtn" (click)="toggleTheme()" title="Toggle light/dark theme">{{ themeLabel }}</button>
@@ -20,9 +14,7 @@
   <a routerLink="/bonds" routerLinkActive="on">Markets</a>
   <a routerLink="/funds" routerLinkActive="on">Funds</a>
   <a routerLink="/fx" routerLinkActive="on">FX</a>
-  <a routerLink="/companies" routerLinkActive="on">Companies</a>
-  <a routerLink="/watchlist" routerLinkActive="on">Watchlist</a>
-  <a routerLink="/portfolio" routerLinkActive="on">Portfolio</a>
+  <a routerLink="/learn" routerLinkActive="on">Learn</a>
   <a routerLink="/alerts" routerLinkActive="on">Alerts</a>
   <a routerLink="/account" routerLinkActive="on">Account</a>
 </nav>
@@ -46,8 +38,7 @@
   <div class="in">
     <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>Home</a>
     <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>Markets</a>
-    <a routerLink="/watchlist" routerLinkActive="on"><span class="e">⭐</span>Watch</a>
-    <a routerLink="/portfolio" routerLinkActive="on"><span class="e">💼</span>Portfolio</a>
-    <a routerLink="/symbol" routerLinkActive="on"><span class="e">🔍</span>Quote</a>
+    <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>Funds</a>
+    <a routerLink="/learn" routerLinkActive="on"><span class="e">🎓</span>Learn</a>
   </div>
 </nav>

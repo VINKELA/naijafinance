@@ -1,7 +1,7 @@
 """Seed deterministic MOCK market data so the full app demos today.
 
 The NGX licensed-feed decision is still pending (NF-5/6 assessment, 2026-08-03).
-Until that lands, this command populates the equity/market layer (F-01/F-02/F-03)
+Until that lands, this command populates the equity/market demo layer
 with clearly-labelled, deterministic, synthetic data so every page renders with
 realistic content. Nothing here is real market data and nothing here is
 investment advice.
@@ -64,7 +64,7 @@ HISTORY_DAYS = 180
 
 
 class Command(BaseCommand):
-    help = "Seed deterministic mock equity/market data (F-01/F-02/F-03 demo layer)."
+    help = "Seed deterministic mock equity/market demo data."
 
     @transaction.atomic
     def handle(self, *args, **options):

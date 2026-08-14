@@ -8,48 +8,31 @@ import { ShareButton } from '../share-button';
   selector: 'app-market',
   imports: [CommonModule, RouterLink, ShareButton],
   template: `
-    <!-- Hero index cards -->
+    <!-- Bond yields hero -->
     <div class="hero">
-      <div class="indexCard">
-        <div class="lbl">NGX All-Share Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ asi()?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="asi()?.isUp" [class.down]="!asi()?.isUp">▲ {{ asi()?.point_change ?? '' }} ({{ asi()?.percent_change ?? '' }}%) · Today</div>
-        <div [innerHTML]="spark(asi(), 'ASI')"></div>
-      </div>
-      <div class="indexCard">
-        <div class="lbl">NGX 30 Index <span class="pill">NGX</span></div>
-        <div class="val num">{{ ngx30()?.current_price ?? '—' }}</div>
-        <div class="sub" [class.up]="ngx30()?.isUp" [class.down]="!ngx30()?.isUp">▲ {{ ngx30()?.point_change ?? '' }} ({{ ngx30()?.percent_change ?? '' }}%) · Today</div>
-        <div [innerHTML]="spark(ngx30(), 'NGX30')"></div>
-      </div>
       <div class="indexCard">
         <div class="lbl">FGN 10-Yr Yield <span class="pill">Bonds</span></div>
         <div class="val num">18.42%</div>
         <div class="sub up">▲ +12bps · 1W</div>
         <div [innerHTML]="spark(null, 'YLD')"></div>
       </div>
+      <div class="indexCard">
+        <div class="lbl">FGN 30-Yr Yield <span class="pill">Bonds</span></div>
+        <div class="val num">19.10%</div>
+        <div class="sub flat">— · 1W</div>
+        <div [innerHTML]="spark(null, 'YLD30')"></div>
+      </div>
+      <div class="indexCard">
+        <div class="lbl">Top Fund NAV <span class="pill">Funds</span></div>
+        <div class="val num">{{ topNav()?.nav ?? '—' }}</div>
+        <div class="sub up">{{ topFundName() }}</div>
+        <div [innerHTML]="spark(null, 'NAV')"></div>
+      </div>
     </div>
 
-    <div class="secHead"><h2>Market movers · NGX</h2><div class="share-row"><app-share-btn [text]="moversShareText()" link="/market"></app-share-btn><a class="link" routerLink="/companies">See all →</a></div></div>
-    <div class="card" style="padding:6px 16px 12px">
-      <table>
-        <thead><tr><th>Symbol</th><th>Price (₦)</th><th>Change</th><th>Volume</th><th>Trend</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let m of movers()">
-            <td><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: m.symbol}" class="sym" style="display:block">{{ m.symbol }}<small>{{ m.name }}</small></a></td>
-            <td class="num">{{ m.price }}</td>
-            <td [class.up]="m.isUp" [class.down]="!m.isUp" class="num">{{ m.isUp ? '▲' : '▼' }} {{ m.change }}</td>
-            <td class="num">{{ volume(m.symbol) }}</td>
-            <td><div [innerHTML]="miniSpark(m.symbol, m.isUp)"></div></td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="loading" *ngIf="movers().length === 0">Loading movers…</p>
-    </div>
-
+    <div class="secHead"><h2>FGN Bond yields <span class="tag">DMO</span></h2></div>
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
-        <h3>FGN Bond yields <span class="tag">DMO</span></h3>
         <div class="yieldRow">
           <div class="yieldItem"><div class="t">1-YR</div><div class="y num up">16.8%</div></div>
           <div class="yieldItem"><div class="t">5-YR</div><div class="y num up">17.9%</div></div>
@@ -108,45 +91,29 @@ import { ShareButton } from '../share-button';
       </div>
     </div>
 
-    <p class="disc">⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Market data is 30-minute delayed unless marked otherwise. Sources: NGX (licensed/public), DMO, CBN, SEC disclosures, AFEX. Prices are illustrative mock data for this demo build.</p>
+    <p class="disc">⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Sources: DMO, CBN, SEC disclosures, fund manager publications.</p>
   `,
 })
 export class MarketPage implements OnInit {
-  asi = signal<any>(null);
-  ngx30 = signal<any>(null);
-  movers = signal<any[]>([]);
   auctions = signal<any[]>([]);
   fx = signal<any[]>([]);
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
 
   constructor(private api: ApiService) {}
-  moversShareText(): string { return 'NGX market movers - see today\'s gainers and losers'; }
+
+  topNav() { return this.funds()?.[0]?.latest_nav ?? null; }
+  topFundName() { return this.funds()?.[0]?.name ?? '—'; }
 
   ngOnInit() {
-    this.api.indexes().subscribe(idx => {
-      this.asi.set(idx.find((i: any) => i.symbol === 'NGXASI') ?? idx[0] ?? null);
-      this.ngx30.set(idx.find((i: any) => i.symbol === 'NGX30') ?? idx[1] ?? null);
-    });
-    this.api.movers('active', 8).subscribe(m => this.movers.set(m));
     this.api.auctions().subscribe(a => this.auctions.set(a));
     this.api.fxRates(true).subscribe(f => this.fx.set(f));
     this.api.funds().subscribe(fd => this.funds.set(fd));
     this.api.news(5).subscribe(n => this.news.set(n));
   }
 
-  volume(symbol: string): string {
-    let v = 0; const s = symbol || 'X';
-    for (let k = 0; k < s.length; k++) v = (v * 31 + s.charCodeAt(k)) % 9973;
-    const n = (v % 180) + 20;
-    return n >= 100 ? `${(n / 100).toFixed(1)}M` : `${n * 100}K`;
-  }
-
   spark(idx: any, seedKey: string): string {
-    return this.sparkline(seedKey, idx?.isUp ?? true);
-  }
-  miniSpark(symbol: string, isUp: boolean): string {
-    return this.sparkline(symbol, isUp, 64, 20);
+    return this.sparkline(seedKey, true);
   }
 
   private sparkline(seedKey: string, up: boolean, w = 200, h = 34): string {

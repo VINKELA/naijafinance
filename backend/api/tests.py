@@ -68,7 +68,7 @@ class FreeDataLayerTests(TestCase):
         )
         CompanyProfile.objects.create(symbol='HIDDEN', name='Hidden Plc', is_active=False)
 
-    # --- F-04: Bonds + DMO auction calendar ---
+    # Bonds + DMO auction calendar
     def test_f04_bond_instruments_public(self):
         resp = self.client.get('/api/bonds/')
         self.assertEqual(resp.status_code, 200)
@@ -88,7 +88,7 @@ class FreeDataLayerTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()['stop_rate'], '15.2000')
 
-    # --- F-05: Funds + NAVs ---
+    # Funds + NAVs
     def test_f05_fund_list_public(self):
         resp = self.client.get('/api/funds/')
         self.assertEqual(resp.status_code, 200)
@@ -103,7 +103,7 @@ class FreeDataLayerTests(TestCase):
         self.assertEqual(data['latest_nav']['nav'], '1.2500')
         self.assertEqual(len(data['nav_history']), 1)
 
-    # --- F-06: CBN FX rates ---
+    # CBN FX rates
     def test_f06_fx_rates_public_active_only(self):
         resp = self.client.get('/api/fx-rates/')
         self.assertEqual(resp.status_code, 200)
@@ -120,7 +120,7 @@ class FreeDataLayerTests(TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['rate'], '1496.5300')
 
-    # --- F-07: Company profiles ---
+    # Company profiles
     def test_f07_company_profiles_public_active_only(self):
         resp = self.client.get('/api/companies/')
         self.assertEqual(resp.status_code, 200)
@@ -135,7 +135,7 @@ class FreeDataLayerTests(TestCase):
         self.assertEqual(data['sector'], 'Banking')
         self.assertEqual(data['pe_ratio'], '10.0000')
 
-    # --- F-08: Alerts (user-scoped CRUD + evaluation) ---
+    # Alerts (user-scoped CRUD + evaluation)
     def _auth_client(self, email):
         from django.contrib.auth import get_user_model
         User = get_user_model()
@@ -297,7 +297,7 @@ class SeedCommandTests(TestCase):
 
 
 class MockMarketDataTests(TestCase):
-    """F-01/F-02/F-03 demo layer: deterministic mock seed + public market endpoints."""
+    """Equity demo layer: deterministic mock seed + public market endpoints."""
 
     def setUp(self):
         self.client = APIClient()

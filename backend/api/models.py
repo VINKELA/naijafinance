@@ -308,7 +308,7 @@ class ScrapeTargetSymbol(models.Model):
 
 
 # ==========================================
-# 8. FREE DATA LAYER (Sprint 1: F-04..F-08)
+# 8. Free public data layer
 # ==========================================
 # All models in this section are populated from public/free sources only
 # (DMO publications, CBN published FX rates, fund NAV publications, issuer

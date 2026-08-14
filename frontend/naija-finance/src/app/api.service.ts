@@ -18,26 +18,26 @@ export interface Alert { id?: number; instrument: number | null; instrument_symb
 export class ApiService {
   constructor(private http: HttpClient) {}
 
-  // F-04
+  // Bonds, commercial papers & auctions
   bonds(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/bonds/`); }
   commercialPapers(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/commercial-papers/`); }
   auctions(): Observable<Auction[]> { return this.http.get<Auction[]>(`${API_BASE}/auctions/`); }
 
-  // F-05
+  // Mutual funds / NAVs
   funds(): Observable<Fund[]> { return this.http.get<Fund[]>(`${API_BASE}/funds/`); }
 
-  // F-06
+  // CBN FX rates
   fxRates(latest = true): Observable<FxRate[]> { return this.http.get<FxRate[]>(`${API_BASE}/fx-rates/${latest ? '?latest=1' : ''}`); }
 
-  // F-07
+  // Company profiles (NGX-licensed; feature hidden until licence lands)
   companies(): Observable<CompanyProfile[]> { return this.http.get<CompanyProfile[]>(`${API_BASE}/companies/`); }
 
-  // F-08
+  // Threshold alerts
   alerts(): Observable<Alert[]> { return this.http.get<Alert[]>(`${API_BASE}/alerts/`, { headers: this.authHeaders() }); }
   createAlert(alert: Alert): Observable<Alert> { return this.http.post<Alert>(`${API_BASE}/alerts/`, alert, { headers: this.authHeaders() }); }
   updateAlert(id: number, alert: Partial<Alert>): Observable<Alert> { return this.http.patch<Alert>(`${API_BASE}/alerts/${id}/`, alert, { headers: this.authHeaders() }); }
   deleteAlert(id: number): Observable<void> { return this.http.delete<void>(`${API_BASE}/alerts/${id}/`, { headers: this.authHeaders() }); }
-  // Market layer (F-01/F-02/F-03) — currently deterministic mock data until the NGX feed lands
+  // Equity market layer — endpoints kept for when the NGX feed lands; UI hidden meanwhile
   movers(type = 'active', limit = 8): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/stocks/movers/?type=${type}&limit=${limit}`); }
   indexes(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/indexes/`); }
   overview(): Observable<any> { return this.http.get<any>(`${API_BASE}/overview/`); }
@@ -45,9 +45,31 @@ export class ApiService {
   fundDetail(id: number): Observable<any> { return this.http.get<any>(`${API_BASE}/fund/${id}/`); }
   companyDetail(symbol: string): Observable<any> { return this.http.get<any>(`${API_BASE}/company/${symbol}/`); }
   stockDetail(symbol: string): Observable<any> { return this.http.get<any>(`${API_BASE}/stock/${symbol}/`); }
-  // ---- Auth (F-09) ----
+  // ---- Auth ----
   register(payload: any): Observable<any> { return this.http.post(`${API_BASE}/auth/register/`, payload); }
   login(email: string, password: string): Observable<any> { return this.http.post(`${API_BASE}/auth/login/`, { email, password }); }
+  
+  // ---- OTP Auth (magic code) ----
+  requestLoginCode(email: string, first_name?: string, last_name?: string): Observable<any> {
+    const body: any = { email };
+    if (first_name) body.first_name = first_name;
+    if (last_name) body.last_name = last_name;
+    return this.http.post(`${API_BASE}/auth/request-code/`, body);
+  }
+  verifyLoginCode(email: string, code: string): Observable<any> {
+    return this.http.post(`${API_BASE}/auth/verify-code/`, { email, code });
+  }
+  checkEmail(email: string): Observable<{exists: boolean}> {
+    return this.http.post<{exists: boolean}>(`${API_BASE}/auth/check-email/`, { email });
+  }
+  getUserMe(): Observable<any> {
+    return this.http.get(`${API_BASE}/user/me/`, { headers: this.authHeaders() });
+  }
+  revokeAnalyticsConsent(): Observable<any> {
+    return this.http.patch(`${API_BASE}/user/me/`, { consent_analytics_at: null }, { headers: this.authHeaders() });
+  }
+  setAnalyticsConsent(val: boolean) { localStorage.setItem('nf_analytics', val ? '1' : '0'); }
+
   refreshTokens(refresh: string): Observable<any> { return this.http.post(`${API_BASE}/auth/refresh/`, { refresh }); }
   saveTokens(tokens: any) { if (tokens?.access) localStorage.setItem('nf_access', tokens.access); if (tokens?.refresh) localStorage.setItem('nf_refresh', tokens.refresh); }
   clearTokens() { localStorage.removeItem('nf_access'); localStorage.removeItem('nf_refresh'); }
@@ -55,7 +77,7 @@ export class ApiService {
   get isAuthed() { return !!this.token; }
   private authHeaders(): Record<string, string> { return this.token ? { Authorization: `Bearer ${this.token}` } : {}; }
 
-  // ---- F-01 Watchlists ----
+  // ---- Watchlists ----
   watchlists(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/watchlists/`, { headers: this.authHeaders() }); }
   defaultWatchlist(): Observable<any> { return this.http.get<any>(`${API_BASE}/watchlist/default/`, { headers: this.authHeaders() }); }
   watchlistHistory(period = 90): Observable<any> { return this.http.get<any>(`${API_BASE}/watchlist/history/?period=${period}`, { headers: this.authHeaders() }); }
@@ -65,7 +87,7 @@ export class ApiService {
   }
   sharePortfolio(portfolioId: number): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/${portfolioId}/share/`, {}, { headers: this.authHeaders() }); }
 
-  // ---- F-09 Portfolios ----
+  // ---- Portfolios ----
   portfolios(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/portfolios/`, { headers: this.authHeaders() }); }
   createPortfolio(name: string): Observable<any> { return this.http.post<any>(`${API_BASE}/portfolios/`, { name }, { headers: this.authHeaders() }); }
   addPortfolioItem(portfolioId: number, symbol: string, quantity: number, purchasePrice: number, fundId?: number): Observable<any> {

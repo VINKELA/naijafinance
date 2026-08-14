@@ -23,7 +23,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
-            <td><app-share-btn [text]="shareText(b)" [link]="'/symbol?symbol=' + b.symbol"></app-share-btn></td>
+            <td><app-share-btn [text]="shareText(b)" [link]="'/asset?type=instrument&symbol=' + b.symbol"></app-share-btn></td>
           </tr>
         </tbody>
       </table>

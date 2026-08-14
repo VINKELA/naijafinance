@@ -79,14 +79,15 @@ export class AuthPage {
   requestSignInCode() {
     const email = this.signInEmail.trim().toLowerCase();
     if (!email || !email.includes('@')) { this.error = 'Enter a valid email address.'; return; }
-    this.busy = true; this.error = '';
+    this.error = '';
     this.isRegistering = false; this.codeEmail = email;
+    // Show OTP form immediately via setTimeout (forces Angular change detection)
+    setTimeout(() => { this.showCodeInput = true; this.busy = false; this.cdr.detectChanges(); }, 0);
     this.api.requestLoginCode(email).subscribe({
       next: (res: any) => {
-        if (res.ok === false) { this.busy = false; this.error = res.error || 'Something went wrong.'; this.cdr.detectChanges(); }
-        else { this.busy = false; this.showCodeInput = true; }
+        if (res.ok === false) { this.showCodeInput = false; this.error = res.error || 'Something went wrong.'; this.cdr.detectChanges(); }
       },
-      error: (e: any) => { this.busy = false; this.error = e?.error?.error || 'Failed to send code.'; this.cdr.detectChanges(); }
+      error: (e: any) => { this.showCodeInput = false; this.error = e?.error?.error || 'Failed to send code.'; this.cdr.detectChanges(); }
     });
   }
 

@@ -12,7 +12,7 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
   selector: 'app-symbol',
   imports: [CommonModule, FormsModule, ShareButton],
   template: `
-    <h2>Symbol &amp; Chart (F-02)</h2>
+    <h2>Symbol &amp; Chart</h2>
     <p class="sub">OHLCV price chart with company profile.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
 

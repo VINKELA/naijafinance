@@ -12,7 +12,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   selector: 'app-watchlist',
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <h2>Watchlist (F-01)</h2>
+    <h2>Watchlist</h2>
     <p class="sub">Your saved instruments — toggle from the search box.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
     <p class="error" *ngIf="error">{{ error }}</p>
