@@ -9,6 +9,8 @@ import { AssetMixPage } from './pages/asset-mix';
 import { AssetPage } from './pages/asset';
 import { AuthPage } from './pages/auth';
 import { LegalPage } from './pages/legal';
+import { PortfolioPage } from './pages/portfolio';
+import { WatchlistPage } from './pages/watchlist';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/market', pathMatch: 'full' },
@@ -19,6 +21,8 @@ export const routes: Routes = [
   { path: 'compare', component: ComparePage, title: 'Compare' },
   { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },
+  { path: 'portfolio', component: PortfolioPage, title: 'Portfolio' },
+  { path: 'watchlist', component: WatchlistPage, title: 'Watchlist' },
   { path: 'asset', component: AssetPage, title: 'Asset Information' },
   { path: 'account', component: AuthPage, title: 'Account' },
   { path: 'legal', component: LegalPage, title: 'Terms & Privacy' },
