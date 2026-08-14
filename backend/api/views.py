@@ -508,6 +508,77 @@ def portfolio_performance(request, pk):
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
+def _mix_card_rows(portfolio, item_ids=None):
+    """Sanitized allocation-level rows: symbol, class, value, pct. NO quantities,
+    NO cost basis, NO P&L, NO user identity — the public Asset Mix contract.
+
+    item_ids (optional): only these PortfolioItem ids are included, so a user
+    can share a single asset or a chosen subset instead of the whole portfolio.
+    """
+    qs = portfolio.items.all()
+    if item_ids:
+        qs = qs.filter(id__in=item_ids)
+    items = list(qs)
+    total = Decimal('0.00')
+    rows = []
+    for it in items:
+        if it.fund_id:
+            latest = it.fund.nav_snapshots.order_by('-date').first()
+            price = latest.nav if latest else Decimal('0.00')
+            symbol = it.fund.name
+            cls = f"Fund · {it.fund.get_asset_class_display()}"
+        elif it.instrument_id:
+            price = it.instrument.last_price or Decimal('0.00')
+            symbol = it.instrument.symbol
+            cls = it.instrument.get_asset_class_display()
+        else:
+            continue
+        value = (price or Decimal('0.00')) * it.quantity
+        total += value
+        rows.append({"symbol": symbol, "asset_class": cls, "value": float(value)})
+    rows.sort(key=lambda r: r['value'], reverse=True)
+    for r in rows:
+        r['pct'] = round((r['value'] / float(total) * 100) if total else 0, 1)
+    return total, rows
+
+
+
+def mix_card(request, token):
+    """Public card data for a shared Asset Mix (no login).
+
+    Serves the frozen snapshot captured at share time, so the card remains
+    public and stable even after the source portfolio is deleted.
+    """
+    share = get_object_or_404(MixShare, token=token)
+    if share.visibility == 'private' and request.user != share.user:
+        return Response({'detail': 'Mix not found.'}, status=404)
+    snap = share.snapshot or {}
+    if snap.get('items'):
+        return Response(snap)
+    # Legacy shares (pre-snapshot): compute a sanitized view live.
+    if share.portfolio_id:
+        total, rows = _mix_card_rows(share.portfolio)
+        return Response({
+            "name": share.portfolio.name,
+            "asOf": timezone.localdate().isoformat(),
+            "totalValue": float(total),
+            "items": rows,
+        })
+    return Response({"name": "Asset Mix", "asOf": timezone.localdate().isoformat(), "totalValue": 0, "items": []})
+
+
+def mix_performance(request, token):
+    """Public value-over-time series for a shared Asset Mix (no login)."""
+    share = get_object_or_404(MixShare, token=token)
+    period = int(request.query_params.get('period', 90))
+    if period not in (30, 90, 180, 365):
+        period = 90
+    if share.portfolio_id:
+        points = build_portfolio_value_series(share.portfolio, period)
+    else:
+        points = []  # frozen card — allocation stays, history is gone
+    return Response({"period_days": period, "points": points})
+
 def create_mix_share(request):
     """Create a public 'Asset Mix' share card from one of the user's portfolios."""
     portfolio_id = request.data.get('portfolio_id')
@@ -519,53 +590,8 @@ def create_mix_share(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def mix_card(request, token):
-    """Public card data for a shared Asset Mix (no login)."""
-    share = get_object_or_404(MixShare, token=token)
-    portfolio = share.portfolio
-    items = list(portfolio.items.all())
-    total = Decimal('0.00')
-    rows = []
-    for it in items:
-        if it.fund_id:
-            latest = it.fund.nav_snapshots.order_by('-date').first()
-            # Fall back to cost basis when no NAV is published, so un-priced
-            # holdings never render as a 0% / ₦0 line on the public card.
-            price = latest.nav if latest else (it.purchase_price or Decimal('0.00'))
-            symbol = it.fund.name
-            cls = f"Fund · {it.fund.get_asset_class_display()}"
-        elif it.instrument_id:
-            price = it.instrument.last_price or it.purchase_price or Decimal('0.00')
-            symbol = it.instrument.symbol
-            cls = it.instrument.get_asset_class_display()
-        else:
-            continue
-        value = (price or Decimal('0.00')) * it.quantity
-        total += value
-        rows.append({"symbol": symbol, "asset_class": cls, "value": float(value)})
-    rows.sort(key=lambda r: r['value'], reverse=True)
-    for r in rows:
-        r['pct'] = round((r['value'] / float(total) * 100) if total else 0, 1)
-    return Response({
-        "name": portfolio.name,
-        "asOf": timezone.localdate().isoformat(),
-        "totalValue": float(total),
-        "items": rows,
-    })
-
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def mix_performance(request, token):
-    """Public value-over-time series for a shared Asset Mix (no login)."""
-    share = get_object_or_404(MixShare, token=token)
-    period = int(request.query_params.get('period', 90))
-    if period not in (30, 90, 180, 365):
-        period = 90
-    points = build_portfolio_value_series(share.portfolio, period)
-    return Response({"period_days": period, "points": points})
-
-
 def build_portfolio_value_series(portfolio, period_days=90):
     """Daily total-value series for one portfolio over the period.
 
