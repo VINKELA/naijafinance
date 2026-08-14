@@ -32,6 +32,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <div class="stat-tile"><div class="label">Market cap (₦)</div><div class="value" style="font-size:16px;">{{ naira(selected()!.market_cap) }}</div></div>
       </div>
       <p *ngIf="selected()?.description" class="muted" style="font-size:12.5px;margin-bottom:10px;">{{ selected()!.description }}</p>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="'Company revenue — ' + (selected()?.name ?? '')" [link]="'/companies'"></app-share-btn></div>
       <div #chartRef style="width: 100%; height: 240px;"></div>
       <p class="loading" *ngIf="!selected()">Loading companies…</p>
     </div>

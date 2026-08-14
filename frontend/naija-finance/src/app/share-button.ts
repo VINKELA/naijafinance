@@ -24,7 +24,9 @@ export class ShareButton {
 
   async share() {
     track('share_click', { url: this.link || location.pathname });
-    const url = this.link || location.href.split('?')[0];
+    const url = this.link
+      ? (this.link.startsWith('http') ? this.link : location.origin + this.link)
+      : location.href.split('?')[0];
     const text = this.text ? `${this.text} — Naija Finance` : 'Naija Finance — Nigerian markets, one dashboard';
     try {
       if (navigator.share) { await navigator.share({ title: 'Naija Finance', text, url }); return; }

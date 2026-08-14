@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { createChart, LineSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
+import { ShareButton } from '../share-button';
 import { EduCard } from '../edu-card';
 import { EDU_CONTENT } from '../edu-content';
 
@@ -26,7 +27,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
 
 @Component({
   selector: 'app-compare',
-  imports: [CommonModule, FormsModule, RouterLink, EduCard],
+  imports: [CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
     <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
@@ -54,6 +55,8 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
       <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let iv of intervals()" class="pill interval" [class.active]="iv === interval()" (click)="setInterval(iv)" style="cursor:pointer;">{{ iv }}</button>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Compare — ' + pair().map(p => p.label).join(' vs ')" [link]="'/compare'"></app-share-btn>
       </div>
 
       <div #chartRef style="width: 100%; height: 300px;"></div>

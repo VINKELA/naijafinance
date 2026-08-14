@@ -1,7 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, Fund } from '../api.service';
 import { LangService } from '../lang.service';
@@ -90,7 +90,7 @@ export class FundsPage implements OnInit, AfterViewInit {
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
 
-  constructor(private api: ApiService, private lang: LangService) {}
+  constructor(private api: ApiService, private lang: LangService, private route: ActivatedRoute) {}
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
@@ -149,6 +149,10 @@ export class FundsPage implements OnInit, AfterViewInit {
   }
   shareText(f: Fund): string { return `${f.name} — NAV ${f.latest_nav?.nav ?? '—'} (${f.asset_class_display})`; }
   ngOnInit() {
+    this.route.queryParams.subscribe(p => {
+      const fundId = p['fund'] ? Number(p['fund']) : null;
+      if (fundId && !isNaN(fundId)) this.selectedId.set(fundId);
+    });
     this.api.funds().subscribe(fs => {
       this.funds.set(fs);
       if (fs.length && this.selectedId() === null) {

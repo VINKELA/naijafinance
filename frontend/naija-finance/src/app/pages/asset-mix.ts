@@ -6,6 +6,7 @@ import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'light
 import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
 import { EduCard } from '../edu-card';
+import { ShareButton } from '../share-button';
 import { EDU_CONTENT } from '../edu-content';
 
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
@@ -19,7 +20,7 @@ interface BuilderRow {
 
 @Component({
   selector: 'app-asset-mix',
-  imports: [CommonModule, FormsModule, RouterLink, EduCard],
+  imports: [CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('My Asset Mix', 'My Aset Mix') }}</h2>
     <p class="sub" *ngIf="card()">{{ t('Shareable performance card · as of', 'Shareable performance card · as of') }} {{ card().asOf }}</p>
@@ -52,6 +53,8 @@ interface BuilderRow {
       <div class="form-row" style="margin-bottom: 10px;">
         <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadPerformance(p.days)">{{ p.label }}</span>
         <span class="muted" style="font-size:11.5px;">{{ t('Mix value over time', 'Mix value over time') }}</span>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Asset Mix — ' + (card()?.name ?? '')" [link]="'/asset-mix' + (token ? '?token=' + token : '')"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <p class="disclaimer" style="margin:8px 0 0;">{{ perfNote }}</p>

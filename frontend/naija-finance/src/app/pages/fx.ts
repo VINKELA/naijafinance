@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService, FxRate } from '../api.service';
 import { LangService } from '../lang.service';
@@ -45,6 +46,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <span class="muted" style="font-size:12px;font-weight:700;">{{ t('Period:', 'Period:') }}</span>
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'FX chart — ' + chartPair()" [link]="'/fx?pair=' + chartPair()"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 260px;"></div>
       <div class="chart-empty" *ngIf="chartPts() < 2">{{ t('Chart builds as CBN rates are published — ' + chartPts() + ' point so far.', 'Chart dey build as CBN rates dey publish — ' + chartPts() + ' point so far.') }}</div>
@@ -83,7 +86,7 @@ export class FxPage implements OnInit, AfterViewInit {
   @ViewChild('chartRef') chartRef!: ElementRef;
   private chart: IChartApi | null = null;
   private series: ISeriesApi<'Area'> | null = null;
-  constructor(private api: ApiService, private lang: LangService) {}
+  constructor(private api: ApiService, private lang: LangService, private route: ActivatedRoute) {}
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
   shareText(r: FxRate): string { return `${r.pair} — NGN ${r.rate} (CBN, ${r.date})`; }
@@ -163,6 +166,9 @@ export class FxPage implements OnInit, AfterViewInit {
     this.render();
   }
   ngOnInit() {
+    this.route.queryParams.subscribe(p => {
+      if (p['pair']) this.chartPair.set(String(p['pair']).toUpperCase());
+    });
     this.api.fxRates(false).subscribe(r => {
       this.rates.set(r);
       this.render();

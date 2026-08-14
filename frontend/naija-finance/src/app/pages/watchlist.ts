@@ -2,6 +2,7 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, signal } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ShareButton } from '../share-button';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
@@ -10,7 +11,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-watchlist',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Watchlist</h2>
     <p class="sub">Your saved instruments — toggle from the search box.</p>
@@ -20,6 +21,8 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
     <div class="card" style="margin-bottom: 20px;" *ngIf="authed">
       <div class="form-row" style="margin-bottom: 10px;">
         <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadHistory(p.days)">{{ p.label }}</span>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Watchlist price chart'" [link]="'/watchlist'"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 220px;"></div>
       <p class="loading" *ngIf="!authed">Sign in to see performance.</p>

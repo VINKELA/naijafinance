@@ -2,6 +2,7 @@ import { Component, OnInit, signal, AfterViewInit, ViewChild, ElementRef } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ShareButton } from '../share-button';
 import { createChart, AreaSeries, ColorType, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { ApiService } from '../api.service';
 import { track } from '../analytics';
@@ -11,7 +12,7 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
 
 @Component({
   selector: 'app-portfolio',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Portfolio</h2>
     <p class="sub">Manual positions, P&L and allocation.</p>
@@ -44,6 +45,8 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
     <div class="card" style="margin-bottom: 20px;" *ngIf="portfolios().length">
       <div class="form-row" style="margin-bottom: 10px;">
         <span class="pill" *ngFor="let p of periods" [class.g]="period === p.days" style="cursor:pointer;" (click)="loadPerformance(p.days)">{{ p.label }}</span>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Portfolio performance'" [link]="'/portfolio'"></app-share-btn>
         <span class="muted" style="font-size:11.5px;">Portfolio value over time</span>
       </div>
       <div #perfChartRef style="width: 100%; height: 260px;"></div>

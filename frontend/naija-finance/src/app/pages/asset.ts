@@ -34,6 +34,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <div class="form-row" style="margin-bottom: 10px;" *ngIf="periods().length">
         <span class="pill" *ngFor="let p of periods()" [class.g]="period === p.days" style="cursor:pointer;" (click)="setPeriod(p.days)">{{ p.label }}</span>
       </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><app-share-btn [text]="shareText()" [link]="shareLink()"></app-share-btn></div>
       <div #chartRef style="width: 100%; height: 300px;"></div>
       <p class="loading" *ngIf="!detail()">Loading…</p>
     </div>

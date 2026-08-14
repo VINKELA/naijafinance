@@ -42,6 +42,8 @@ const DISCLAIMER = 'All data on this page is illustrative mock data for demo pur
       <div class="interval-row" style="margin-bottom: 10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
         <span class="muted" style="font-size:12px;font-weight:700;">Period:</span>
         <button type="button" *ngFor="let p of periods" class="pill interval" [class.active]="p.days === period" (click)="setPeriod(p.days)" style="cursor:pointer;">{{ p.label }}</button>
+        <span style="flex:1"></span>
+        <app-share-btn [text]="'Price chart — ' + symbol" [link]="'/symbol?symbol=' + symbol"></app-share-btn>
       </div>
       <div #chartRef style="width: 100%; height: 340px;"></div>
       <p class="loading" *ngIf="!detail()">Enter a symbol above to render its price history.</p>
