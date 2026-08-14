@@ -1,5 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService, Bond, Auction } from '../api.service';
 import { ShareButton } from '../share-button';
@@ -8,18 +9,22 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
 @Component({
   selector: 'app-bonds',
-  imports: [CommonModule, RouterLink, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <h2>Bonds &amp; Treasury Bills</h2>
     <p class="sub">FGN fixed-income instruments and the public DMO auction calendar.</p>
     <p class="disclaimer">{{ disclaimer }}</p>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <input type="search" placeholder="Search bonds, commercial papers, auctions…" [(ngModel)]="q" name="bondSearch" style="width:100%;">
+    </div>
 
     <div class="table-wrap">
       <h3>Bond instruments</h3>
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Coupon</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let b of bonds()">
+          <tr *ngFor="let b of visibleBonds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: b.symbol}">{{ b.symbol }}</a></td><td>{{ b.name }}</td>
             <td class="num">{{ b.coupon_rate ? (b.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ b.maturity_date ?? '—' }}</td>
@@ -35,7 +40,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Symbol</th><th>Name</th><th class="num">Discount rate</th><th class="num">Maturity</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let cp of cps()">
+          <tr *ngFor="let cp of visibleCps()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'instrument', symbol: cp.symbol}">{{ cp.symbol }}</a></td><td>{{ cp.name }}</td>
             <td class="num">{{ cp.coupon_rate ? (cp.coupon_rate + '%') : '—' }}</td>
             <td class="num muted">{{ cp.maturity_date ?? '—' }}</td>
@@ -51,7 +56,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Date</th><th>Instrument</th><th>Tenor</th><th class="num">Offer (₦bn)</th><th class="num">Stop rate</th></tr></thead>
         <tbody>
-          <tr *ngFor="let a of auctions()">
+          <tr *ngFor="let a of visibleAuctions()">
             <td>{{ a.auction_date }}</td><td>{{ a.instrument_name }}</td>
             <td>{{ a.tenor }}</td><td class="num">{{ a.offer_size ?? '—' }}</td><td class="num">{{ a.stop_rate ?? '—' }}</td>
           </tr>
@@ -66,9 +71,18 @@ export class BondsPage implements OnInit {
   bonds = signal<Bond[]>([]);
   cps = signal<Bond[]>([]);
   auctions = signal<Auction[]>([]);
+  q = '';
   constructor(private api: ApiService) {}
   shareText(b: Bond): string { return `${b.symbol} — ${b.name} (FGN bond)`; }
   shareCpText(cp: Bond): string { return `${cp.symbol} — ${cp.name} (commercial paper)`; }
+  private matches(v: string | null | undefined): boolean {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return true;
+    return (v ?? '').toLowerCase().includes(s);
+  }
+  visibleBonds(): Bond[] { return this.bonds().filter(b => this.matches(b.symbol) || this.matches(b.name)); }
+  visibleCps(): Bond[] { return this.cps().filter(c => this.matches(c.symbol) || this.matches(c.name)); }
+  visibleAuctions(): Auction[] { return this.auctions().filter(a => this.matches(a.instrument_name) || this.matches(a.tenor) || this.matches(a.auction_date)); }
   ngOnInit() {
     this.api.bonds().subscribe(b => this.bonds.set(b));
     this.api.commercialPapers().subscribe(cp => this.cps.set(cp));

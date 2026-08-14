@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 interface EduCard { q: string; t: string; a: string; k: string[]; }
 interface EduModule { name: string; icon: string; cards: EduCard[]; }
@@ -91,11 +92,13 @@ const MODULES: EduModule[] = [
 
 @Component({
   selector: 'app-learn',
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="secHead"><h2>Learn <span class="tag">Education</span></h2><p style="margin:4px 0 0;color:var(--txt2);font-size:13px;">Plain-language answers to the questions people ask most — in English and Pidgin.</p></div>
 
-    <div *ngFor="let mod of modules; let mi = index" class="card" style="margin-bottom:16px;">
+    <input type="search" placeholder="Search questions… e.g. bond, NAV, FX" [(ngModel)]="q" name="learnSearch" style="width:100%;margin-bottom:14px;">
+
+    <div *ngFor="let mod of visibleModules(); let mi = index" class="card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 10px;">{{ mod.icon }} {{ mod.name }} <span class="tag">{{ mod.cards.length }}</span></h3>
       <div *ngFor="let c of mod.cards; let ci = index" class="eduItem" [class.open]="open() === (mi + '-' + ci)">
         <button type="button" class="eduQ" (click)="toggle(mi + '-' + ci)">
@@ -127,6 +130,14 @@ const MODULES: EduModule[] = [
 })
 export class LearnPage {
   modules = MODULES;
+  q = '';
   open = signal<string | null>(null);
   toggle(key: string) { this.open.set(this.open() === key ? null : key); }
+  visibleModules(): EduModule[] {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return this.modules;
+    return this.modules
+      .map(m => ({ ...m, cards: m.cards.filter(c => (c.q + ' ' + c.t + ' ' + c.a + ' ' + c.k.join(' ')).toLowerCase().includes(s)) }))
+      .filter(m => m.cards.length > 0);
+  }
 }

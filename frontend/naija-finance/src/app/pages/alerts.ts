@@ -35,12 +35,13 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       </form>
     </div>
 
+    <input type="search" placeholder="Search your alerts…" [(ngModel)]="q" name="alertSearch" style="width:100%;margin-bottom:14px;">
     <div class="table-wrap">
       <h3>Your alerts</h3>
       <table class="data">
         <thead><tr><th>Type</th><th>Target</th><th class="num">Threshold</th><th>Direction</th><th>Triggered</th><th class="num">Last value</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let a of alerts()">
+          <tr *ngFor="let a of visibleAlerts()">
             <td>{{ a.alert_type_display }}</td>
             <td class="sym">{{ a.instrument_symbol ?? a.fund_name }}</td>
             <td class="num">{{ a.threshold }}</td><td>{{ a.direction_display }}</td>
@@ -60,10 +61,17 @@ export class AlertsPage implements OnInit {
   alerts = signal<Alert[]>([]);
   bonds = signal<Bond[]>([]);
   funds = signal<Fund[]>([]);
+  q = '';
   error = '';
   form = { alert_type: 'PRICE', instrument: null as number | null, fund: null as number | null, threshold: '', direction: 'ABOVE' };
 
   constructor(private api: ApiService) {}
+
+  visibleAlerts(): Alert[] {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return this.alerts();
+    return this.alerts().filter(a => (a.instrument_symbol ?? a.fund_name ?? '').toLowerCase().includes(s) || (a.alert_type_display ?? '').toLowerCase().includes(s));
+  }
 
   ngOnInit() {
     this.api.alerts().subscribe(a => this.alerts.set(a), () => this.error = 'Could not load alerts — are you logged in?');

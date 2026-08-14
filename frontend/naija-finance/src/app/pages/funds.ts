@@ -18,9 +18,12 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
     <div class="card" style="margin-bottom: 20px;">
       <div class="form-row" style="margin-bottom: 10px;">
+        <input type="search" placeholder="Search funds by name or manager…" [(ngModel)]="q" name="fundSearch" style="flex:1;min-width:220px;">
+      </div>
+      <div class="form-row" style="margin-bottom: 10px;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">Fund:</label>
         <select [ngModel]="selectedId()" (ngModelChange)="select($event)" name="fundSelect" style="flex:1;min-width:220px;">
-          <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
+          <option *ngFor="let f of visibleFunds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>
         </select>
         <span *ngIf="perf()" class="pill" [class.g]="perf()!.pct >= 0" [class.r]="perf()!.pct < 0">{{ perf()!.pct >= 0 ? '▲' : '▼' }} {{ perf()!.pct }}% ({{ perf()!.label }})</span>
       </div>
@@ -33,7 +36,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
       <table class="data">
         <thead><tr><th>Fund</th><th>Manager</th><th>Class</th><th class="num">Latest NAV</th><th class="num">NAV date</th><th></th></tr></thead>
         <tbody>
-          <tr *ngFor="let f of funds()">
+          <tr *ngFor="let f of visibleFunds()">
             <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
@@ -49,6 +52,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 export class FundsPage implements OnInit, AfterViewInit {
   disclaimer = DISCLAIMER;
   funds = signal<Fund[]>([]);
+  q = '';
   selectedId = signal<number | null>(null);
   perf = signal<{ label: string; pct: number } | null>(null);
   @ViewChild('chartRef') chartRef!: ElementRef;
@@ -57,6 +61,11 @@ export class FundsPage implements OnInit, AfterViewInit {
 
   constructor(private api: ApiService) {}
   selected(): Fund | null { return this.funds().find(f => f.id === this.selectedId()) ?? this.funds()[0] ?? null; }
+  visibleFunds(): Fund[] {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return this.funds();
+    return this.funds().filter(f => (f.name ?? '').toLowerCase().includes(s) || (f.manager ?? '').toLowerCase().includes(s));
+  }
   shareText(f: Fund): string { return `${f.name} — NAV ${f.latest_nav?.nav ?? '—'} (${f.asset_class_display})`; }
   ngOnInit() {
     this.api.funds().subscribe(fs => {

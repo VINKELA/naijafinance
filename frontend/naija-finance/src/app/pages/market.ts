@@ -1,12 +1,13 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../api.service';
 import { ShareButton } from '../share-button';
 
 @Component({
   selector: 'app-market',
-  imports: [CommonModule, RouterLink, ShareButton],
+  imports: [CommonModule, FormsModule, RouterLink, ShareButton],
   template: `
     <!-- Bond yields hero -->
     <div class="hero">
@@ -31,6 +32,7 @@ import { ShareButton } from '../share-button';
     </div>
 
     <div class="secHead"><h2>FGN Bond yields <span class="tag">DMO</span></h2></div>
+    <input type="search" placeholder="Search funds, news, FX…" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <div class="yieldRow">
@@ -42,7 +44,7 @@ import { ShareButton } from '../share-button';
         <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Upcoming DMO auctions</h3><a class="link" routerLink="/bonds">Calendar →</a></div>
         <table>
           <tbody>
-            <tr *ngFor="let a of auctions().slice(0, 3)">
+            <tr *ngFor="let a of visibleAuctions()">
               <td><span class="sym">{{ a.instrument_name }}<small>{{ a.tenor }} · ₦{{ a.offer_size ?? '—' }}bn</small></span></td>
               <td class="num">{{ a.auction_date }}</td>
             </tr>
@@ -52,7 +54,7 @@ import { ShareButton } from '../share-button';
       <div class="card">
         <h3>Official FX rates <span class="tag">CBN</span></h3>
         <div class="fxGrid">
-          <div class="fxItem" *ngFor="let f of fx()">
+          <div class="fxItem" *ngFor="let f of visibleFx()">
             <div class="pair"><span>{{ f.pair }}</span><span class="flat">—</span></div>
             <div class="rate num">{{ f.rate }}</div>
             <div class="chg flat">{{ f.date }} · {{ f.source }}</div>
@@ -61,7 +63,7 @@ import { ShareButton } from '../share-button';
         <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Top mutual funds</h3><a class="link" routerLink="/funds">NAVs →</a></div>
         <table>
           <tbody>
-            <tr *ngFor="let fd of funds().slice(0, 2)">
+            <tr *ngFor="let fd of visibleFunds().slice(0, 4)">
               <td><span class="sym">{{ fd.name }}<small>{{ fd.asset_class_display }}</small></span></td>
               <td class="num up">₦{{ fd.latest_nav?.nav ?? '—' }}</td>
             </tr>
@@ -75,7 +77,7 @@ import { ShareButton } from '../share-button';
         <h3>Headlines <span class="tag">News</span></h3>
         <table>
           <tbody>
-            <tr *ngFor="let n of news()">
+            <tr *ngFor="let n of visibleNews()">
               <td><span class="sym">{{ n.title }}<small>{{ n.source }}</small></span></td>
             </tr>
           </tbody>
@@ -99,11 +101,22 @@ export class MarketPage implements OnInit {
   fx = signal<any[]>([]);
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
+  q = '';
 
   constructor(private api: ApiService) {}
 
   topNav() { return this.funds()?.[0]?.latest_nav ?? null; }
   topFundName() { return this.funds()?.[0]?.name ?? '—'; }
+
+  private m(v: any): boolean {
+    const s = this.q.trim().toLowerCase();
+    if (!s) return true;
+    return String(v ?? '').toLowerCase().includes(s);
+  }
+  visibleAuctions(): any[] { return this.auctions().filter(a => this.m(a.instrument_name) || this.m(a.tenor) || this.m(a.auction_date)); }
+  visibleFx(): any[] { return this.fx().filter(f => this.m(f.pair)); }
+  visibleFunds(): any[] { return this.funds().filter(f => this.m(f.name) || this.m(f.manager)); }
+  visibleNews(): any[] { return this.news().filter(n => this.m(n.title) || this.m(n.source)); }
 
   ngOnInit() {
     this.api.auctions().subscribe(a => this.auctions.set(a));
