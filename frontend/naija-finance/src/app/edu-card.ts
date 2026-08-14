@@ -18,7 +18,7 @@ import { LangService } from './lang.service';
       <div class="edu-card-header" (click)="toggleModule()" (keydown.enter)="toggleModule()" tabindex="0" role="button" [attr.aria-expanded]="moduleExpanded">
         <div class="edu-title-row">
           <span class="edu-icon">📚</span>
-          <h3>{{ isPidgin ? 'Lan' : 'Learn' }} {{ moduleLabel }}</h3>
+          <h3>{{ isPidgin ? 'Lan' : 'Learn' }} {{ isPidgin ? (labelPidgin(moduleLabel) || moduleLabel) : moduleLabel }}</h3>
           <span class="edu-count">{{ questions.length }} {{ isPidgin ? 'kweshon-dem' : 'questions' }}</span>
         </div>
         <span class="edu-arrow" [class.open]="moduleExpanded">{{ moduleExpanded ? '▾' : '▸' }}</span>
@@ -28,8 +28,8 @@ import { LangService } from './lang.service';
         <div class="edu-q" *ngFor="let q of questions; let i = index">
           <div class="edu-q-header" (click)="toggleQuestion(i)" (keydown.enter)="toggleQuestion(i)" tabindex="0" role="button" [attr.aria-expanded]="expandedQuestions[i]">
             <div class="edu-q-title">
-              <span class="edu-pidgin">{{ isPidgin ? q.pidginHook : q.englishTitle }}</span>
-              <span class="edu-english" *ngIf="!isPidgin">{{ q.pidginHook }}</span>
+              <span class="edu-pidgin" *ngIf="isPidgin">{{ q.pidginHook }}</span>
+              <span class="edu-english" *ngIf="!isPidgin">{{ q.englishTitle }}</span>
             </div>
             <span class="edu-q-arrow" [class.open]="expandedQuestions[i]">{{ expandedQuestions[i] ? '▾' : '▸' }}</span>
           </div>
@@ -121,6 +121,18 @@ export class EduCard implements OnInit {
   @Input() questions: EduQuestion[] = [];
   @Input() defaultExpanded = true;
   @Input() disclaimer = 'Educational information only. Not investment advice.';
+
+  private static readonly LABEL_PIDGIN: Record<string, string> = {
+    'Market Overview': 'Maket Ova',
+    'Bonds & Commercial Papers': 'Bonds & Komershial Papas',
+    'Mutual Funds': 'Fands',
+    'FX': 'FX',
+    'Alerts': 'Alats',
+    'Compare': 'Kompare',
+    'Asset Mix': 'Aset Mix',
+  };
+
+  labelPidgin(label: string): string | undefined { return EduCard.LABEL_PIDGIN[label]; }
 
   moduleExpanded = true;
   expandedQuestions: boolean[] = [];
