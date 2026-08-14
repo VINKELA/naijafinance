@@ -131,7 +131,7 @@ export class PortfolioPage implements OnInit, AfterViewInit {
     if (!this.perfChartRef?.nativeElement) return;
     if (!this.chart) {
       this.chart = createChart(this.perfChartRef.nativeElement, {
-        layout: { background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
+        layout: { attributionLogo: false, background: { type: ColorType.Solid, color: '#121a2e' }, textColor: '#93a4c8' },
         grid: { vertLines: { color: '#1a2440' }, horzLines: { color: '#1a2440' } },
         width: this.perfChartRef.nativeElement.clientWidth, height: 260,
         timeScale: { borderColor: '#223053' }, rightPriceScale: { borderColor: '#223053' },

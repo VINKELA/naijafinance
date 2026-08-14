@@ -39,7 +39,7 @@ import { LangService } from './lang.service';
 
             <div class="edu-tags" *ngIf="q.keyTerms?.length">
               <span class="pill" *ngFor="let t of q.keyTerms">
-                <span class="edu-chip-text">{{ t.label }}</span>
+                <span class="edu-chip-text">{{ isPidgin ? termPidgin(t.label) : t.label }}</span>
               </span>
             </div>
 
@@ -94,8 +94,7 @@ import { LangService } from './lang.service';
     .edu-q-header:focus-visible { box-shadow: inset 0 0 0 1px var(--accent); }
 
     .edu-q-title { flex: 1; min-width: 0; }
-    .edu-pidgin { display: block; font-size: 14px; font-weight: 700; color: var(--accent); line-height: 1.35; }
-    .edu-english { display: block; font-size: 12px; color: var(--txt2); margin-top: 2px; }
+    .edu-pidgin, .edu-english { display: block; font-size: 13px; font-weight: 600; color: var(--txt); line-height: 1.4; }
     .edu-q-arrow { font-size: 13px; color: var(--txt3); flex-shrink: 0; margin-top: 2px; }
 
     .edu-q-body { padding: 0 16px 12px; }
@@ -132,7 +131,18 @@ export class EduCard implements OnInit {
     'Asset Mix': 'Aset Mix',
   };
 
+  private static readonly TERM_PIDGIN: Record<string, string> = {
+    'All-Share Index': 'All-Share Index', 'CBN': 'CBN', 'DMO': 'DMO', 'EPS': 'EPS', 'NAV': 'NAV', 'NGX': 'NGX', 'P/E': 'P/E', 'T-bill': 'T-bill',
+    'bond': 'bond', 'broker': 'broka', 'compound interest': 'kompaund interest', 'coupon': 'kupon', 'devaluation': 'devaluation',
+    'diversification': 'diversifikashon', 'dividend': 'dividend', 'earnings': 'earnings', 'equity': 'equity', 'exchange rate': 'exchange rate',
+    'face value': 'face value', 'index': 'index', 'inflation': 'inflashon', 'interest rate': 'interest rate', 'liquidity': 'likwiditi',
+    'market cap': 'maket kapital', 'maturity': 'machuriti', 'mutual fund': 'fand', 'portfolio': 'portfolio', 'return': 'return',
+    'risk': 'risk', 'risk tolerance': 'risk tolerans', 'secondary market': 'sekondari maket', 'share': 'shia', 'stock': 'stok',
+    'volatility': 'volatiliti', 'watchlist': 'watchlist', 'yield': 'yield',
+  };
+
   labelPidgin(label: string): string | undefined { return EduCard.LABEL_PIDGIN[label]; }
+  termPidgin(label: string): string { return EduCard.TERM_PIDGIN[label] ?? label; }
 
   moduleExpanded = true;
   expandedQuestions: boolean[] = [];
