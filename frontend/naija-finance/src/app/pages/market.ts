@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../api.service';
 import { LangService } from '../lang.service';
 import { ShareButton } from '../share-button';
@@ -41,7 +41,14 @@ import { EDU_CONTENT } from '../edu-content';
     ></app-edu-card>
 
     <div class="secHead"><h2>{{ t('FGN Bond yields', 'FGN Bond Yield-Dem') }} <span class="tag">DMO</span></h2></div>
-    <input type="search" placeholder="{{ t('Search funds, news, FX…', 'Sarch fands, news, FX…') }}" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
+    <div style="position:relative;margin-bottom:14px;">
+      <input type="search" placeholder="{{ t('Search funds, news, FX…', 'Sarch fands, news, FX…') }}" [(ngModel)]="q" name="marketSearch" style="width:100%;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+      <div class="sugg-dd" *ngIf="suggestions().length">
+        <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="pick(s)">
+          <span class="s">{{ s.label }}</span><span class="n">{{ s.sub }}</span><span class="t">{{ s.kind }}</span>
+        </button>
+      </div>
+    </div>
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <div class="yieldRow">
@@ -105,13 +112,63 @@ export class MarketPage implements OnInit {
   funds = signal<any[]>([]);
   news = signal<any[]>([]);
   q = '';
+  suggestions = signal<{ label: string; sub: string; kind: string; route: string }[]>([]);
+  activeIndex = signal(-1);
 
-  constructor(private api: ApiService, private lang: LangService) {}
+  constructor(private api: ApiService, private lang: LangService, private router: Router) {}
   get isPidgin() { return this.lang.isPidgin; }
   t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   topNav() { return this.funds()?.[0]?.latest_nav ?? null; }
   topFundName() { return this.funds()?.[0]?.name ?? '—'; }
+
+  onQuery() {
+    const s = this.q.trim().toLowerCase();
+    const out: { label: string; sub: string; kind: string; route: string }[] = [];
+    if (s) {
+      for (const f of this.funds()) {
+        if ((f.name ?? '').toLowerCase().includes(s) || (f.manager ?? '').toLowerCase().includes(s)) {
+          out.push({ label: f.name, sub: f.manager ?? 'Fund', kind: 'Fund', route: '/funds' });
+        }
+      }
+      for (const r of this.fx()) {
+        if ((r.pair ?? '').toLowerCase().includes(s)) {
+          out.push({ label: r.pair, sub: `CBN · ${r.rate}`, kind: 'FX', route: '/fx?pair=' + r.pair });
+        }
+      }
+      for (const a of this.auctions()) {
+        if ((a.instrument_name ?? '').toLowerCase().includes(s)) {
+          out.push({ label: a.instrument_name, sub: a.tenor ?? 'Auction', kind: 'Auction', route: '/bonds' });
+        }
+      }
+    }
+    this.suggestions.set(out.slice(0, 8));
+    this.activeIndex.set(-1);
+  }
+  onKey(e: KeyboardEvent) {
+    const n = this.suggestions().length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!n) return;
+      e.preventDefault();
+      let idx = this.activeIndex() + (e.key === 'ArrowDown' ? 1 : -1);
+      if (idx < 0) idx = n - 1;
+      if (idx >= n) idx = 0;
+      this.activeIndex.set(idx);
+    } else if (e.key === 'Enter') {
+      const list = this.suggestions();
+      const idx = this.activeIndex();
+      const target = idx >= 0 && list[idx] ? list[idx] : list[0];
+      if (target) { e.preventDefault(); this.pick(target); }
+    } else if (e.key === 'Escape') {
+      this.suggestions.set([]);
+    }
+  }
+  pick(s: { route: string }) {
+    this.q = '';
+    this.suggestions.set([]);
+    this.activeIndex.set(-1);
+    this.router.navigate([s.route]);
+  }
 
   private m(v: any): boolean {
     const s = this.q.trim().toLowerCase();
