@@ -3,60 +3,61 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../api.service';
+import { LangService } from '../lang.service';
 
 @Component({
   selector: 'app-auth',
   imports: [CommonModule, FormsModule],
   template: `
-    <h2>Account</h2>
+    <h2>{{ t('Account', 'Akaunt') }}</h2>
     <div class="card" style="max-width: 420px;" *ngIf="!isAuthed && !showCodeInput && !showRegister">
-      <h3>Sign in</h3>
-      <p class="sub">Enter your email to receive a one-time code.</p>
+      <h3>{{ t('Sign in', 'Sign in') }}</h3>
+      <p class="sub">{{ t('Enter your email to receive a one-time code.', 'Put your email make we send you one-time code.') }}</p>
       <form (ngSubmit)="requestSignInCode()">
         <div style="display: grid; gap: 10px;">
-          <input type="email" placeholder="Email address" [(ngModel)]="signInEmail" name="signInEmail" required>
-          <button type="submit" [disabled]="busy">{{ busy ? 'Sending...' : 'Send code' }}</button>
+          <input type="email" placeholder="{{ t('Email address', 'Email address') }}" [(ngModel)]="signInEmail" name="signInEmail" required>
+          <button type="submit" [disabled]="busy">{{ busy ? t('Sending...', 'De send...') : t('Send code', 'Send di code') }}</button>
         </div>
       </form>
       <p class="error" *ngIf="error">{{ error }}</p>
     </div>
     <div class="card" style="max-width: 420px;" *ngIf="!isAuthed && showCodeInput">
-      <h3>Check your email</h3>
-      <p class="sub">We sent a 6-digit code to <strong>{{ codeEmail }}</strong></p>
-      <p class="muted">Check your spam folder if you don't see it.</p>
+      <h3>{{ t('Check your email', 'Check your email') }}</h3>
+      <p class="sub">{{ t('We sent a 6-digit code to', 'We don send 6-digit code to') }} <strong>{{ codeEmail }}</strong></p>
+      <p class="muted">{{ t("Check your spam folder if you don't see it.", "Check your spam folder if you no see am.") }}</p>
       <form (ngSubmit)="verifyCode()">
         <div style="display: grid; gap: 10px;">
           <input type="text" placeholder="6-digit code" [(ngModel)]="codeInput" name="code" maxlength="6" required autocomplete="one-time-code" inputmode="numeric" style="font-size:20px;text-align:center;letter-spacing:8px;">
-          <button type="submit" [disabled]="busy">{{ busy ? 'Verifying...' : 'Verify' }}</button>
+          <button type="submit" [disabled]="busy">{{ busy ? t('Verifying...', 'De verify...') : t('Verify', 'Verify') }}</button>
         </div>
       </form>
       <p class="error" *ngIf="error">{{ error }}</p>
       <p style="margin-top: 12px;">
-        <a (click)="resendCode()" style="cursor:pointer;text-decoration:underline;color:var(--txt3)">Resend code</a>
+        <a (click)="resendCode()" style="cursor:pointer;text-decoration:underline;color:var(--txt3)">{{ t('Resend code', 'Send di code again') }}</a>
         &middot;
-        <a (click)="resetAuth()" style="cursor:pointer;text-decoration:underline;color:var(--txt3)">Use a different email</a>
+        <a (click)="resetAuth()" style="cursor:pointer;text-decoration:underline;color:var(--txt3)">{{ t('Use a different email', 'Use different email') }}</a>
       </p>
     </div>
     <div class="card" style="max-width: 420px;" *ngIf="!isAuthed && !showCodeInput && showRegister">
-      <h3>Create an account</h3>
+      <h3>{{ t('Create an account', 'Make account') }}</h3>
       <form (ngSubmit)="register()">
         <div style="display: grid; gap: 10px;">
-          <input type="text" placeholder="First name" [(ngModel)]="form.first_name" name="first_name" required>
-          <input type="text" placeholder="Last name" [(ngModel)]="form.last_name" name="last_name" required>
-          <input type="email" placeholder="Email address" [(ngModel)]="form.email" name="email" required>
-          <button type="submit" [disabled]="busy">{{ busy ? 'Sending...' : 'Send verification code' }}</button>
+          <input type="text" placeholder="{{ t('First name', 'First name') }}" [(ngModel)]="form.first_name" name="first_name" required>
+          <input type="text" placeholder="{{ t('Last name', 'Last name') }}" [(ngModel)]="form.last_name" name="last_name" required>
+          <input type="email" placeholder="{{ t('Email address', 'Email address') }}" [(ngModel)]="form.email" name="email" required>
+          <button type="submit" [disabled]="busy">{{ busy ? t('Sending...', 'De send...') : t('Send verification code', 'Send verification code') }}</button>
         </div>
       </form>
       <p class="error" *ngIf="error">{{ error }}</p>
-      <p style="margin-top: 10px;"><a (click)="showRegister = false; error = ''" style="cursor:pointer;text-decoration:underline;color:var(--blue)">Back to sign in</a></p>
+      <p style="margin-top: 10px;"><a (click)="showRegister = false; error = ''" style="cursor:pointer;text-decoration:underline;color:var(--blue)">{{ t('Back to sign in', 'Go back to sign in') }}</a></p>
     </div>
     <div class="card" style="max-width: 420px; margin-bottom: 16px;" *ngIf="!isAuthed && !showCodeInput">
-      <p class="sub" *ngIf="!showRegister">New to NaijaFinance Hub? Register to track your portfolio and set alerts.<br>
-      <button (click)="showRegister = true; error = ''" style="width:100%; margin-top: 8px;">Register</button></p>
+      <p class="sub" *ngIf="!showRegister">{{ t('New to NaijaFinance Hub? Register to track your portfolio and set alerts.', 'New for NaijaFinance Hub? Register make you track your portfolio and set alats.') }}<br>
+      <button (click)="showRegister = true; error = ''" style="width:100%; margin-top: 8px;">{{ t('Register', 'Register') }}</button></p>
     </div>
     <div class="card" style="max-width: 420px;" *ngIf="isAuthed">
-      <p class="sub" style="margin-bottom: 10px;">Signed in as <strong>{{ email }}</strong></p>
-      <button class="danger" (click)="logout($event)">Sign out</button>
+      <p class="sub" style="margin-bottom: 10px;">{{ t('Signed in as', 'You don sign in as') }} <strong>{{ email }}</strong></p>
+      <button class="danger" (click)="logout($event)">{{ t('Sign out', 'Sign out') }}</button>
     </div>
   `
 })
@@ -72,7 +73,9 @@ export class AuthPage {
   showRegister = false;
   isRegistering = false;
 
-  constructor(private api: ApiService, private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(private api: ApiService, private router: Router, private cdr: ChangeDetectorRef, private lang: LangService) {}
+  get isPidgin() { return this.lang.isPidgin; }
+  t(en: string, pidgin: string): string { return this.lang.t(en, pidgin); }
 
   get isAuthed() { return this.api.isAuthed; }
 

@@ -41,7 +41,7 @@ import { EDU_CONTENT } from '../edu-content';
     ></app-edu-card>
 
     <div class="secHead"><h2>{{ t('FGN Bond yields', 'FGN Bond Yield-Dem') }} <span class="tag">DMO</span></h2></div>
-    <input type="search" placeholder="Search funds, news, FX…" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
+    <input type="search" placeholder="{{ t('Search funds, news, FX…', 'Sarch fands, news, FX…') }}" [(ngModel)]="q" name="marketSearch" style="width:100%;margin-bottom:14px;">
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
         <div class="yieldRow">
@@ -50,7 +50,7 @@ import { EDU_CONTENT } from '../edu-content';
           <div class="yieldItem"><div class="t">10-YR</div><div class="y num up">18.4%</div></div>
           <div class="yieldItem"><div class="t">30-YR</div><div class="y num flat">19.1%</div></div>
         </div>
-        <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Upcoming DMO auctions</h3><a class="link" routerLink="/bonds">Calendar →</a></div>
+        <div class="secHead" style="margin-top:14px"><h3 style="margin:0">{{ t('Upcoming DMO auctions', 'DMO auctions wey dey come') }}</h3><a class="link" routerLink="/bonds">Calendar →</a></div>
         <table>
           <tbody>
             <tr *ngFor="let a of visibleAuctions()">
@@ -61,7 +61,7 @@ import { EDU_CONTENT } from '../edu-content';
         </table>
       </div>
       <div class="card">
-        <h3>Official FX rates <span class="tag">CBN</span></h3>
+        <h3>{{ t('Official FX rates', 'Official FX rate-dem') }} <span class="tag">CBN</span></h3>
         <div class="fxGrid">
           <div class="fxItem" *ngFor="let f of visibleFx()">
             <div class="pair"><span>{{ f.pair }}</span><span class="flat">—</span></div>
@@ -69,7 +69,7 @@ import { EDU_CONTENT } from '../edu-content';
             <div class="chg flat">{{ f.date }} · {{ f.source }}</div>
           </div>
         </div>
-        <div class="secHead" style="margin-top:14px"><h3 style="margin:0">Top mutual funds</h3><a class="link" routerLink="/funds">NAVs →</a></div>
+        <div class="secHead" style="margin-top:14px"><h3 style="margin:0">{{ t('Top mutual funds', 'Top fands') }}</h3><a class="link" routerLink="/funds">NAVs →</a></div>
         <table>
           <tbody>
             <tr *ngFor="let fd of visibleFunds().slice(0, 4)">
@@ -83,7 +83,7 @@ import { EDU_CONTENT } from '../edu-content';
 
     <div class="grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
       <div class="card">
-        <h3>Headlines <span class="tag">News</span></h3>
+        <h3>{{ t('Headlines', 'Headline-dem') }} <span class="tag">News</span></h3>
         <table>
           <tbody>
             <tr *ngFor="let n of visibleNews()">
@@ -92,17 +92,10 @@ import { EDU_CONTENT } from '../edu-content';
           </tbody>
         </table>
       </div>
-      <!-- Education card (from mockup) -->
-      <div class="card eduCard">
-        <h3>Education <span class="tag">Pidgin</span></h3>
-        <p>"Wetin be bond yield? Na di interest wey government dey pay you for lending dem money. Low risk, fixed return."</p>
-        <div class="tags">
-          <span class="pill g">Bonds 101</span><span class="pill g">NAV</span><span class="pill g">T+3</span>
-        </div>
-      </div>
     </div>
 
-    <p class="disc">⚠️ Naija Finance is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Sources: DMO, CBN, SEC disclosures, fund manager publications.</p>
+    <p class="disc" *ngIf="!isPidgin">⚠️ NaijaFinance Hub is a <b>data &amp; analytics platform only</b>. Nothing on this page is investment advice, a recommendation, or a promise of returns. Sources: DMO, CBN, SEC disclosures, fund manager publications.</p>
+    <p class="disc" *ngIf="isPidgin">⚠️ NaijaFinance Hub na <b>data &amp; analytics platform only</b>. Nothing for dis page na investment advice, recommendation, or promise of returns. Sources: DMO, CBN, SEC, fund manager publications.</p>
   `,
 })
 export class MarketPage implements OnInit {

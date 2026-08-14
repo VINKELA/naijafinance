@@ -13,7 +13,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
   imports: [CommonModule, FormsModule, EduCard],
   template: `
     <h2>{{ t('Threshold Alerts', 'Alats') }}</h2>
-    <p class="sub">Create alerts; a triggered flag is set by <code>run_alert_eval</code>.</p>
+    <p class="sub">{{ t('Create alerts; you get notified when an instrument crosses your chosen level.', 'Create alats; dem go notify you when instrument cross your level.') }}</p>
     <p class="disclaimer">{{ t(disclaimer, 'All di data for dis page na for information and education only — e no be investment advice.') }}</p>
 
     <app-edu-card
