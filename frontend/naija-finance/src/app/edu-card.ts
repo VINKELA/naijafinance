@@ -59,11 +59,8 @@ import { LangService } from './lang.service';
       margin: 0 0 18px;
       border-radius: var(--radius);
       border: 1px solid var(--line);
-      background: linear-gradient(150deg, #12241c, #0e1522);
+      background: var(--edu-bg, linear-gradient(150deg, #12241c, #0e1522));
       overflow: hidden;
-    }
-    :root[data-theme="light"] .edu-card-wrap {
-      background: linear-gradient(150deg, #e8f5ef, #eef2f8);
     }
 
     .edu-card-header {
@@ -71,8 +68,7 @@ import { LangService } from './lang.service';
       padding: 12px 16px; cursor: pointer; user-select: none; outline: none;
     }
     .edu-card-header:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
-    .edu-card-header:hover { background: rgba(255,255,255,.03); }
-    :root[data-theme="light"] .edu-card-header:hover { background: rgba(0,0,0,.03); }
+    .edu-card-header:hover { background: var(--edu-hover, rgba(255,255,255,.03)); }
 
     .edu-title-row { display: flex; align-items: center; gap: 10px; }
     .edu-icon { font-size: 18px; line-height: 1; }
@@ -82,8 +78,7 @@ import { LangService } from './lang.service';
 
     .edu-body { border-top: 1px solid var(--line); }
 
-    .edu-q { border-bottom: 1px solid rgba(30,42,61,.4); }
-    :root[data-theme="light"] .edu-q { border-bottom-color: rgba(215,222,234,.8); }
+    .edu-q { border-bottom: 1px solid var(--line); }
     .edu-q:last-child { border-bottom: none; }
 
     .edu-q-header {
@@ -105,11 +100,10 @@ import { LangService } from './lang.service';
     .edu-tags .pill a { color: inherit; text-decoration: none; }
 
     .edu-play {
-      background: var(--accent); color: #04140c; border: none; border-radius: 8px;
+      background: var(--accent); color: var(--edu-play-fg, #04140c); border: none; border-radius: 8px;
       padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
       margin-top: 4px;
     }
-    :root[data-theme="light"] .edu-play { color: #fff; }
     .edu-play:hover { filter: brightness(1.1); }
 
     .disc { font-size: 11px; color: var(--txt3); line-height: 1.5; margin: 8px 16px 12px; }
