@@ -138,7 +138,10 @@ export class FundsPage implements OnInit, AfterViewInit {
   ngOnInit() {
     this.api.funds().subscribe(fs => {
       this.funds.set(fs);
-      if (fs.length && this.selectedId() === null) this.selectedId.set(fs[0].id);
+      if (fs.length && this.selectedId() === null) {
+        const withHistory = fs.find(f => (f.nav_history ?? []).length >= 2);
+        this.selectedId.set((withHistory ?? fs[0]).id);
+      }
       this.render();
     });
   }

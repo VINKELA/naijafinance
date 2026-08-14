@@ -1,3 +1,42 @@
 :host { display: block; }
 .mnav a{background:none;border:none;color:var(--txt3);font-size:10px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:44px;padding:6px 10px;cursor:pointer;text-decoration:none;font-family:var(--font)}
 .mnav a.on{color:var(--accent)}
+
+/* Pager (pagination controls) — CEO 17:43 design pass */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px 0 6px;
+  flex-wrap: wrap;
+}
+.pager button {
+  background: var(--bg2, #121a2e);
+  border: 1px solid var(--line, #223053);
+  color: var(--txt, #e5e9f0);
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, opacity .15s;
+  font-family: var(--font);
+}
+.pager button:hover:not(:disabled) { border-color: var(--accent, #16c784); color: var(--accent, #16c784); }
+.pager button:focus-visible { outline: 2px solid var(--accent, #16c784); outline-offset: 1px; }
+.pager button:disabled { opacity: .38; cursor: default; }
+.pager .muted { font-size: 11.5px; color: var(--txt3, #7a86a1); }
+
+/* Chart building/empty state (funds) — CEO 17:43 */
+.chart-empty {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border: 1px dashed var(--line, #223053);
+  border-radius: 10px;
+  background: var(--bg2, #0e1522);
+  color: var(--txt2, #9aa7c2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+}
