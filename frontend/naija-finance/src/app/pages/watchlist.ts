@@ -30,7 +30,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
 
     <div class="card" style="margin-bottom: 20px;">
       <form class="form-row" (ngSubmit)="toggle()">
-        <input type="text" placeholder="Symbol — stock, bond, CP (e.g. MTNN, FGN-14.55-2029)" [(ngModel)]="symbol" name="symbol">
+        <input type="text" placeholder="Symbol — bond or commercial paper (e.g. FGN-14.55-2029)" [(ngModel)]="symbol" name="symbol">
         <button type="submit" [disabled]="!symbol && !fundId">Add / remove</button>
       </form>
       <form class="form-row" style="margin-top:8px" (ngSubmit)="toggleFund()">
