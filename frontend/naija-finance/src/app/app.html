@@ -10,16 +10,16 @@
 </header>
 
 <nav class="dnav">
-  <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}">Home</a>
-  <a routerLink="/bonds" routerLinkActive="on">Markets</a>
-  <a routerLink="/funds" routerLinkActive="on">Funds</a>
-  <a routerLink="/fx" routerLinkActive="on">FX</a>
-  <a routerLink="/compare" routerLinkActive="on">Compare</a>
-  <a routerLink="/asset-mix" routerLinkActive="on">Asset Mix</a>
-  <a routerLink="/alerts" routerLinkActive="on">Alerts</a>
-  <a routerLink="/portfolio" routerLinkActive="on">Portfolio</a>
-  <a routerLink="/watchlist" routerLinkActive="on">Watchlist</a>
-  <a routerLink="/account" routerLinkActive="on">Account</a>
+  <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}">{{ t('Home','Home') }}</a>
+  <a routerLink="/bonds" routerLinkActive="on">{{ t('Markets','Makis') }}</a>
+  <a routerLink="/funds" routerLinkActive="on">{{ t('Funds','Fands') }}</a>
+  <a routerLink="/fx" routerLinkActive="on">{{ t('FX','FX') }}</a>
+  <a routerLink="/compare" routerLinkActive="on">{{ t('Compare','Kompare') }}</a>
+  <a routerLink="/asset-mix" routerLinkActive="on">{{ t('Asset Mix','Aset Mix') }}</a>
+  <a routerLink="/alerts" routerLinkActive="on">{{ t('Alerts','Alats') }}</a>
+  <a routerLink="/portfolio" routerLinkActive="on">{{ t('Portfolio','Portfolio') }}</a>
+  <a routerLink="/watchlist" routerLinkActive="on">{{ t('Watchlist','Watchlist') }}</a>
+  <a routerLink="/account" routerLinkActive="on">{{ t('Account','Akaunt') }}</a>
 </nav>
 
 <div class="tape"><div class="tape-track">
@@ -40,17 +40,17 @@
 
 <nav class="mnav">
   <div class="in">
-    <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>Home</a>
-    <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>Markets</a>
-    <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>Funds</a>
+    <a routerLink="/market" routerLinkActive="on" [routerLinkActiveOptions]="{exact:true}"><span class="e">🏠</span>{{ t('Home','Home') }}</a>
+    <a routerLink="/bonds" routerLinkActive="on"><span class="e">📊</span>{{ t('Markets','Makis') }}</a>
+    <a routerLink="/funds" routerLinkActive="on"><span class="e">💰</span>{{ t('Funds','Fands') }}</a>
     <a routerLink="/fx" routerLinkActive="on"><span class="e">💱</span>FX</a>
-    <a routerLink="/compare" routerLinkActive="on"><span class="e">⚖️</span>Compare</a>
-    <a routerLink="/asset-mix" routerLinkActive="on"><span class="e">🧺</span>Asset Mix</a>
+    <a routerLink="/compare" routerLinkActive="on"><span class="e">⚖️</span>{{ t('Compare','Kompare') }}</a>
+    <a routerLink="/asset-mix" routerLinkActive="on"><span class="e">🧺</span>{{ t('Asset Mix','Aset Mix') }}</a>
   </div>
   <div class="in">
-    <a routerLink="/alerts" routerLinkActive="on"><span class="e">🔔</span>Alerts</a>
-    <a routerLink="/watchlist" routerLinkActive="on"><span class="e">⭐</span>Watchlist</a>
-    <a routerLink="/portfolio" routerLinkActive="on"><span class="e">💼</span>Portfolio</a>
-    <a routerLink="/account" routerLinkActive="on"><span class="e">👤</span>Account</a>
+    <a routerLink="/alerts" routerLinkActive="on"><span class="e">🔔</span>{{ t('Alerts','Alats') }}</a>
+    <a routerLink="/watchlist" routerLinkActive="on"><span class="e">⭐</span>{{ t('Watchlist','Watchlist') }}</a>
+    <a routerLink="/portfolio" routerLinkActive="on"><span class="e">💼</span>{{ t('Portfolio','Portfolio') }}</a>
+    <a routerLink="/account" routerLinkActive="on"><span class="e">👤</span>{{ t('Account','Akaunt') }}</a>
   </div>
 </nav>
