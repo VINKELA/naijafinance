@@ -32,6 +32,17 @@ export const EDU_CONTENT: Record<string, EduModuleContent> = {
     ],
     defaultExpanded: false,
   },
+  stocks: {
+    questions: [
+      { pidginHook: "Wetin be stock?", englishTitle: "What is a stock?", answer: "A share of ownership in a company; price moves with supply/demand and company performance.", pidginAnswer: "Na small part of di company wey you own; di price dey move with supply/demand and how di company dey do.", keyTerms: [{ label: 'stock', link: '/glossary/stock_share' }, { label: 'share', link: '/glossary/stock_share' }, { label: 'market cap', link: '/glossary/market_capitalisation_market_cap' }] },
+      { pidginHook: "How I go buy stock for Nigeria?", englishTitle: "How do I buy stocks in Nigeria?", answer: "Through a licensed broker on the Nigerian Exchange (NGX); the app tracks prices — it does not execute trades.", pidginAnswer: "You go use licensed broker for NGX; di app dey show prices — e no dey buy or sell for you.", keyTerms: [{ label: 'broker', link: '/glossary/broker' }, { label: 'NGX' }] },
+      { pidginHook: "Why stock price dey up and down?", englishTitle: "Why do stock prices go up and down?", answer: "Supply and demand, company performance, news, and market sentiment all affect prices.", pidginAnswer: "Supply and demand, how di company dey do, news, and market feeling dey move am.", keyTerms: [{ label: 'volatility', link: '/glossary/volatility' }] },
+      { pidginHook: "Wetin be P/E ratio?", englishTitle: "What is the P/E ratio?", answer: "Price divided by earnings per share — a common measure of how expensive a stock is relative to its profit.", pidginAnswer: "Na price divide by earnings per share — how expensive di stock be compared to di profit e dey make.", keyTerms: [{ label: 'P/E', link: '/glossary/pe_ratio_pricetoearnings' }, { label: 'earnings' }] },
+      { pidginHook: "Wetin be gainers and losers?", englishTitle: "What are gainers and losers?", answer: "Today's biggest price risers and fallers on the market; a quick scan of where money is moving.", pidginAnswer: "Na di biggest risers and fallers today; quick look at where money dey move.", keyTerms: [] },
+      { pidginHook: "Wetin be 52-week high and low?", englishTitle: "What are the 52-week high and low?", answer: "The highest and lowest price a stock traded at over the last year — useful context, not a prediction.", pidginAnswer: "Na di highest and lowest price di stock trade for di last one year — useful context, no be prediction.", keyTerms: [{ label: 'volatility', link: '/glossary/volatility' }] },
+    ],
+    defaultExpanded: false,
+  },
   bonds: {
     questions: [
       { pidginHook: "Wetin be bond?", englishTitle: "What is a bond?", answer: "A loan you give to a government or company; they pay interest and return your money at maturity.", pidginAnswer: "Na loan wey you give government or company; dem dey pay you interest and return your money at maturity.", keyTerms: [{ label: 'bond', link: '/glossary/bond' }, { label: 'coupon' }, { label: 'maturity' }] },

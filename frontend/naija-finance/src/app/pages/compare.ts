@@ -19,7 +19,7 @@ interface CmpItem {
   key: string;
   label: string;
   sub: string;
-  kind: 'fund' | 'bond' | 'cp' | 'fx';
+  kind: 'fund' | 'bond' | 'cp' | 'fx' | 'stock';
   points: { date: string; value: number }[];
   stats: { k: string; v: string }[];
 }
@@ -31,14 +31,14 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
   imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
-    <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
+    <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers, FX &amp; stocks. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper, FX &amp; stoks. Pick 2–5 assets.') }}</p>
     <p class="sub" *ngIf="defaultHint()" style="color:var(--accent);font-size:12px;">{{ t('Showing a default comparison — search above to add or swap assets.', 'De dey show default komparison — sarch above make you add or swap assets.') }}</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
     <div class="card" style="margin-bottom: 20px;">
       <div class="form-row" style="margin-bottom: 10px; position:relative;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">{{ t('Add asset', 'Add asset') }}:</label>
-        <input type="search" placeholder="{{ t('Type to search assets… e.g. Stanbic, FGN, USD/NGN', 'Type make e search assets… e.g. Stanbic, FGN, USD/NGN') }}" [(ngModel)]="q" name="cmpSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+        <input type="search" placeholder="{{ t('Type to search assets… e.g. Stanbic, FGN, USD/NGN, MTNN', 'Type make e search assets… e.g. Stanbic, FGN, USD/NGN, MTNN') }}" [(ngModel)]="q" name="cmpSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
         <div class="sugg-dd" *ngIf="suggestions().length" style="position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2,#121a2e); border:1px solid var(--line); border-radius:8px; margin-top:2px; max-height:260px; overflow:auto;">
           <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="add(s.key)" style="display:flex; width:100%; justify-content:space-between; gap:10px; padding:8px 12px; background:none; border:0; cursor:pointer; color:inherit; font:inherit; text-align:left;">
             <span style="font-weight:700;">{{ s.label }}</span><span class="muted" style="font-size:11px;">{{ s.sub }} · {{ s.kind }}</span>
@@ -80,7 +80,7 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
         </tbody>
       </table>
       <p class="muted" style="font-size:11px;">{{ t('Yield = % change over the selected period. Green = best, red = worst.', 'Yield na di % change for di period wey you pick. Green na best, red na worst.') }}</p>
-      <p class="muted" style="font-size:11px;">{{ t('As of', 'As of') }} {{ asOf() }} — {{ t('sources: SEC NAV, DMO, CBN, fund publications.', 'sources: SEC NAV, DMO, CBN, fund publications.') }}</p>
+      <p class="muted" style="font-size:11px;">{{ t('As of', 'As of') }} {{ asOf() }} — {{ t('sources: SEC NAV, DMO, CBN, NGX (public), fund publications.', 'sources: SEC NAV, DMO, CBN, NGX, fund publications.') }}</p>
     </div>
 
     <app-edu-card
@@ -168,7 +168,7 @@ export class ComparePage implements OnInit, AfterViewInit {
 
   private applySelection() {
     if (this.defaultsApplied() || this.selected().length) return;
-    if (this.loadedSources < 4) return; // wait for funds+bonds+CP+FX
+    if (this.loadedSources < 5) return; // wait for funds+bonds+CP+FX+stocks
     if (this.sharedInterval) this.interval.set(this.sharedInterval);
     if (this.sharedKeys.length) {
       const valid = this.sharedKeys.filter(k => this.items().some(i => i.key === k));
@@ -319,6 +319,22 @@ export class ComparePage implements OnInit, AfterViewInit {
             { k: 'Rate', v: latest?.rate ?? '—' },
             { k: 'Date', v: latest?.date ?? '—' },
             { k: 'Source', v: latest?.source ?? '—' },
+          ],
+        });
+      }
+      push();
+    });
+    this.api.instruments().subscribe(ins => {
+      const eq = ins.filter((x: any) => (x.asset_type ?? '').toLowerCase().includes('equity'));
+      for (const s of eq) {
+        const spts = (s.price_history ?? []).slice().sort((x: any, y: any) => x.date.localeCompare(y.date)).map((h: any) => ({ date: h.date, value: Number(h.price) }));
+        all.push({
+          key: 'stock:' + s.symbol, label: s.symbol, sub: s.name, kind: 'stock', points: spts,
+          stats: [
+            { k: 'Name', v: s.name },
+            { k: 'Price', v: s.last_price ?? '—' },
+            { k: 'Sector', v: s.sector ?? '—' },
+            { k: 'History points', v: String(spts.length) },
           ],
         });
       }

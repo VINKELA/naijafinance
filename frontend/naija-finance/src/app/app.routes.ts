@@ -4,6 +4,7 @@ import { FundsPage } from './pages/funds';
 import { FxPage } from './pages/fx';
 import { AlertsPage } from './pages/alerts';
 import { MarketPage } from './pages/market';
+import { StocksPage } from './pages/stocks';
 import { ComparePage } from './pages/compare';
 import { AssetMixPage } from './pages/asset-mix';
 import { AssetPage } from './pages/asset';
@@ -18,6 +19,7 @@ export const routes: Routes = [
   { path: 'bonds', component: BondsPage, title: 'Bonds & Auctions' },
   { path: 'funds', component: FundsPage, title: 'Mutual Funds' },
   { path: 'fx', component: FxPage, title: 'CBN FX Rates' },
+  { path: 'stocks', component: StocksPage, title: 'Stocks & Prices' },
   { path: 'compare', component: ComparePage, title: 'Compare' },
   { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },

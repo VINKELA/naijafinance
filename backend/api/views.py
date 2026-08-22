@@ -746,11 +746,6 @@ def toggle_watchlist(request):
         return Response({"detail": "symbol or fund_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
-    if instrument.asset_class == 'EQUITY':
-        return Response(
-            {"detail": "Stocks aren't available yet — the watchlist accepts bonds, commercial papers, and funds only."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
     if watchlist.instruments.filter(id=instrument.id).exists():
         watchlist.instruments.remove(instrument)
         added = False

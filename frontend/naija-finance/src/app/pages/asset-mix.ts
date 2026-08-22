@@ -13,7 +13,7 @@ import { EDU_CONTENT } from '../edu-content';
 const PERF_NOTE = 'Past performance ≠ future returns. Shown for information only.';
 
 interface BuilderRow {
-  kind: 'bond' | 'cp' | 'fund';
+  kind: 'bond' | 'cp' | 'fund' | 'stock';
   symbol: string | null;
   fundId: number | null;
   label: string;
@@ -82,7 +82,7 @@ interface BuilderRow {
       </div>
       <div class="form-row" style="margin-bottom: 8px; flex-wrap: wrap;" *ngFor="let r of builder.rows; let i = index">
         <div style="position:relative; flex:1; min-width:200px;">
-          <input type="text" placeholder="{{ t('Search bond, CP or fund…', 'Sarch bond, CP or fund…') }}" [(ngModel)]="r.label" [name]="'bq'+i" (input)="onRowQuery(i)" (focus)="onRowQuery(i)" (keydown)="onRowKey($event, i)" autocomplete="off">
+          <input type="text" placeholder="{{ t('Search bond, CP, fund or stock…', 'Sarch bond, CP, fund or stok…') }}" [(ngModel)]="r.label" [name]="'bq'+i" (input)="onRowQuery(i)" (focus)="onRowQuery(i)" (keydown)="onRowKey($event, i)" autocomplete="off">
           <div class="sugg-dd" *ngIf="activeRow() === i && suggestions().length">
             <button type="button" class="sugg" *ngFor="let sg of suggestions(); let j = index" [class.on]="j === activeIndex()" (mousedown)="pickRow(i, sg)">
               <span class="s">{{ sg.label }}</span><span class="n">{{ sg.sub }}</span><span class="t">{{ sg.kind }}</span>
@@ -93,7 +93,7 @@ interface BuilderRow {
         <button type="button" class="ghost" (click)="builder.rows.splice(i,1)" *ngIf="builder.rows.length > 1">✕</button>
       </div>
       <button type="button" (click)="createMix()" [disabled]="creating">{{ creating ? t('Creating…', 'De create…') : t('Create mix', 'Make mix') }}</button>
-      <p class="muted" style="font-size:11.5px;margin-top:6px;">{{ t('Bonds, commercial papers and funds only — no stocks (NGX licence pending).', 'Bonds, commercial paper and funds only — no stocks (NGX licence dey come).') }}</p>
+      <p class="muted" style="font-size:11.5px;margin-top:6px;">{{ t('Bonds, commercial papers, funds and stocks — values at the latest published price/NAV.', 'Bonds, commercial paper, funds and stoks — values at di latest price/NAV wey dem publish.') }}</p>
     </div>
 
     <!-- My Mixes (signed in) -->
@@ -144,6 +144,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
   bonds = signal<any[]>([]);
   cps = signal<any[]>([]);
   funds = signal<any[]>([]);
+  stocks = signal<any[]>([]);
   myMixes = signal<any[]>([]);
   pubMixes = signal<any[]>([]);
   builder: { name: string; visibility: string; rows: BuilderRow[] } = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, label: '', value: 0 }] };
@@ -166,6 +167,7 @@ export class AssetMixPage implements OnInit, AfterViewInit {
     this.api.bonds().subscribe(bs => this.bonds.set(bs));
     this.api.commercialPapers().subscribe(cs => this.cps.set(cs));
     this.api.funds().subscribe(fs => this.funds.set(fs));
+    this.api.instruments().subscribe(ins => this.stocks.set(ins.filter((x: any) => (x.asset_type ?? '').toLowerCase().includes('equity'))));
     // Public gallery always
     this.api.publicMixes('').subscribe(mx => this.pubMixes.set(mx), () => {});
     // My mixes when authed
@@ -204,6 +206,11 @@ export class AssetMixPage implements OnInit, AfterViewInit {
       for (const f of this.funds()) {
         if ((f.name ?? '').toLowerCase().includes(q) || (f.manager ?? '').toLowerCase().includes(q)) {
           out.push({ label: f.name, sub: f.asset_class_display, kind: 'fund', symbol: null, fundId: f.id });
+        }
+      }
+      for (const s of this.stocks()) {
+        if ((s.symbol ?? '').toLowerCase().includes(q) || (s.name ?? '').toLowerCase().includes(q)) {
+          out.push({ label: s.symbol, sub: s.name, kind: 'stock', symbol: s.symbol, fundId: null });
         }
       }
     }

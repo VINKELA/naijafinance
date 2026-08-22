@@ -31,6 +31,8 @@ export class ApiService {
 
   // Company profiles (NGX-licensed; feature hidden until licence lands)
   companies(): Observable<CompanyProfile[]> { return this.http.get<CompanyProfile[]>(`${API_BASE}/companies/`); }
+  // All active instruments (stocks, bonds, CPs, FX) with price history
+  instruments(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/instruments/`); }
 
   // Threshold alerts
   alerts(): Observable<Alert[]> { return this.http.get<Alert[]>(`${API_BASE}/alerts/`, { headers: this.authHeaders() }); }
