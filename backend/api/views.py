@@ -567,6 +567,86 @@ def mix_card(request, token):
     return Response({"name": "Asset Mix", "asOf": timezone.localdate().isoformat(), "totalValue": 0, "items": []})
 
 
+def build_mix_value_series(snapshot, period_days=90):
+    """Aggregate value-over-time for a standalone Asset Mix (frozen snapshot).
+
+    Each snapshot item carries {symbol, class, value}. Instruments (stocks,
+    bonds, CPs, FX) are priced from PriceHistory close prices; fund rows use
+    NavSnapshot NAVs. Quantity is implied from the allocated value at the
+    latest price, so the series is a true aggregate in NGN. Un-priced items
+    hold flat at their allocated value. Returns [{date, value}] oldest-first,
+    forward-filling missing days with the last known price.
+    """
+    today = timezone.localdate()
+    start = today - timedelta(days=period_days)
+    items = (snapshot or {}).get('items') or []
+    if not items:
+        return []
+
+    resolved = []  # (qty, {date: price})
+    flat_value = Decimal('0.00')
+    for it in items:
+        value = Decimal(str(it.get('value') or '0'))
+        if value <= 0:
+            continue
+        symbol = (it.get('symbol') or '').strip()
+        if not symbol:
+            continue
+        inst = Instrument.objects.filter(symbol__iexact=symbol, is_active=True).first()
+        series = {}
+        if inst:
+            rows = list(
+                PriceHistory.objects
+                .filter(instrument=inst, date__gte=start, date__lte=today)
+                .order_by('date')
+                .values('date', 'close_price')
+            )
+            for r in rows:
+                series[r['date']] = float(r['close_price'] or 0)
+        else:
+            fund = Fund.objects.filter(name=symbol).first()
+            if fund:
+                rows = list(
+                    NavSnapshot.objects
+                    .filter(fund=fund, date__gte=start, date__lte=today)
+                    .order_by('date')
+                    .values('date', 'nav')
+                )
+                for r in rows:
+                    series[r['date']] = float(r['nav'] or 0)
+        if series:
+            last = series[max(series)]
+            qty = value / Decimal(str(last)) if last else Decimal('0.00')
+            if qty > 0:
+                resolved.append((qty, series))
+                continue
+        # Un-priced or unresolved: hold flat at the allocated value
+        flat_value += value
+
+    all_dates = sorted({d for _, s in resolved for d in s})
+    if not all_dates:
+        if flat_value:
+            return [
+                {"date": start.isoformat(), "value": round(float(flat_value), 2)},
+                {"date": today.isoformat(), "value": round(float(flat_value), 2)},
+            ]
+        return []
+
+    last_px = {}
+    points = []
+    for d in all_dates:
+        for i, (_, s) in enumerate(resolved):
+            if d in s:
+                last_px[i] = s[d]
+        total = flat_value
+        for i, (qty, _) in enumerate(resolved):
+            px = last_px.get(i)
+            if px is not None:
+                total += qty * Decimal(str(px))
+        points.append({"date": d.isoformat(), "value": round(float(total), 2)})
+    return points
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def mix_performance(request, token):
@@ -578,7 +658,7 @@ def mix_performance(request, token):
     if share.portfolio_id:
         points = build_portfolio_value_series(share.portfolio, period)
     else:
-        points = []  # frozen card — allocation stays, history is gone
+        points = build_mix_value_series(share.snapshot, period)
     return Response({"period_days": period, "points": points})
 
 @api_view(['POST'])

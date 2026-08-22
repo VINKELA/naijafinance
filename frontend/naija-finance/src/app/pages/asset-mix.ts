@@ -180,10 +180,9 @@ export class AssetMixPage implements OnInit, AfterViewInit {
       if (this.token) {
         this.loading = false;
         this.api.mixCard(this.token).subscribe({
-          next: (c) => { this.card.set(c); this.error = ''; },
+          next: (c) => { this.card.set(c); this.error = ''; setTimeout(() => this.loadPerformance(this.period), 0); },
           error: () => this.error = 'Mix not found — the link may be invalid or expired.',
         });
-        this.loadPerformance(this.period);
       }
     });
   }
@@ -274,10 +273,9 @@ export class AssetMixPage implements OnInit, AfterViewInit {
         if (this.token) {
           this.builder = { name: '', visibility: 'public', rows: [{ kind: 'bond', symbol: null, fundId: null, label: '', value: 0 }] };
           this.api.mixCard(this.token).subscribe({
-            next: (c) => { this.card.set(c); this.error = ''; },
+            next: (c) => { this.card.set(c); this.error = ''; setTimeout(() => this.loadPerformance(this.period), 0); },
             error: () => this.error = 'Could not load your mix.',
           });
-          this.loadPerformance(this.period);
           this.api.myMixes('').subscribe(mx => this.myMixes.set(mx), () => {});
         }
       },
