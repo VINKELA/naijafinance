@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
-from django.db.models import Q, Case, IntegerField, Value, When, OuterRef, Subquery
+from django.db.models import Q, Min, Case, IntegerField, Value, When, OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.decorators import api_view, permission_classes
@@ -497,13 +497,19 @@ def portfolio_performance(request, pk):
     """Value-over-time series for one portfolio (instruments via PriceHistory, funds via NAV).
 
     Period: 30/90/180/365 days (default 90). Display-only.
+    Each item contributes only from its own inception (S6); funds whose
+    inception had to be derived from data are listed in items_missing_inception.
     """
     portfolio = get_object_or_404(Portfolio, pk=pk, user=request.user)
     period = int(request.query_params.get('period', 90))
     if period not in (30, 90, 180, 365):
         period = 90
-    points = build_portfolio_value_series(portfolio, period)
-    return Response({"period_days": period, "points": points})
+    points, missing_inception = build_portfolio_value_series(portfolio, period, with_meta=True)
+    return Response({
+        "period_days": period,
+        "points": points,
+        "items_missing_inception": missing_inception,
+    })
 
 
 def _mix_card_rows(portfolio, item_ids=None):
@@ -567,24 +573,32 @@ def mix_card(request, token):
     return Response({"name": "Asset Mix", "asOf": timezone.localdate().isoformat(), "totalValue": 0, "items": []})
 
 
-def build_mix_value_series(snapshot, period_days=90):
+def build_mix_value_series(snapshot, period_days=90, with_meta=False):
     """Aggregate value-over-time for a standalone Asset Mix (frozen snapshot).
 
     Each snapshot item carries {symbol, class, value}. Instruments (stocks,
     bonds, CPs, FX) are priced from PriceHistory close prices; fund rows use
     NavSnapshot NAVs. Quantity is implied from the allocated value at the
-    latest price, so the series is a true aggregate in NGN. Un-priced items
-    hold flat at their allocated value. Returns [{date, value}] oldest-first,
-    forward-filling missing days with the last known price.
+    latest price, so the series is a true aggregate in NGN.
+
+    S6: each item contributes only from its OWN inception — max(asset/fund
+    inception date, period start) — never forward-filled across the whole
+    window. Fund model has no inception_date field yet, so the earliest
+    NavSnapshot date stands in and such items are reported via the
+    items_missing_inception list.
+
+    Returns [{date, value}] oldest-first; with with_meta=True returns
+    (points, items_missing_inception).
     """
     today = timezone.localdate()
     start = today - timedelta(days=period_days)
     items = (snapshot or {}).get('items') or []
     if not items:
-        return []
+        return ([], []) if with_meta else []
 
-    resolved = []  # (qty, {date: price})
+    resolved = []  # (qty, {date: price}, contributes_from)
     flat_value = Decimal('0.00')
+    missing_inception = []
     for it in items:
         value = Decimal(str(it.get('value') or '0'))
         if value <= 0:
@@ -594,7 +608,13 @@ def build_mix_value_series(snapshot, period_days=90):
             continue
         inst = Instrument.objects.filter(symbol__iexact=symbol, is_active=True).first()
         series = {}
+        inception = None
         if inst:
+            # Instrument inception: first day it has published prices.
+            inception = (
+                PriceHistory.objects.filter(instrument=inst)
+                .aggregate(first_date=Min('date'))['first_date']
+            )
             rows = list(
                 PriceHistory.objects
                 .filter(instrument=inst, date__gte=start, date__lte=today)
@@ -606,6 +626,14 @@ def build_mix_value_series(snapshot, period_days=90):
         else:
             fund = Fund.objects.filter(name=symbol).first()
             if fund:
+                # No explicit inception_date field on Fund yet (S6): fall back
+                # to the earliest NavSnapshot and flag it as missing inception.
+                inception = (
+                    NavSnapshot.objects.filter(fund=fund)
+                    .aggregate(first_nav_date=Min('date'))['first_nav_date']
+                )
+                if inception:
+                    missing_inception.append({"fund": fund.name})
                 rows = list(
                     NavSnapshot.objects
                     .filter(fund=fund, date__gte=start, date__lte=today)
@@ -618,33 +646,38 @@ def build_mix_value_series(snapshot, period_days=90):
             last = series[max(series)]
             qty = value / Decimal(str(last)) if last else Decimal('0.00')
             if qty > 0:
-                resolved.append((qty, series))
+                # Contribute only from own inception, clamped to period start.
+                contributes_from = max(inception, start) if inception else start
+                resolved.append((qty, series, contributes_from))
                 continue
         # Un-priced or unresolved: hold flat at the allocated value
         flat_value += value
 
-    all_dates = sorted({d for _, s in resolved for d in s})
+    all_dates = sorted({d for _, s, _ in resolved for d in s})
     if not all_dates:
+        points = []
         if flat_value:
-            return [
+            points = [
                 {"date": start.isoformat(), "value": round(float(flat_value), 2)},
                 {"date": today.isoformat(), "value": round(float(flat_value), 2)},
             ]
-        return []
+        return (points, missing_inception) if with_meta else points
 
     last_px = {}
     points = []
     for d in all_dates:
-        for i, (_, s) in enumerate(resolved):
+        for i, (_, s, contributes_from) in enumerate(resolved):
+            if d < contributes_from:
+                continue  # before this item's inception: no contribution, no carry-forward
             if d in s:
                 last_px[i] = s[d]
         total = flat_value
-        for i, (qty, _) in enumerate(resolved):
+        for i, (qty, _, _) in enumerate(resolved):
             px = last_px.get(i)
             if px is not None:
                 total += qty * Decimal(str(px))
         points.append({"date": d.isoformat(), "value": round(float(total), 2)})
-    return points
+    return (points, missing_inception) if with_meta else points
 
 
 @api_view(['GET'])
@@ -656,10 +689,14 @@ def mix_performance(request, token):
     if period not in (30, 90, 180, 365):
         period = 90
     if share.portfolio_id:
-        points = build_portfolio_value_series(share.portfolio, period)
+        points, missing_inception = build_portfolio_value_series(share.portfolio, period, with_meta=True)
     else:
-        points = build_mix_value_series(share.snapshot, period)
-    return Response({"period_days": period, "points": points})
+        points, missing_inception = build_mix_value_series(share.snapshot, period, with_meta=True)
+    return Response({
+        "period_days": period,
+        "points": points,
+        "items_missing_inception": missing_inception,
+    })
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -670,77 +707,6 @@ def create_mix_share(request):
     token = secrets.token_hex(6)
     share = MixShare.objects.create(token=token, user=request.user, portfolio=portfolio)
     return Response({"token": token, "url": f"/asset-mix?token={token}"}, status=status.HTTP_201_CREATED)
-
-
-def build_portfolio_value_series(portfolio, period_days=90):
-    """Daily total-value series for one portfolio over the period.
-
-    Instruments are valued with PriceHistory close prices; funds with
-    NavSnapshot NAVs. Returns [{date, value}] oldest-first; forward-fills
-    missing days with the last known price.
-    """
-    today = timezone.localdate()
-    start = today - timedelta(days=period_days)
-    items = list(portfolio.items.all())
-    if not items:
-        return []
-
-    # quantities per instrument / fund
-    inst_qty = defaultdict(lambda: Decimal('0.00'))
-    fund_qty = defaultdict(lambda: Decimal('0.00'))
-    for it in items:
-        if it.instrument_id:
-            inst_qty[it.instrument_id] += it.quantity
-        elif it.fund_id:
-            fund_qty[it.fund_id] += it.quantity
-
-    price_series = {}  # inst_id -> {date: price}
-    nav_series = {}    # fund_id -> {date: nav}
-
-    if inst_qty:
-        rows = list(
-            PriceHistory.objects
-            .filter(instrument_id__in=list(inst_qty.keys()), date__gte=start, date__lte=today)
-            .order_by('date')
-            .values('instrument_id', 'date', 'close_price')
-        )
-        for r in rows:
-            price_series.setdefault(r['instrument_id'], {})[r['date']] = float(r['close_price'] or 0)
-    if fund_qty:
-        rows = list(
-            NavSnapshot.objects
-            .filter(fund_id__in=list(fund_qty.keys()), date__gte=start, date__lte=today)
-            .order_by('date')
-            .values('fund_id', 'date', 'nav')
-        )
-        for r in rows:
-            nav_series.setdefault(r['fund_id'], {})[r['date']] = float(r['nav'] or 0)
-
-    all_dates = sorted({d for s in price_series.values() for d in s} | {d for s in nav_series.values() for d in s})
-    if not all_dates:
-        return []
-
-    last_price = {iid: None for iid in inst_qty}
-    last_nav = {fid: None for fid in fund_qty}
-    points = []
-    for d in all_dates:
-        for iid, s in price_series.items():
-            if d in s:
-                last_price[iid] = s[d]
-        for fid, s in nav_series.items():
-            if d in s:
-                last_nav[fid] = s[d]
-        value = Decimal('0.00')
-        for iid, qty in inst_qty.items():
-            p = last_price.get(iid)
-            if p is not None:
-                value += qty * Decimal(str(p))
-        for fid, qty in fund_qty.items():
-            n = last_nav.get(fid)
-            if n is not None:
-                value += qty * Decimal(str(n))
-        points.append({"date": d.isoformat(), "value": round(float(value), 2)})
-    return points
 
 
 @api_view(['GET'])
@@ -1504,18 +1470,26 @@ def revoke_mix(request, token):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-def build_portfolio_value_series(portfolio, period_days=90):
+def build_portfolio_value_series(portfolio, period_days=90, with_meta=False):
     """Daily total-value series for one portfolio over the period.
 
     Instruments are valued with PriceHistory close prices; funds with
-    NavSnapshot NAVs. Returns [{date, value}] oldest-first; forward-fills
-    missing days with the last known price.
+    NavSnapshot NAVs. Returns [{date, value}] oldest-first.
+
+    S6: each item contributes only from its OWN inception — max(asset/fund
+    inception date, period start) — never forward-filled across a
+    portfolio-wide window before the asset existed. The Fund model has no
+    inception_date field yet, so a fund's earliest NavSnapshot date stands
+    in; every fund resolved via that fallback is reported through the
+    items_missing_inception list (see portfolio_performance).
+
+    with_meta=True returns (points, items_missing_inception).
     """
     today = timezone.localdate()
     start = today - timedelta(days=period_days)
     items = list(portfolio.items.all())
     if not items:
-        return []
+        return ([], []) if with_meta else []
 
     # quantities per instrument / fund
     inst_qty = defaultdict(lambda: Decimal('0.00'))
@@ -1548,18 +1522,49 @@ def build_portfolio_value_series(portfolio, period_days=90):
         for r in rows:
             nav_series.setdefault(r['fund_id'], {})[r['date']] = float(r['nav'] or 0)
 
+    # S6: per-asset inception dates (batched).
+    inst_inception = {}
+    if inst_qty:
+        rows = (
+            Instrument.objects.filter(id__in=list(inst_qty.keys()))
+            .annotate(first_date=Min('price_history__date'))
+            .values_list('id', 'first_date')
+        )
+        inst_inception = {iid: d for iid, d in rows if d}
+    fund_inception = {}
+    missing_inception = []
+    if fund_qty:
+        rows = (
+            Fund.objects.filter(id__in=list(fund_qty.keys()))
+            .annotate(first_nav_date=Min('nav_snapshots__date'))
+            .values_list('id', 'name', 'first_nav_date')
+        )
+        for fid, name, first_nav in rows:
+            if first_nav:
+                fund_inception[fid] = first_nav
+                # No explicit inception_date field yet (S6): derived from data.
+                missing_inception.append({"fund_id": fid, "fund": name})
+
+    # Contribute only from own inception, clamped to the period start.
+    inst_from = {iid: max(d, start) for iid, d in inst_inception.items()}
+    fund_from = {fid: max(d, start) for fid, d in fund_inception.items()}
+
     all_dates = sorted({d for s in price_series.values() for d in s} | {d for s in nav_series.values() for d in s})
     if not all_dates:
-        return []
+        return ([], missing_inception) if with_meta else []
 
     last_price = {iid: None for iid in inst_qty}
     last_nav = {fid: None for fid in fund_qty}
     points = []
     for d in all_dates:
         for iid, s in price_series.items():
+            if d < inst_from.get(iid, start):
+                continue  # S6: no contribution or carry-forward before inception
             if d in s:
                 last_price[iid] = s[d]
         for fid, s in nav_series.items():
+            if d < fund_from.get(fid, start):
+                continue  # S6: no contribution or carry-forward before inception
             if d in s:
                 last_nav[fid] = s[d]
         value = Decimal('0.00')
@@ -1572,4 +1577,4 @@ def build_portfolio_value_series(portfolio, period_days=90):
             if n is not None:
                 value += qty * Decimal(str(n))
         points.append({"date": d.isoformat(), "value": round(float(value), 2)})
-    return points
+    return (points, missing_inception) if with_meta else points
