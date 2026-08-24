@@ -111,6 +111,65 @@ class FreeDataLayerTests(TestCase):
         self.assertEqual(data['latest_nav']['nav'], '1.2500')
         self.assertEqual(len(data['nav_history']), 1)
 
+    # S2: /api/funds/<id>/info — frozen 15-field schema with provenance
+    FUND_INFO_15 = [
+        'name', 'manager', 'asset_class',
+        'registrar_trustee', 'custodian', 'update_cadence', 'inception_date',
+        'benchmark', 'fee_breakdown', 'aum', 'minimum_investment',
+        'fact_sheet_url', 'sec_registration_status', 'risk_profile', 'currency',
+    ]
+
+    def test_f07_fund_info_all_15_fields_present(self):
+        resp = self.client.get(f'/api/funds/{self.fund.id}/info/')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        for field in self.FUND_INFO_15:
+            self.assertIn(field, data)
+            self.assertIn('value', data[field])
+            self.assertIn('source', data[field])
+
+    def test_f07_fund_info_missing_data_is_null_and_pending(self):
+        resp = self.client.get(f'/api/funds/{self.fund.id}/info/')
+        data = resp.json()
+        for field in ('registrar_trustee', 'custodian', 'inception_date',
+                      'aum', 'fact_sheet_url', 'sec_registration_status'):
+            self.assertIsNone(data[field]['value'], field)
+            self.assertEqual(data[field]['source'], 'pending_data_acquisition', field)
+
+    def test_f07_fund_info_known_values_keep_value_and_source(self):
+        resp = self.client.get(f'/api/funds/{self.fund.id}/info/')
+        data = resp.json()
+        self.assertEqual(data['name']['value'], 'Test Money Market Fund')
+        self.assertEqual(data['name']['source'], 'fund_manager_publication')
+        self.assertEqual(data['manager']['value'], 'Test Manager')
+        self.assertEqual(data['asset_class']['value'], 'MONEY_MARKET')
+        # currency is the honest system default for a Nigerian fund universe
+        self.assertEqual(data['currency']['value'], 'NGN')
+        self.assertEqual(data['currency']['source'], 'system_default')
+
+    def test_f07_fund_info_includes_nav_data(self):
+        resp = self.client.get(f'/api/funds/{self.fund.id}/info')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['latest_nav']['nav'], '1.2500')
+        self.assertEqual(len(data['nav_history']), 1)
+
+    def test_f07_fund_info_populated_field_attributed_not_pending(self):
+        self.fund.inception_date = date(2020, 3, 1)
+        self.fund.aum = Decimal('1250000000.00')
+        self.fund.save()
+        resp = self.client.get(f'/api/funds/{self.fund.id}/info/')
+        data = resp.json()
+        self.assertEqual(data['inception_date'], {'value': '2020-03-01', 'source': 'manual_admin_entry'})
+        self.assertEqual(data['aum'], {'value': '1250000000.00', 'source': 'manual_admin_entry'})
+
+    def test_f07_fund_info_404_unknown_or_inactive(self):
+        resp = self.client.get('/api/funds/999999/info/')
+        self.assertEqual(resp.status_code, 404)
+        inactive = Fund.objects.get(name='Inactive Fund')
+        resp = self.client.get(f'/api/funds/{inactive.id}/info/')
+        self.assertEqual(resp.status_code, 404)
+
     # CBN FX rates
     def test_f06_fx_rates_public_active_only(self):
         resp = self.client.get('/api/fx-rates/')

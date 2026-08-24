@@ -358,6 +358,22 @@ class Fund(TimeStampedModel):
     asset_class = models.CharField(max_length=20, choices=ASSET_CLASSES, default='OTHER')
     is_active = models.BooleanField(default=True)
 
+    # S2 fund-info schema (frozen 15-field payload). All nullable until real
+    # data is acquired from fund managers' published disclosures — null means
+    # "not yet acquired", never a guessed value.
+    registrar_trustee = models.CharField(max_length=255, blank=True, null=True)
+    custodian = models.CharField(max_length=255, blank=True, null=True)
+    update_cadence = models.CharField(max_length=50, blank=True, null=True)
+    inception_date = models.DateField(null=True, blank=True)
+    benchmark = models.CharField(max_length=255, blank=True, null=True)
+    fee_breakdown = models.JSONField(blank=True, null=True)
+    aum = models.DecimalField(max_digits=24, decimal_places=2, null=True, blank=True, help_text="Assets under management in NGN")
+    minimum_investment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Minimum initial investment in NGN")
+    fact_sheet_url = models.URLField(blank=True, null=True)
+    sec_registration_status = models.CharField(max_length=100, blank=True, null=True)
+    risk_profile = models.CharField(max_length=50, blank=True, null=True)
+    currency = models.CharField(max_length=10, default='NGN', blank=True)
+
     class Meta:
         ordering = ['name']
 

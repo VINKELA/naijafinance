@@ -143,7 +143,15 @@ class FundSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Fund
-        fields = ['id', 'name', 'manager', 'asset_class', 'asset_class_display', 'latest_nav', 'nav_history']
+        # S2: expose the extended fund-info schema alongside NAV data.
+        # Nulls are preserved as-is (no fabricated defaults).
+        fields = [
+            'id', 'name', 'manager', 'asset_class', 'asset_class_display',
+            'latest_nav', 'nav_history',
+            'registrar_trustee', 'custodian', 'update_cadence', 'inception_date',
+            'benchmark', 'fee_breakdown', 'aum', 'minimum_investment',
+            'fact_sheet_url', 'sec_registration_status', 'risk_profile', 'currency',
+        ]
 
     def get_latest_nav(self, obj):
         latest = obj.nav_snapshots.order_by('-date').first()

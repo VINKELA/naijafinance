@@ -949,6 +949,70 @@ def get_stock_detail(request, symbol):
 
     return Response(data)
 
+# --- S2: Fund info endpoint (frozen 15-field schema with provenance) ---
+
+SOURCE_PENDING = "pending_data_acquisition"
+
+# The frozen 15-field fund-info schema. Each field is reported as
+# {"value": <value or null>, "source": <provenance>}. A null value is honest:
+# it means the data has not been acquired yet — never a guessed placeholder.
+# Fields without a live ingestion pipeline yet are attributed
+# 'manual_admin_entry' when populated by hand; they must NEVER be auto-filled.
+FUND_INFO_FIELDS = [
+    # (field name on Fund, source attribution when a value exists)
+    ('name', 'fund_manager_publication'),
+    ('manager', 'fund_manager_publication'),
+    ('asset_class', 'fund_manager_publication'),
+    ('registrar_trustee', 'manual_admin_entry'),
+    ('custodian', 'manual_admin_entry'),
+    ('update_cadence', 'manual_admin_entry'),
+    ('inception_date', 'manual_admin_entry'),
+    ('benchmark', 'manual_admin_entry'),
+    ('fee_breakdown', 'manual_admin_entry'),
+    ('aum', 'manual_admin_entry'),
+    ('minimum_investment', 'manual_admin_entry'),
+    ('fact_sheet_url', 'manual_admin_entry'),
+    ('sec_registration_status', 'manual_admin_entry'),
+    ('risk_profile', 'manual_admin_entry'),
+]
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def fund_info(request, pk):
+    """Full 15-field fund-info payload with per-field source attribution.
+
+    Data honesty rule: where no real data exists yet, "value" is null and
+    "source" is "pending_data_acquisition". Values are never fabricated.
+    latest_nav / nav_history are included unchanged for convenience.
+    """
+    fund = get_object_or_404(Fund, id=pk, is_active=True)
+
+    info = {}
+    for field_name, source_with_value in FUND_INFO_FIELDS:
+        value = getattr(fund, field_name)
+        if value is None or value == '':
+            info[field_name] = {"value": None, "source": SOURCE_PENDING}
+        else:
+            if isinstance(value, Decimal):
+                value = str(value)  # exact decimal text; no float rounding
+            elif hasattr(value, 'isoformat'):
+                value = value.isoformat()
+            info[field_name] = {"value": value, "source": source_with_value}
+    # currency defaults to NGN at the model level; attribute honestly.
+    info['currency'] = {
+        "value": fund.currency or None,
+        "source": 'system_default' if (fund.currency or '') == 'NGN' else 'fund_manager_publication',
+    }
+
+    return Response({
+        "id": fund.id,
+        **info,
+        "latest_nav": FundSerializer(fund).data.get('latest_nav'),
+        "nav_history": FundSerializer(fund).data.get('nav_history'),
+    })
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_fund_detail(request, pk):
