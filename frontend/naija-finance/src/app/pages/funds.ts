@@ -60,7 +60,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
         <thead><tr><th>Fund</th><th>Manager</th><th>Class</th><th class="num">Latest NAV</th><th class="num">NAV date</th><th></th></tr></thead>
         <tbody>
           <tr *ngFor="let f of pagedFunds()">
-            <td class="sym"><a routerLink="/asset" [queryParams]="{type:'fund', id: f.id}">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
+            <td class="sym"><a [routerLink]="['/funds', f.id]">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
             <td class="num muted">{{ f.latest_nav?.date ?? '—' }}</td>

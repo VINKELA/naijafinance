@@ -15,12 +15,14 @@ export class LangService {
   readonly lang = signal<AppLang>('en');
 
   constructor() {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    // Storage can be unavailable (jsdom tests, privacy modes) — never crash boot.
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch { /* noop */ }
     // Allow deep-link override: ?lang=pidgin / ?lang=en
     const qp = new URLSearchParams(location.search).get('lang');
     if (qp === 'pidgin' || qp === 'en') {
       this.lang.set(qp);
-      localStorage.setItem(STORAGE_KEY, qp);
+      this.persist(qp);
     } else {
       this.lang.set(saved === 'pidgin' ? 'pidgin' : 'en');
     }
@@ -31,7 +33,7 @@ export class LangService {
 
   setLang(l: AppLang) {
     this.lang.set(l);
-    localStorage.setItem(STORAGE_KEY, l);
+    this.persist(l);
   }
 
   toggle(): AppLang {
@@ -43,5 +45,9 @@ export class LangService {
   /** Pick the string for the active language. */
   t(en: string, pidgin?: string): string {
     return this.isPidgin ? (pidgin ?? en) : en;
+  }
+
+  private persist(v: string) {
+    try { localStorage.setItem(STORAGE_KEY, v); } catch { /* noop */ }
   }
 }
