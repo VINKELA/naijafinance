@@ -70,6 +70,7 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
+      DATABASE_URL: "${DATABASE_URL}"
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
@@ -98,6 +99,7 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
+      DATABASE_URL: "${DATABASE_URL}"
       DJANGO_SECRET_KEY: "${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env or GitHub PRODUCTION_ENV}"
       DJANGO_DEBUG: "False"
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
