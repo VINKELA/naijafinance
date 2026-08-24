@@ -119,7 +119,7 @@ export class FundDetailPage implements OnInit, AfterViewInit {
       { label: this.t().totalReturn, value: d.changePct !== undefined ? (d.changePct === '—' ? '—' : `${d.changePct}%`) : '—' },
       { label: this.t().snapshots, value: Array.isArray(d.chart_data) ? String(d.chart_data.length) : '—' },
       { label: this.t().firstDate, value: d.chart_data?.[0]?.date ?? '—' },
-      { label: this.t().latestUpdate, value: d.chart_data?.length ? d.chart_data[d.chart_data.length - 1].date : '—' },
+      { label: this.t().latestUpdate, value: d.chart_data?.length ? 'as at ' + d.chart_data[d.chart_data.length - 1].date + ' · SEC weekly' : '—' },
       { label: this.t().cadence, value: `— (${this.t().cadenceMissing})` },
     ];
     if (d.about) rows.push({ label: this.t().about, value: d.about });

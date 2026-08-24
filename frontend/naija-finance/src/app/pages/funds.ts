@@ -63,7 +63,7 @@ const DISCLAIMER = 'All data on this page is provided for information and educat
             <td class="sym"><a [routerLink]="['/funds', f.id]">{{ f.name }}</a></td><td class="muted">{{ f.manager ?? '—' }}</td>
             <td>{{ f.asset_class_display }}</td>
             <td class="num">{{ f.latest_nav?.nav ?? '—' }}</td>
-            <td class="num muted">{{ f.latest_nav?.date ?? '—' }}</td>
+            <td class="num muted">{{ f.latest_nav ? 'as at ' + f.latest_nav.date + ' · SEC weekly' : '—' }}</td>
             <td><app-share-btn [text]="shareText(f)" [link]="'/funds?fund=' + f.id"></app-share-btn></td>
           </tr>
         </tbody>
