@@ -21,6 +21,7 @@ from django.urls import path, include
 from api.views import request_login_code, verify_login_code, check_email, user_me
 
 urlpatterns = [
+    path('api/data-status-public/', data_status_public),
     path('api/', include('api.urls')),
     path('auth/request-code/', request_login_code, name='root_request_code'),
     path('auth/verify-code/', verify_login_code, name='root_verify_code'),
