@@ -1,7 +1,7 @@
 """Public data-status endpoint (no auth, minimal fields).
    Imported by backend/urls.py for the public API status route."""
 from django.http import JsonResponse
-from api.models import MarketIndex, FxRate, AuctionCalendar, NavSnapshot
+from api.models import MarketIndex, FxRate, AuctionCalendar, NavSnapshot, Fund
 
 def data_status_public(request):
     """Public dataset freshness — lightweight, no auth required."""
@@ -48,12 +48,22 @@ def data_status_public(request):
     
     # SEC NAV
     nav = NavSnapshot.objects.order_by('-date').first()
+    latest_nav_date = nav.date if nav else None
     datasets.append({
         'key': 'sec_nav',
         'label': 'SEC NAV',
         'source': 'sec.gov.ng',
-        'last_updated': nav.date.isoformat() if nav else None,
+        'last_updated': latest_nav_date.isoformat() if latest_nav_date else None,
         'cadence_hours': 168,
+        # Coverage honesty: how many active funds actually carry the latest
+        # publication date — prevents a single fresh snapshot from masking
+        # stale payloads across the rest of the portfolio.
+        **({
+            'funds_at_latest': NavSnapshot.objects.filter(
+                fund__is_active=True, date=latest_nav_date,
+            ).values('fund').distinct().count(),
+            'funds_tracked': Fund.objects.filter(is_active=True).count(),
+        } if latest_nav_date else {}),
         'ready': nav is not None,
     })
     
