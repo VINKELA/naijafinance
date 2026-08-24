@@ -81,6 +81,8 @@ services:
       CSCS_TARGET_URL: "${CSCS_TARGET_URL:-}"
       CSCS_ACTIVE_JOB_STALE_HOURS: "${CSCS_ACTIVE_JOB_STALE_HOURS:-20}"
       CSCS_HEADLESS: "${CSCS_HEADLESS:-True}"
+      SEC_NAV_CSV_PATH: "${SEC_NAV_CSV_PATH:-}"
+      SEC_NAV_RUN_STALE_HOURS: "${SEC_NAV_RUN_STALE_HOURS:-2}"
       CHROME_BINARY_PATH: "/usr/bin/chromium"
       CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
     volumes:
@@ -105,6 +107,9 @@ services:
       CSCS_DAILY_UPDATE_HOUR: "${CSCS_DAILY_UPDATE_HOUR:-18}"
       CSCS_DAILY_UPDATE_MINUTE: "${CSCS_DAILY_UPDATE_MINUTE:-30}"
       CELERY_TIMEZONE: "${CELERY_TIMEZONE:-Africa/Lagos}"
+      SEC_NAV_DAILY_INGEST_ENABLED: "${SEC_NAV_DAILY_INGEST_ENABLED:-True}"
+      SEC_NAV_DAILY_UPDATE_HOUR: "${SEC_NAV_DAILY_UPDATE_HOUR:-6}"
+      SEC_NAV_DAILY_UPDATE_MINUTE: "${SEC_NAV_DAILY_UPDATE_MINUTE:-30}"
     volumes:
       - celerybeat_data:/app/celerybeat
     depends_on:

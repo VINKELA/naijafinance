@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -10,10 +11,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 # Updated to import the new hierarchical models
 from .models import (
-    ScrapeExecution, ScrapeTargetSymbol, 
+    ScrapeExecution, ScrapeTargetSymbol, DataIngestRun,
     Region, Currency, Market, Exchange, Instrument, PriceHistory
 )
 from .scrapers import CSCSScraper
+
+logger = logging.getLogger(__name__)
 
 
 def exchange_display_name(symbol):
@@ -44,6 +47,99 @@ GOOGLE_FINANCE_RETIRED_MESSAGE = (
     "Google Finance public-parse is retired (NF-5/6 NO-GO: exchange-licensed data "
     "without an NGX licence; Google ToS anti-scraping clauses). Licensed NGX feeds only."
 )
+
+
+# ==========================================
+# S1: scheduled daily SEC NAV ingestion
+# ==========================================
+
+def _notify_ingest_failure(run):
+    """Ops alert for a failed scheduled ingestion run.
+
+    The user-scoped Alert model is a threshold-alert for portfolio owners and
+    requires an owner FK, so it is not suitable for pipeline failures.
+    Instead the failure is (a) persisted on the DataIngestRun row — the
+    system of record, visible in Django admin — and (b) escalated via the
+    standard admin-email path when ADMINS/EMAIL settings are configured.
+    Email delivery itself is out of scope here and notification errors are
+    logged, never raised.
+    """
+    logger.error("[%s] ingestion run #%s failed: %s", run.source, run.pk, run.error_message)
+    try:
+        from django.conf import settings as dj_settings
+        from django.core.mail import mail_admins
+        if getattr(dj_settings, 'ADMINS', ()):
+            mail_admins(
+                f"[{run.source}] scheduled ingestion failed (run #{run.pk})",
+                f"Run #{run.pk} started {run.started_at:%Y-%m-%d %H:%M %Z} FAILED:\n\n"
+                f"{run.error_message or 'unknown error'}\n",
+            )
+    except Exception:
+        logger.warning("Could not send admin email for ingest run #%s", run.pk, exc_info=True)
+
+
+@shared_task
+def run_sec_nav_ingest(csv_path=None):
+    """Scheduled daily SEC NAV update (S1).
+
+    Runs the ingest_sec_nav management command against SEC_NAV_CSV_PATH,
+    records every attempt as a DataIngestRun row, and raises an ops alert
+    on failure. With no CSV configured the run is recorded as SKIPPED (not
+    an alert-worthy failure) so the beat schedule can be enabled before the
+    data-drop automation lands.
+    """
+    # Overlap guard, mirroring start_daily_cscs_update.
+    stale_cutoff = timezone.now() - timedelta(hours=env_int('SEC_NAV_RUN_STALE_HOURS', 2))
+    active = (
+        DataIngestRun.objects
+        .filter(source='SEC_NAV', status='RUNNING')
+        .order_by('-started_at')
+        .first()
+    )
+    if active:
+        if active.started_at < stale_cutoff:
+            active.status = 'FAILED'
+            active.error_message = 'Marked stale by the daily SEC NAV scheduler.'
+            active.finished_at = timezone.now()
+            active.save(update_fields=['status', 'error_message', 'finished_at'])
+        else:
+            return {"started": False, "reason": "A SEC NAV ingest run is already in progress."}
+
+    path = (csv_path or os.getenv('SEC_NAV_CSV_PATH', '')).strip()
+    run = DataIngestRun.objects.create(source='SEC_NAV')
+    if not path:
+        run.status = 'SKIPPED'
+        run.error_message = 'SEC_NAV_CSV_PATH not configured; nothing to ingest.'
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'error_message', 'finished_at'])
+        return {"started": False, "status": "SKIPPED", "reason": run.error_message}
+    if not os.path.exists(path):
+        run.status = 'FAILED'
+        run.error_message = f'NAV CSV not found at SEC_NAV_CSV_PATH: {path}'
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'error_message', 'finished_at'])
+        _notify_ingest_failure(run)
+        return {"started": True, "status": "FAILED", "error": run.error_message}
+
+    try:
+        from .management.commands.ingest_sec_nav import import_nav_csv
+        result = import_nav_csv(path) or {}
+        run.rows_ingested = int(result.get('created', 0))
+        run.status = 'SUCCESS'
+        return {
+            "started": True,
+            "status": "SUCCESS",
+            "rows_ingested": run.rows_ingested,
+            "skipped_rows": int(result.get('skipped', 0)),
+        }
+    except Exception as exc:
+        run.status = 'FAILED'
+        run.error_message = str(exc)[:2000]
+        _notify_ingest_failure(run)
+        return {"started": True, "status": "FAILED", "error": run.error_message}
+    finally:
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])
 
 
 def cscs_scraping_enabled():

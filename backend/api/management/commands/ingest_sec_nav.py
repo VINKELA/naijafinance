@@ -11,10 +11,42 @@ downloaded from sec.gov.ng and imported via:
 
 Expected CSV format: fund_name,date,nav
 """
-import csv, sys
-from datetime import date, datetime
+import csv
+from datetime import date
 from django.core.management.base import BaseCommand
 from api.models import Fund, NavSnapshot
+
+
+def import_nav_csv(filepath, warn=None):
+    """Import NAV rows from a CSV file (fund_name,date,nav).
+
+    Shared by the ``ingest_sec_nav`` management command and the scheduled
+    ``run_sec_nav_ingest`` task (S1). Returns {'created': int, 'skipped': int};
+    raises on malformed input so callers can fail their run logs.
+    """
+    warn = warn or (lambda msg: None)
+    created = 0
+    skipped = 0
+    with open(filepath, newline='') as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            name = row.get('fund_name', '').strip()
+            nav_date = date.fromisoformat(row['date'].strip())
+            nav_value = row['nav'].strip()
+
+            fund = Fund.objects.filter(name__iexact=name, is_active=True).first()
+            if not fund:
+                warn(f'  Fund not found: {name}, skipping')
+                skipped += 1
+                continue
+
+            _, is_new = NavSnapshot.objects.update_or_create(
+                fund=fund, date=nav_date,
+                defaults={'nav': nav_value}
+            )
+            if is_new:
+                created += 1
+    return {'created': created, 'skipped': skipped}
 
 
 class Command(BaseCommand):
@@ -37,23 +69,10 @@ class Command(BaseCommand):
                 self.stdout.write(f'  {f.name}: latest NAV = {latest.nav if latest else "N/A"} ({latest.date if latest else "no data"})')
             return
 
-        created = 0
-        with open(filepath, newline='') as fh:
-            reader = csv.DictReader(fh)
-            for row in reader:
-                name = row.get('fund_name', '').strip()
-                nav_date = date.fromisoformat(row['date'].strip())
-                nav_value = row['nav'].strip()
-
-                fund = Fund.objects.filter(name__iexact=name, is_active=True).first()
-                if not fund:
-                    self.stdout.write(self.style.WARNING(f'  Fund not found: {name}, skipping'))
-                    continue
-
-                _, is_new = NavSnapshot.objects.update_or_create(
-                    fund=fund, date=nav_date,
-                    defaults={'nav': nav_value}
-                )
-                if is_new: created += 1
-
-        self.stdout.write(self.style.SUCCESS(f'SEC NAV imported: {created} new snapshots'))
+        result = import_nav_csv(
+            filepath,
+            warn=lambda msg: self.stdout.write(self.style.WARNING(msg)),
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f"SEC NAV imported: {result['created']} new snapshots"
+        ))

@@ -1,5 +1,8 @@
-from datetime import date
+import os
+import tempfile
+from datetime import date, timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -10,8 +13,13 @@ from .models import (
     Region, Currency, Market, Exchange, Issuer, Instrument,
     AuctionCalendar, Fund, NavSnapshot, FxRate, CompanyProfile, Alert,
     ScrapeExecution, PriceHistory, MarketIndex, NewsArticle, EarningsCalendar,
+    Portfolio, PortfolioItem, DataIngestRun,
 )
-from .tasks import start_daily_cscs_update, run_stateful_scrape, CSCS_SCRAPER_RETIRED_MESSAGE
+from .tasks import (
+    start_daily_cscs_update, run_stateful_scrape, run_sec_nav_ingest,
+    CSCS_SCRAPER_RETIRED_MESSAGE,
+)
+from .views import build_portfolio_value_series, build_mix_value_series
 
 
 def make_fixture():
@@ -353,3 +361,162 @@ class MockMarketDataTests(TestCase):
         resp = self.client.get('/api/earnings/')
         self.assertEqual(resp.status_code, 200)
         self.assertGreaterEqual(len(resp.json()), 1)
+
+
+class SecNavIngestTests(TestCase):
+    """S1: scheduled daily SEC NAV ingestion — run logging + failure alerting."""
+
+    def setUp(self):
+        self.fund = Fund.objects.create(
+            name='Stanbic Money Market Fund', asset_class='MONEY_MARKET',
+        )
+
+    def _write_csv(self, content):
+        fh = tempfile.NamedTemporaryFile('w', suffix='.csv', delete=False)
+        fh.write(content)
+        fh.close()
+        self.addCleanup(os.unlink, fh.name)
+        return fh.name
+
+    def test_no_csv_configured_logs_skipped_run(self):
+        with mock.patch.dict(os.environ, {'SEC_NAV_CSV_PATH': ''}):
+            result = run_sec_nav_ingest()
+        self.assertEqual(result['status'], 'SKIPPED')
+        run = DataIngestRun.objects.get()
+        self.assertEqual(run.status, 'SKIPPED')
+        self.assertIn('not configured', run.error_message)
+
+    def test_successful_import_logs_run_and_rows(self):
+        path = self._write_csv(
+            'fund_name,date,nav\n'
+            f'{self.fund.name},2026-08-21,125.4100\n'
+        )
+        result = run_sec_nav_ingest(csv_path=path)
+        self.assertEqual(result['status'], 'SUCCESS')
+        self.assertEqual(result['rows_ingested'], 1)
+        run = DataIngestRun.objects.get()
+        self.assertEqual(run.status, 'SUCCESS')
+        self.assertEqual(run.rows_ingested, 1)
+        self.assertIsNotNone(run.finished_at)
+        self.assertTrue(
+            NavSnapshot.objects.filter(fund=self.fund, date=date(2026, 8, 21)).exists()
+        )
+
+    def test_missing_csv_fails_run_with_error(self):
+        result = run_sec_nav_ingest(csv_path='/nonexistent/nav.csv')
+        self.assertEqual(result['status'], 'FAILED')
+        run = DataIngestRun.objects.get()
+        self.assertEqual(run.status, 'FAILED')
+        self.assertIn('not found', run.error_message)
+        self.assertIsNotNone(run.finished_at)
+
+    def test_malformed_csv_fails_run(self):
+        path = self._write_csv(
+            'fund_name,date,nav\n'
+            f'{self.fund.name},not-a-date,1.00\n'
+        )
+        result = run_sec_nav_ingest(csv_path=path)
+        self.assertEqual(result['status'], 'FAILED')
+        run = DataIngestRun.objects.get()
+        self.assertEqual(run.status, 'FAILED')
+
+    def test_overlap_guard_skips_when_fresh_run_in_progress(self):
+        DataIngestRun.objects.create(source='SEC_NAV', status='RUNNING')
+        result = run_sec_nav_ingest(csv_path='/nonexistent/nav.csv')
+        self.assertEqual(result['started'], False)
+        self.assertIn('already in progress', result['reason'])
+        # No new run row created by the guarded invocation
+        self.assertEqual(DataIngestRun.objects.count(), 1)
+
+    def test_stale_running_run_is_marked_failed_then_replaced(self):
+        stale = DataIngestRun.objects.create(source='SEC_NAV', status='RUNNING')
+        DataIngestRun.objects.filter(pk=stale.pk).update(
+            started_at=timezone.now() - timedelta(hours=3),
+        )
+        with mock.patch.dict(os.environ, {'SEC_NAV_CSV_PATH': ''}):
+            result = run_sec_nav_ingest()
+        stale.refresh_from_db()
+        self.assertEqual(stale.status, 'FAILED')
+        self.assertIn('stale', stale.error_message.lower())
+        self.assertEqual(result['status'], 'SKIPPED')  # replacement run
+
+    def test_beat_schedule_has_daily_ingest_entry(self):
+        from django.conf import settings
+        entry = settings.CELERY_BEAT_SCHEDULE.get('sec-nav-daily-ingest')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry['task'], 'api.tasks.run_sec_nav_ingest')
+
+
+class PortfolioInceptionSeriesTests(TestCase):
+    """S6: per-asset inception dates in portfolio value series."""
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_user(email='s6@test.com', password='testpass123')
+        self.portfolio = Portfolio.objects.create(user=self.user, name='S6 Portfolio')
+        today = timezone.localdate()
+        # Old fund: NAV history predating the window start.
+        self.old_fund = Fund.objects.create(name='Old Fund')
+        NavSnapshot.objects.create(fund=self.old_fund, date=today - timedelta(days=25), nav=Decimal('1.00'))
+        NavSnapshot.objects.create(fund=self.old_fund, date=today, nav=Decimal('2.00'))
+        # New fund launched mid-window (5 days ago).
+        self.new_fund = Fund.objects.create(name='New Fund')
+        NavSnapshot.objects.create(fund=self.new_fund, date=today - timedelta(days=5), nav=Decimal('10.00'))
+        NavSnapshot.objects.create(fund=self.new_fund, date=today, nav=Decimal('20.00'))
+        PortfolioItem.objects.create(portfolio=self.portfolio, fund=self.old_fund, quantity=Decimal('100'), purchase_price=Decimal('1.00'))
+        PortfolioItem.objects.create(portfolio=self.portfolio, fund=self.new_fund, quantity=Decimal('1'), purchase_price=Decimal('10.00'))
+
+    def test_each_item_contributes_only_from_own_inception(self):
+        points, missing = build_portfolio_value_series(self.portfolio, 30, with_meta=True)
+        today = timezone.localdate()
+        by_date = {p['date']: p['value'] for p in points}
+        # Series starts at the OLD fund's inception, not earlier.
+        first_expected = (today - timedelta(days=25)).isoformat()
+        self.assertEqual(points[0]['date'], first_expected)
+        # At old-fund inception only the old fund counts (no phantom forward-fill
+        # of the not-yet-launched new fund across the window).
+        self.assertEqual(by_date[first_expected], 100.0)
+        # On the new fund's launch day: old (forward-filled within its own data) + new.
+        d_new = (today - timedelta(days=5)).isoformat()
+        self.assertEqual(by_date[d_new], 110.0)
+        # Today: both funds at latest NAVs.
+        self.assertEqual(by_date[today.isoformat()], 220.0)
+        # Both funds' inceptions were derived from data (no explicit field yet).
+        ids = {m['fund_id'] for m in missing}
+        self.assertEqual(ids, {self.old_fund.id, self.new_fund.id})
+
+    def test_plain_call_keeps_backwards_compatible_signature(self):
+        points = build_portfolio_value_series(self.portfolio, 30)
+        self.assertIsInstance(points, list)
+        self.assertTrue(all('date' in p and 'value' in p for p in points))
+
+    def test_performance_endpoint_reports_missing_inception(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        resp = client.get(f'/api/portfolios/{self.portfolio.id}/performance/')
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn('items_missing_inception', body)
+        ids = {m['fund_id'] for m in body['items_missing_inception']}
+        self.assertEqual(ids, {self.old_fund.id, self.new_fund.id})
+        self.assertEqual(body['period_days'], 90)  # default period untouched
+
+
+class MixInceptionSeriesTests(TestCase):
+    """S6 equivalent gating for standalone Asset Mix series."""
+
+    def test_mix_series_flags_fund_without_inception_field(self):
+        fund = Fund.objects.create(name='Mix Fund')
+        first_nav_date = timezone.localdate() - timedelta(days=5)
+        NavSnapshot.objects.create(fund=fund, date=first_nav_date, nav=Decimal('10.00'))
+        snapshot = {"items": [{"symbol": "Mix Fund", "asset_class": "Fund · Money Market", "value": 1000}]}
+        points, missing = build_mix_value_series(snapshot, 30, with_meta=True)
+        self.assertEqual(missing, [{"fund": "Mix Fund"}])
+        # Series starts at the fund's own inception, not the window start.
+        self.assertEqual([p['date'] for p in points], [first_nav_date.isoformat()])
+        self.assertEqual(points[0]['value'], 1000.0)
+
+    def test_mix_series_plain_call_backwards_compatible(self):
+        points = build_mix_value_series({"items": []}, 30)
+        self.assertEqual(points, [])

@@ -379,6 +379,32 @@ class NavSnapshot(TimeStampedModel):
         return f"{self.fund.name} NAV {self.nav} @ {self.date}"
 
 
+class DataIngestRun(models.Model):
+    """One execution of a scheduled data-ingestion job (S1: daily SEC NAV).
+
+    Minimal run log: status + timestamps + row count, so ops can see whether
+    the scheduled pipeline is alive without touching container logs.
+    """
+    STATUSES = [
+        ('RUNNING', 'Running'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+        ('SKIPPED', 'Skipped'),
+    ]
+    source = models.CharField(max_length=50, default='SEC_NAV', db_index=True)
+    status = models.CharField(max_length=20, choices=STATUSES, default='RUNNING')
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    rows_ingested = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"{self.source} #{self.pk} {self.status} @ {self.started_at:%Y-%m-%d %H:%M}" 
+
+
 class FxRate(TimeStampedModel):
     """Official published exchange rate (CBN window / public release)."""
     pair = models.CharField(max_length=20, db_index=True, help_text="e.g., USD/NGN, GBP/NGN, EUR/NGN")
