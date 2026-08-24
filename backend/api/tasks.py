@@ -53,29 +53,38 @@ GOOGLE_FINANCE_RETIRED_MESSAGE = (
 # S1: scheduled daily SEC NAV ingestion
 # ==========================================
 
+# DataIngestRun pks whose failure has already been escalated by email, so a
+# scheduler retry of the same failed run cannot spam duplicate ops emails.
+_NOTIFIED_INGEST_FAILURES = set()
+
+
 def _notify_ingest_failure(run):
-    """Ops alert for a failed scheduled ingestion run.
+    """Ops alert email (S5) for a failed scheduled ingestion run.
 
     The user-scoped Alert model is a threshold-alert for portfolio owners and
     requires an owner FK, so it is not suitable for pipeline failures.
     Instead the failure is (a) persisted on the DataIngestRun row — the
-    system of record, visible in Django admin — and (b) escalated via the
-    standard admin-email path when ADMINS/EMAIL settings are configured.
-    Email delivery itself is out of scope here and notification errors are
-    logged, never raised.
+    system of record, visible in Django admin — and (b) escalated once per
+    failed run via email to ALERT_OPS_EMAIL (defaults to DEFAULT_FROM_EMAIL).
+    Notification errors are logged, never raised.
     """
     logger.error("[%s] ingestion run #%s failed: %s", run.source, run.pk, run.error_message)
+    if run.pk in _NOTIFIED_INGEST_FAILURES:
+        return
     try:
         from django.conf import settings as dj_settings
-        from django.core.mail import mail_admins
-        if getattr(dj_settings, 'ADMINS', ()):
-            mail_admins(
-                f"[{run.source}] scheduled ingestion failed (run #{run.pk})",
-                f"Run #{run.pk} started {run.started_at:%Y-%m-%d %H:%M %Z} FAILED:\n\n"
-                f"{run.error_message or 'unknown error'}\n",
-            )
+        from django.core.mail import send_mail
+        send_mail(
+            f"[{run.source}] scheduled ingestion failed (run #{run.pk})",
+            f"Run #{run.pk} started {run.started_at:%Y-%m-%d %H:%M %Z} FAILED:\n\n"
+            f"{run.error_message or 'unknown error'}\n",
+            dj_settings.DEFAULT_FROM_EMAIL,
+            [dj_settings.ALERT_OPS_EMAIL or dj_settings.DEFAULT_FROM_EMAIL],
+            fail_silently=False,
+        )
+        _NOTIFIED_INGEST_FAILURES.add(run.pk)
     except Exception:
-        logger.warning("Could not send admin email for ingest run #%s", run.pk, exc_info=True)
+        logger.warning("Could not send ops email for ingest run #%s", run.pk, exc_info=True)
 
 
 @shared_task

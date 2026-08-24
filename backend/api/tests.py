@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from unittest import mock
 
+from django.core import mail
 from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
@@ -17,7 +18,7 @@ from .models import (
 )
 from .tasks import (
     start_daily_cscs_update, run_stateful_scrape, run_sec_nav_ingest,
-    CSCS_SCRAPER_RETIRED_MESSAGE,
+    _notify_ingest_failure, CSCS_SCRAPER_RETIRED_MESSAGE,
 )
 from .views import build_portfolio_value_series, build_mix_value_series
 
@@ -504,6 +505,58 @@ class SecNavIngestTests(TestCase):
         entry = settings.CELERY_BEAT_SCHEDULE.get('sec-nav-daily-ingest')
         self.assertIsNotNone(entry)
         self.assertEqual(entry['task'], 'api.tasks.run_sec_nav_ingest')
+
+
+class S5EmailNotificationTests(TestCase):
+    """S5: email notifications — ops alert on failed ingest + user alert trigger."""
+
+    def setUp(self):
+        from . import tasks as api_tasks
+        # Run pks repeat across test transactions; reset the escalation guard.
+        api_tasks._NOTIFIED_INGEST_FAILURES.clear()
+        self.fund = Fund.objects.create(
+            name='Stanbic Money Market Fund', asset_class='MONEY_MARKET',
+        )
+
+    def _write_csv(self, content):
+        fh = tempfile.NamedTemporaryFile('w', suffix='.csv', delete=False)
+        fh.write(content)
+        fh.close()
+        self.addCleanup(os.unlink, fh.name)
+        return fh.name
+
+    # --- ops email on scheduled ingest failure ---
+
+    def test_failed_run_sends_single_ops_email(self):
+        from django.conf import settings
+        result = run_sec_nav_ingest(csv_path='/nonexistent/nav.csv')
+        self.assertEqual(result['status'], 'FAILED')
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, [settings.ALERT_OPS_EMAIL])
+        self.assertIn('SEC_NAV', msg.subject)
+        self.assertIn('FAILED', msg.body)
+        self.assertIn('not found', msg.body)
+
+    def test_failed_run_email_sent_once_per_run(self):
+        run = DataIngestRun.objects.create(
+            source='SEC_NAV', status='FAILED', error_message='boom',
+        )
+        _notify_ingest_failure(run)
+        _notify_ingest_failure(run)  # duplicate escalation for the same run
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_successful_and_skipped_runs_send_no_email(self):
+        path = self._write_csv(
+            'fund_name,date,nav\n'
+            f'{self.fund.name},2026-08-21,125.4100\n'
+        )
+        result = run_sec_nav_ingest(csv_path=path)
+        self.assertEqual(result['status'], 'SUCCESS')
+        with mock.patch.dict(os.environ, {'SEC_NAV_CSV_PATH': ''}):
+            skipped = run_sec_nav_ingest()
+        self.assertEqual(skipped['status'], 'SKIPPED')
+        self.assertEqual(len(mail.outbox), 0)
 
 
 class PortfolioInceptionSeriesTests(TestCase):

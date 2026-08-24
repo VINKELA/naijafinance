@@ -254,3 +254,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'hello@naijafinancehub.com')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+# S5: recipient for pipeline ops-alert emails (e.g. scheduled ingest failures).
+# Defaults to DEFAULT_FROM_EMAIL so alerts are deliverable with zero extra config.
+ALERT_OPS_EMAIL = os.getenv('ALERT_OPS_EMAIL', DEFAULT_FROM_EMAIL)
