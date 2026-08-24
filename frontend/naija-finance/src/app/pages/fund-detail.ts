@@ -17,7 +17,7 @@ const STRINGS = {
     snapshots: 'Published NAV snapshots', firstDate: 'First NAV date', latestUpdate: 'Latest update',
     noNav: 'No NAV history published yet for this fund.', back: '← All funds',
     cadenceMissing: 'Not yet provided by the data source.',
-    name: 'Name', id: 'ID', about: 'About',
+    name: 'Name', about: 'About',
     share: 'Share',
   },
   pcm: {
@@ -28,7 +28,7 @@ const STRINGS = {
     snapshots: 'Number of NAV wey dem don publish', firstDate: 'First NAV date', latestUpdate: 'Last time wey dem update am',
     noNav: 'Dem never publish any NAV history for dis fund.', back: '← All funds',
     cadenceMissing: 'Di data source never give us dis one yet.',
-    name: 'Name', id: 'ID', about: 'About am',
+    name: 'Name', about: 'About am',
     share: 'Share',
   },
 };
@@ -112,7 +112,6 @@ export class FundDetailPage implements OnInit, AfterViewInit {
     if (!d) return [];
     const rows = [
       { label: this.t().name, value: d.name ?? '—' },
-      { label: this.t().id, value: String(d.id ?? '—') },
       { label: this.t().assetClass, value: d.asset_type ?? '—' },
       { label: this.t().manager, value: d.manager && d.manager !== '—' ? d.manager : '—' },
       { label: this.t().latestNav, value: d.price ?? '—' },
