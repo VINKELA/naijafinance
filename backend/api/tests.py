@@ -558,6 +558,63 @@ class S5EmailNotificationTests(TestCase):
         self.assertEqual(skipped['status'], 'SKIPPED')
         self.assertEqual(len(mail.outbox), 0)
 
+    # --- user email on alert trigger ---
+
+    def _make_price_alert(self, user, threshold='95.00'):
+        currency, exchange, issuer = make_fixture()
+        bond = make_bond(exchange, currency, issuer)
+        return Alert.objects.create(
+            user=user, instrument=bond, alert_type='PRICE',
+            threshold=Decimal(threshold), direction='ABOVE', active=True,
+        )
+
+    def test_triggered_alert_sends_owner_email(self):
+        from django.contrib.auth import get_user_model
+        from django.conf import settings
+        User = get_user_model()
+        user = User.objects.create_user(email='owner@test.com', password='testpass123')
+        alert = self._make_price_alert(user)
+
+        call_command('run_alert_eval')
+        alert.refresh_from_db()
+
+        self.assertTrue(alert.triggered)
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, ['owner@test.com'])
+        self.assertEqual(msg.from_email, settings.DEFAULT_FROM_EMAIL)
+        self.assertIn(alert.instrument.symbol, msg.subject)
+        self.assertIn(alert.instrument.symbol, msg.body)
+        self.assertIn('95.00', msg.body)          # threshold
+        self.assertIn('100.000000', msg.body)     # current value
+        self.assertIn(str(timezone.localdate()), msg.body)
+
+    def test_triggered_alert_not_resent_while_condition_holds(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.create_user(email='owner@test.com', password='testpass123')
+        self._make_price_alert(user)
+
+        call_command('run_alert_eval')
+        call_command('run_alert_eval')
+
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_no_email_when_condition_clears_or_user_has_no_email(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        no_email_user = User.objects.create_user(email='temp@test.com', password='x')
+        # create_user rejects a blank email, so blank it after creation to
+        # simulate an account without an address.
+        User.objects.filter(pk=no_email_user.pk).update(email='')
+        alert = self._make_price_alert(no_email_user)
+
+        call_command('run_alert_eval')
+        alert.refresh_from_db()
+
+        self.assertTrue(alert.triggered)
+        self.assertEqual(len(mail.outbox), 0)
+
 
 class PortfolioInceptionSeriesTests(TestCase):
     """S6: per-asset inception dates in portfolio value series."""
