@@ -30,7 +30,12 @@ def data_status_public(request):
     })
     
     # DMO Auctions
-    auc = AuctionCalendar.objects.order_by('-auction_date').first()
+    # "last_updated" = most recent auction that has already occurred; upcoming
+    # scheduled auctions are calendar entries, not data updates.
+    from django.utils import timezone as dj_tz
+    today = dj_tz.localdate()
+    auc = AuctionCalendar.objects.filter(auction_date__lte=today).order_by('-auction_date').first()
+    nxt = AuctionCalendar.objects.filter(auction_date__gt=today).order_by('auction_date').first()
     datasets.append({
         'key': 'dmo_auctions',
         'label': 'DMO Auctions',
@@ -38,6 +43,7 @@ def data_status_public(request):
         'last_updated': auc.auction_date.isoformat() if auc else None,
         'cadence_hours': 24,
         'ready': auc is not None,
+        **({'next_auction': nxt.auction_date.isoformat()} if nxt else {}),
     })
     
     # SEC NAV
