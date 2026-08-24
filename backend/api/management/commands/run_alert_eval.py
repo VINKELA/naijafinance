@@ -1,15 +1,58 @@
-"""Evaluate active user threshold alerts (Sprint 1).
+"""Evaluate active user threshold alerts.
 
 Sets the `triggered` flag / `triggered_at` / `last_value` on alerts whose
-current data point crosses the threshold. No notification plumbing yet.
+current data point crosses the threshold, and emails the owner once on each
+not-triggered -> triggered transition (S5).
 
 Usage:
     python manage.py run_alert_eval
 """
+import logging
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from api.models import Alert, NavSnapshot
+
+logger = logging.getLogger(__name__)
+
+
+def _notify_alert_triggered(alert):
+    """Email an alert's owner the first time their alert triggers (S5).
+
+    Only called on the not-triggered -> triggered transition, so repeated
+    evaluations while the condition stays true do not resend. Users without
+    an email address are silently skipped. Mail errors are logged and never
+    raised so a mail outage cannot break the evaluation loop.
+    """
+    recipient = (alert.user.email or '').strip()
+    if not recipient:
+        return False
+    if alert.instrument_id:
+        target = alert.instrument.symbol
+    elif alert.fund_id:
+        target = alert.fund.name
+    else:
+        target = alert.get_alert_type_display()
+    try:
+        from django.conf import settings as dj_settings
+        from django.core.mail import send_mail
+        send_mail(
+            f"[NaijaFinanceHub] {target} {alert.get_alert_type_display().lower()} alert triggered",
+            (
+                f"Your {alert.get_alert_type_display()} alert on {target} was triggered.\n\n"
+                f"Condition: {alert.direction} {alert.threshold}\n"
+                f"Current value: {alert.last_value}\n"
+                f"Triggered at: {timezone.localtime(alert.triggered_at):%Y-%m-%d %H:%M:%S %Z}\n"
+            ),
+            dj_settings.DEFAULT_FROM_EMAIL,
+            [recipient],
+            fail_silently=False,
+        )
+        return True
+    except Exception:
+        logger.warning("Could not send trigger email for alert #%s", alert.pk, exc_info=True)
+        return False
 
 
 class Command(BaseCommand):
@@ -28,7 +71,7 @@ class Command(BaseCommand):
             if latest:
                 latest_navs[fund_id] = latest.nav
 
-        evaluated = triggered = 0
+        evaluated = triggered = notified = 0
         for alert in alerts:
             value = None
             if alert.alert_type == 'PRICE' and alert.instrument:
@@ -48,6 +91,7 @@ class Command(BaseCommand):
             )
 
             was_triggered = alert.triggered
+            newly_triggered = crossed and not was_triggered
             alert.last_value = value
             alert.last_evaluated_at = now
             alert.triggered = crossed
@@ -59,7 +103,10 @@ class Command(BaseCommand):
             evaluated += 1
             if crossed:
                 triggered += 1
+            if newly_triggered and _notify_alert_triggered(alert):
+                notified += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f"Evaluated {evaluated} active alerts; {triggered} triggered."
+            f"Evaluated {evaluated} active alerts; {triggered} triggered; "
+            f"{notified} notification(s) sent."
         ))

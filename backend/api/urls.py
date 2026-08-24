@@ -70,6 +70,9 @@ urlpatterns = [
     path('mix/<str:token>/performance/', views.mix_performance, name='mix_performance'),
     path('earnings/', views.get_earnings, name='get_earnings'),
     path('stock/<str:symbol>/', views.get_stock_detail, name='get_stock_detail'),
+    path('funds/<int:pk>/info/', views.fund_info, name='fund_info'),
+    # Non-slash variant so clients can call /api/funds/14/info without a 301 hop.
+    path('funds/<int:pk>/info', views.fund_info),
     path('fund/<int:pk>/', views.get_fund_detail, name='get_fund_detail'),
     path('company/<str:symbol>/', views.get_company_detail, name='get_company_detail'),
     path('stocks/search/', views.search_stocks, name='search_stocks'),

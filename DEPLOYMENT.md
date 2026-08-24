@@ -85,5 +85,30 @@ Google Finance public parse and the free data layer remain active.
 Do not reintroduce the CSCS login path.
 
 Frontend: minimal Angular demo app under `frontend/naija-finance/` with one
-page per feature and "not investment advice" disclaimers. Dev API base is
+page per feature and "not investment advice" disclaimers.
+
+### S1: daily SEC NAV ingestion (2026-08-23)
+
+Celery Beat schedules `api.tasks.run_sec_nav_ingest` daily (default 06:30
+`CELERY_TIMEZONE`, i.e. Africa/Lagos). Every attempt is logged as a
+`DataIngestRun` row (status, timestamps, row count — visible in Django admin).
+On failure the run is marked FAILED and ops are alerted via the admin-email
+path when Django `ADMINS` is configured (email delivery out of scope; the
+run row is the system of record). The user-scoped threshold `Alert` model is
+deliberately not used for pipeline failures (it requires an owner FK).
+
+Env vars:
+
+```env
+SEC_NAV_DAILY_INGEST_ENABLED=True   # default True
+SEC_NAV_DAILY_UPDATE_HOUR=6         # beat schedule hour (CELERY_TIMEZONE)
+SEC_NAV_DAILY_UPDATE_MINUTE=30      # beat schedule minute
+SEC_NAV_CSV_PATH=/app/data/nav_data.csv   # unset -> runs log SKIPPED
+SEC_NAV_RUN_STALE_HOURS=2           # overlap guard window
+```
+
+With `SEC_NAV_CSV_PATH` set, the task imports that CSV via the existing
+`ingest_sec_nav` command (`fund_name,date,nav`). A missing/unreadable file or
+malformed rows fail the run and raise the alert; an unconfigured path only
+logs a SKIPPED run. Dev API base is
 `http://localhost:8000/api` (CORS enabled for `localhost:4200`).

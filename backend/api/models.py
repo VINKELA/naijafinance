@@ -358,6 +358,22 @@ class Fund(TimeStampedModel):
     asset_class = models.CharField(max_length=20, choices=ASSET_CLASSES, default='OTHER')
     is_active = models.BooleanField(default=True)
 
+    # S2 fund-info schema (frozen 15-field payload). All nullable until real
+    # data is acquired from fund managers' published disclosures — null means
+    # "not yet acquired", never a guessed value.
+    registrar_trustee = models.CharField(max_length=255, blank=True, null=True)
+    custodian = models.CharField(max_length=255, blank=True, null=True)
+    update_cadence = models.CharField(max_length=50, blank=True, null=True)
+    inception_date = models.DateField(null=True, blank=True)
+    benchmark = models.CharField(max_length=255, blank=True, null=True)
+    fee_breakdown = models.JSONField(blank=True, null=True)
+    aum = models.DecimalField(max_digits=24, decimal_places=2, null=True, blank=True, help_text="Assets under management in NGN")
+    minimum_investment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, help_text="Minimum initial investment in NGN")
+    fact_sheet_url = models.URLField(blank=True, null=True)
+    sec_registration_status = models.CharField(max_length=100, blank=True, null=True)
+    risk_profile = models.CharField(max_length=50, blank=True, null=True)
+    currency = models.CharField(max_length=10, default='NGN', blank=True)
+
     class Meta:
         ordering = ['name']
 
@@ -377,6 +393,32 @@ class NavSnapshot(TimeStampedModel):
 
     def __str__(self):
         return f"{self.fund.name} NAV {self.nav} @ {self.date}"
+
+
+class DataIngestRun(models.Model):
+    """One execution of a scheduled data-ingestion job (S1: daily SEC NAV).
+
+    Minimal run log: status + timestamps + row count, so ops can see whether
+    the scheduled pipeline is alive without touching container logs.
+    """
+    STATUSES = [
+        ('RUNNING', 'Running'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+        ('SKIPPED', 'Skipped'),
+    ]
+    source = models.CharField(max_length=50, default='SEC_NAV', db_index=True)
+    status = models.CharField(max_length=20, choices=STATUSES, default='RUNNING')
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    rows_ingested = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-started_at']
+
+    def __str__(self):
+        return f"{self.source} #{self.pk} {self.status} @ {self.started_at:%Y-%m-%d %H:%M}" 
 
 
 class FxRate(TimeStampedModel):

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EduQuestion } from './edu-content';
 import { LangService } from './lang.service';
@@ -6,7 +6,13 @@ import { LangService } from './lang.service';
 /**
  * REQ-EDU-1 — Q&A Education Card (formerly TTC).
  * Displays per-module question bank with Pidgin hooks, English answers,
- * key term chips, and optional voice playback.
+ * key term chips, and voice playback per question:
+ *  - hosted asset via `audioUrl` when present,
+ *  - otherwise browser Web Speech API (speechSynthesis) reads Q + A aloud
+ *    (English content with an English voice; Pidgin content spoken as-is,
+ *    since Pidgin TTS voices do not exist).
+ * Graceful degradation: without speechSynthesis AND without audioUrl the
+ * button renders disabled with an explanatory tooltip — never throws.
  * CCO-approved question bank, 08-08.
  */
 @Component({
@@ -26,15 +32,15 @@ import { LangService } from './lang.service';
 
       <div class="edu-body" *ngIf="moduleExpanded">
         <div class="edu-q" *ngFor="let q of questions; let i = index">
-          <div class="edu-q-header" (click)="toggleQuestion(i)" (keydown.enter)="toggleQuestion(i)" tabindex="0" role="button" [attr.aria-expanded]="expandedQuestions[i]">
+          <div class="edu-q-header" (click)="toggleQuestion(i)" (keydown.enter)="toggleQuestion(i)" tabindex="0" role="button" [attr.aria-expanded]="expandedQuestions()[i]">
             <div class="edu-q-title">
               <span class="edu-pidgin" *ngIf="isPidgin">{{ q.pidginHook }}</span>
               <span class="edu-english" *ngIf="!isPidgin">{{ q.englishTitle }}</span>
             </div>
-            <span class="edu-q-arrow" [class.open]="expandedQuestions[i]">{{ expandedQuestions[i] ? '▾' : '▸' }}</span>
+            <span class="edu-q-arrow" [class.open]="expandedQuestions()[i]">{{ expandedQuestions()[i] ? '▾' : '▸' }}</span>
           </div>
 
-          <div class="edu-q-body" *ngIf="expandedQuestions[i]">
+          <div class="edu-q-body" *ngIf="expandedQuestions()[i]">
             <p class="edu-answer">{{ isPidgin ? (q.pidginAnswer || q.answer) : q.answer }}</p>
 
             <div class="edu-tags" *ngIf="q.keyTerms?.length">
@@ -43,9 +49,15 @@ import { LangService } from './lang.service';
               </span>
             </div>
 
-            <!-- Voice playback placeholder — wired when audioUrl populated -->
-            <button class="edu-play" *ngIf="q.audioUrl" (click)="playAudio(q); $event.stopPropagation()">
-              🔊 Listen
+            <!-- Voice playback: hosted asset if audioUrl exists, else Web Speech API -->
+            <button
+              class="edu-play"
+              type="button"
+              (click)="toggleAudio(q, i); $event.stopPropagation()"
+              [disabled]="!canPlay(q)"
+              [title]="audioTooltip(q)"
+              [attr.aria-label]="audioTooltip(q)">
+              {{ speakingIndex() === i ? '⏹ ' + tt('Stop', 'Stopam') : '🔊 ' + tt('Listen', 'Hear am') }}
             </button>
           </div>
         </div>
@@ -104,16 +116,23 @@ import { LangService } from './lang.service';
       padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
       margin-top: 4px;
     }
-    .edu-play:hover { filter: brightness(1.1); }
+    .edu-play:hover:not(:disabled) { filter: brightness(1.1); }
+    .edu-play:disabled { opacity: .45; cursor: not-allowed; filter: grayscale(.6); }
 
     .disc { font-size: 11px; color: var(--txt3); line-height: 1.5; margin: 8px 16px 12px; }
   `]
 })
-export class EduCard implements OnInit {
+export class EduCard implements OnInit, OnDestroy {
   @Input() moduleLabel = '';
   @Input() questions: EduQuestion[] = [];
   @Input() defaultExpanded = false;
   @Input() disclaimer = 'Educational information only. Not investment advice.';
+
+  /** Index of the question currently being voiced (asset or TTS), else null. */
+  readonly speakingIndex = signal<number | null>(null);
+
+  /** Per-question expansion state (signal so zoneless CD reacts). */
+  readonly expandedQuestions = signal<boolean[]>([]);
 
   private static readonly LABEL_PIDGIN: Record<string, string> = {
     'Market Overview': 'Maket Ova',
@@ -135,18 +154,28 @@ export class EduCard implements OnInit {
     'volatility': 'volatiliti', 'watchlist': 'watchlist', 'yield': 'yield',
   };
 
+  /** Cached English voice lookup (undefined = not resolved yet). */
+  private englishVoice: SpeechSynthesisVoice | null | undefined;
+  private currentAudio: HTMLAudioElement | null = null;
+
   labelPidgin(label: string): string | undefined { return EduCard.LABEL_PIDGIN[label]; }
   termPidgin(label: string): string { return EduCard.TERM_PIDGIN[label] ?? label; }
 
   moduleExpanded = true;
-  expandedQuestions: boolean[] = [];
 
   constructor(private lang: LangService) {}
   get isPidgin() { return this.lang.isPidgin; }
 
+  /** Localized string for new UI chrome (follows LangService pattern). */
+  tt(en: string, pidgin?: string) { return this.lang.t(en, pidgin); }
+
   ngOnInit() {
     this.moduleExpanded = this.defaultExpanded;
-    this.expandedQuestions = this.questions.map(() => false);
+    this.expandedQuestions.set(this.questions.map(() => false));
+  }
+
+  ngOnDestroy() {
+    this.stopAudio();
   }
 
   toggleModule() {
@@ -154,13 +183,104 @@ export class EduCard implements OnInit {
   }
 
   toggleQuestion(index: number) {
-    this.expandedQuestions[index] = !this.expandedQuestions[index];
+    this.expandedQuestions.update(arr => arr.map((v, i) => (i === index ? !v : v)));
   }
 
-  playAudio(q: EduQuestion) {
+  /** True when this question can be voiced at all (asset or speech synthesis). */
+  canPlay(q: EduQuestion): boolean {
+    return !!q.audioUrl || this.speechAvailable;
+  }
+
+  get speechAvailable(): boolean {
+    return typeof window !== 'undefined' && 'speechSynthesis' in window;
+  }
+
+  /** Tooltip / aria-label for the voice button (localized). */
+  audioTooltip(q: EduQuestion): string {
+    if (!this.canPlay(q)) return this.tt('Voice playback is not supported in this browser', 'Dis browser no sabi read aloud');
+    if (q.audioUrl) return this.tt('Play audio', 'Play di audio');
+    return this.tt('Read question and answer aloud', 'Read di kweshon and ansa loud');
+  }
+
+  /**
+   * Voice toggle for one question: clicking a playing item stops it,
+   * otherwise starts playback and marks it as the active one.
+   */
+  toggleAudio(q: EduQuestion, index: number) {
+    if (this.speakingIndex() === index) {
+      this.stopAudio();
+      return;
+    }
+    this.playAudio(q, index);
+  }
+
+  /**
+   * Existing playAudio path, extended: hosted asset wins when audioUrl is
+   * populated; otherwise falls back to speechSynthesis reading Q + A.
+   */
+  playAudio(q: EduQuestion, index: number) {
+    this.stopAudio();
+    if (!this.canPlay(q)) return;
+
     if (q.audioUrl) {
       const audio = new Audio(q.audioUrl);
-      audio.play().catch(() => {});
+      audio.onended = () => { if (this.speakingIndex() === index) this.speakingIndex.set(null); };
+      audio.onerror = () => { if (this.speakingIndex() === index) this.speakingIndex.set(null); };
+      this.currentAudio = audio;
+      this.speakingIndex.set(index);
+      audio.play().catch(() => { if (this.speakingIndex() === index) this.speakingIndex.set(null); });
+      return;
     }
+
+    this.speak(q, index);
+  }
+
+  /** Web Speech API fallback: reads question + answer in the active language. */
+  private speak(q: EduQuestion, index: number) {
+    try {
+      const synth = window.speechSynthesis;
+      // English content -> English voice. Pidgin has no TTS voice anywhere,
+      // so we speak the Pidgin text as-is through an English voice too.
+      const text = this.isPidgin
+        ? `${q.pidginHook}. ${q.pidginAnswer || q.answer}`
+        : `${q.englishTitle}. ${q.answer}`;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = this.pickEnglishVoice(synth);
+      if (voice) utterance.voice = voice;
+      utterance.lang = voice?.lang ?? 'en-US';
+      utterance.onend = () => { if (this.speakingIndex() === index) this.speakingIndex.set(null); };
+      utterance.onerror = () => { if (this.speakingIndex() === index) this.speakingIndex.set(null); };
+
+      synth.cancel();
+      synth.speak(utterance);
+      this.speakingIndex.set(index);
+    } catch {
+      // Never throw from UI: silently reset state if the engine misbehaves.
+      if (this.speakingIndex() === index) this.speakingIndex.set(null);
+    }
+  }
+
+  /** Prefer the default en voice, then en-US, then any English variant. */
+  private pickEnglishVoice(synth: SpeechSynthesis): SpeechSynthesisVoice | null {
+    if (this.englishVoice !== undefined) return this.englishVoice;
+    let picked: SpeechSynthesisVoice | null = null;
+    try {
+      const english = synth.getVoices().filter(v => v.lang?.toLowerCase().startsWith('en'));
+      picked = english.find(v => v.default) ?? english.find(v => /^en([-_]|$)/i.test(v.lang) && /us/i.test(v.lang)) ?? english[0] ?? null;
+    } catch { picked = null; }
+    this.englishVoice = picked;
+    return picked;
+  }
+
+  stopAudio() {
+    try {
+      if (this.speechAvailable) window.speechSynthesis.cancel();
+    } catch { /* noop */ }
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    this.speakingIndex.set(null);
   }
 }

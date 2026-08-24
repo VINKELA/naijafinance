@@ -217,12 +217,26 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # backend/settings.py
 
 # Celery Configuration
+from celery.schedules import crontab
+
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', CELERY_BROKER_URL)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = os.getenv('CELERY_TIMEZONE', TIME_ZONE)
 CELERY_BEAT_SCHEDULE = {}
+
+# S1 (2026-08-23): scheduled daily SEC NAV ingestion. The task records a
+# DataIngestRun per attempt and alerts ops on failure; with SEC_NAV_CSV_PATH
+# unset it records a SKIPPED run, so leaving this enabled by default is safe.
+if env_bool('SEC_NAV_DAILY_INGEST_ENABLED', True):
+    CELERY_BEAT_SCHEDULE['sec-nav-daily-ingest'] = {
+        'task': 'api.tasks.run_sec_nav_ingest',
+        'schedule': crontab(
+            minute=env_int('SEC_NAV_DAILY_UPDATE_MINUTE', 30),
+            hour=env_int('SEC_NAV_DAILY_UPDATE_HOUR', 6),
+        ),
+    }
 
 # G3 COMPLIANCE (2026-08-03): Login-based scraping of CSCS is RETIRED.
 # The former `cscs-daily-data-update` beat entry has been removed. The
@@ -240,3 +254,7 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'hello@naijafinancehub.com')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+# S5: recipient for pipeline ops-alert emails (e.g. scheduled ingest failures).
+# Defaults to DEFAULT_FROM_EMAIL so alerts are deliverable with zero extra config.
+ALERT_OPS_EMAIL = os.getenv('ALERT_OPS_EMAIL', DEFAULT_FROM_EMAIL)
