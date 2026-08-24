@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ApplicationRef } from '@angular/core';
 import { ApiService } from './api.service';
+import { LangService } from './i18n';
 import { track } from './analytics';
 
 @Component({
@@ -13,7 +14,6 @@ import { track } from './analytics';
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  langLabel = '🇳🇬 Pidgin';
   themeLabel = '🌙';
   query = '';
   asOf = signal('');
@@ -28,7 +28,9 @@ export class App implements OnInit, OnDestroy {
 
   get isAuthed() { return this.api.isAuthed; }
 
-  constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router) {}
+  constructor(private api: ApiService, private appRef: ApplicationRef, private router: Router, private i18n: LangService) {}
+
+  get langLabel() { return this.i18n.lang() === 'en' ? '🇳🇬 Pidgin' : '🇳🇬 English'; }
 
   ngOnInit() {
     track('visit', { path: location.pathname });
@@ -114,9 +116,7 @@ export class App implements OnInit, OnDestroy {
     this.router.navigate(['/account']);
   }
 
-  toggleLang() {
-    this.langLabel = this.langLabel.includes('Pidgin') ? '🇳🇬 English' : '🇳🇬 Pidgin';
-  }
+  toggleLang() { this.i18n.toggle(); }
 
   initTheme() {
     const saved = localStorage.getItem('nf-theme');
