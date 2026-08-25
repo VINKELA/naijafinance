@@ -1257,6 +1257,7 @@ def direct_login(request):
 import random, time, threading
 from django.core.cache import cache
 from django.conf import settings
+from .email_utils import BRAND_LOGO_URL
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -1276,10 +1277,8 @@ OTP_EMAIL_HTML = """<!DOCTYPE html>
 <tr><td align="center">
 <table width="100%%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
   <!-- Header -->
-  <tr><td style="background:#0D7C3E;padding:28px 32px;text-align:center">
-    <div style="display:inline-block;width:48px;height:48px;background:#ffffff;border-radius:12px;line-height:48px;text-align:center">
-      <span style="color:#0D7C3E;font-size:22px;font-weight:800;letter-spacing:1px">NF</span>
-    </div>
+  <tr><td style="background:#0D7C3E;padding:24px 32px;text-align:center">
+    <img src="{logo_url}" alt="NaijaFinance Hub" width="48" height="48" style="display:inline-block;border-radius:12px;background:#ffffff;padding:4px">
     <h1 style="color:#ffffff;font-size:20px;font-weight:700;margin:16px 0 0;letter-spacing:-0.3px">NaijaFinance Hub</h1>
   </td></tr>
   <!-- Body -->
@@ -1302,7 +1301,7 @@ OTP_EMAIL_HTML = """<!DOCTYPE html>
 def _send_otp_email_async(email, code):
     """Send branded OTP email in a background thread to avoid blocking the API response."""
     try:
-        html_body = OTP_EMAIL_HTML.format(code=code)
+        html_body = OTP_EMAIL_HTML.format(code=code, logo_url=BRAND_LOGO_URL)
         msg = EmailMultiAlternatives(
             subject='%s — your sign-in code for NaijaFinance Hub' % code,
             body='Your NaijaFinance Hub verification code is: %s\n\nEnter this code on the sign-in page. It expires in 10 minutes.\n\nIf you did not request this code, please ignore this email.' % code,
