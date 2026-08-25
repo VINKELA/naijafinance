@@ -37,16 +37,27 @@ def _notify_alert_triggered(alert):
     try:
         from django.conf import settings as dj_settings
         from django.core.mail import send_mail
+
+        from api.email_utils import branded_html
+        plain = (
+            f"Your {alert.get_alert_type_display()} alert on {target} was triggered.\n\n"
+            f"Condition: {alert.direction} {alert.threshold}\n"
+            f"Current value: {alert.last_value}\n"
+            f"Triggered at: {timezone.localtime(alert.triggered_at):%Y-%m-%d %H:%M:%S %Z}\n"
+        )
+        html_body = (
+            f"Your <b>{alert.get_alert_type_display()}</b> alert on <b>{target}</b> was triggered.<br><br>"
+            f"<div style=\"background:#f0f7f2;border:1px solid #0D7C3E;border-radius:8px;padding:14px\">"
+            f"Condition: {alert.direction} {alert.threshold}<br>"
+            f"Current value: {alert.last_value}<br>"
+            f"Triggered at: {timezone.localtime(alert.triggered_at):%Y-%m-%d %H:%M:%S %Z}</div>"
+        )
         send_mail(
             f"[NaijaFinanceHub] {target} {alert.get_alert_type_display().lower()} alert triggered",
-            (
-                f"Your {alert.get_alert_type_display()} alert on {target} was triggered.\n\n"
-                f"Condition: {alert.direction} {alert.threshold}\n"
-                f"Current value: {alert.last_value}\n"
-                f"Triggered at: {timezone.localtime(alert.triggered_at):%Y-%m-%d %H:%M:%S %Z}\n"
-            ),
+            plain,
             dj_settings.DEFAULT_FROM_EMAIL,
             [recipient],
+            html_message=branded_html("Price alert triggered", html_body),
             fail_silently=False,
         )
         return True

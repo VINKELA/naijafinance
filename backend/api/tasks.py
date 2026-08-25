@@ -74,12 +74,20 @@ def _notify_ingest_failure(run):
     try:
         from django.conf import settings as dj_settings
         from django.core.mail import send_mail
+
+        from .email_utils import branded_html
+        body = (
+            f"Run #{run.pk} started {run.started_at:%Y-%m-%d %H:%M %Z} FAILED."
+            f"<br><pre style=\"background:#f0f7f2;border:1px solid #0D7C3E;border-radius:8px;padding:12px;"
+            f"white-space:pre-wrap;font-size:13px\">{run.error_message or 'unknown error'}</pre>"
+        )
         send_mail(
             f"[{run.source}] scheduled ingestion failed (run #{run.pk})",
             f"Run #{run.pk} started {run.started_at:%Y-%m-%d %H:%M %Z} FAILED:\n\n"
             f"{run.error_message or 'unknown error'}\n",
             dj_settings.DEFAULT_FROM_EMAIL,
             [dj_settings.ALERT_OPS_EMAIL or dj_settings.DEFAULT_FROM_EMAIL],
+            html_message=branded_html("Scheduled ingestion failed", body),
             fail_silently=False,
         )
         _NOTIFIED_INGEST_FAILURES.add(run.pk)
