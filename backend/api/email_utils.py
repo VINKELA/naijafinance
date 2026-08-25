@@ -16,7 +16,7 @@ BRAND_TAGLINE = "Nigerian Markets, One Dashboard"
 # Hosted logo used by all branded emails. Override via env if the asset path moves.
 BRAND_LOGO_URL = os.getenv(
     "BRAND_LOGO_URL",
-    getattr(settings, "BRAND_LOGO_URL", "https://naijafinancehub.com/icons/icon-512.png"),
+    getattr(settings, "BRAND_LOGO_URL", "https://naijafinancehub.com/icons/icon-512.png?v=2"),
 )
 
 
