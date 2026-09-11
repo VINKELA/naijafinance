@@ -869,3 +869,76 @@ class CbnFxIngestTests(TestCase):
         entry = settings.CELERY_BEAT_SCHEDULE.get('cbn-fx-daily-ingest')
         self.assertIsNotNone(entry)
         self.assertEqual(entry['task'], 'api.tasks.run_cbn_fx_ingest')
+
+
+class NgxIndexIngestTests(TestCase):
+    """S3 (2026-09-11): NGX index ingestion from the Kobo Terminal API."""
+
+    PAYLOAD = {"success": True, "data": [
+        {"code": "ASI", "name": "NGX ALL SHARE INDEX", "currentPrice": 242675.33,
+         "changePercentage": 0.12},
+        {"code": "NGXBNK", "name": "NGX BANKING", "currentPrice": 2510.84,
+         "changePercentage": 0.6861207909436867},
+        {"code": "NGXOILGAS", "name": "NGX OIL AND GAS", "currentPrice": 5807.48,
+         "changePercentage": -0.5},
+        {"code": "BROKEN", "name": "no price", "currentPrice": None, "changePercentage": 1},
+    ]}
+
+    def test_import_upserts_market_indexes(self):
+        from .management.commands.ingest_ngx_indices import import_ngx_indices
+        result = import_ngx_indices(self.PAYLOAD)
+        self.assertEqual(result['count'], 3)
+        self.assertEqual(result['skipped'], 1)
+        asi = MarketIndex.objects.get(symbol='NGXASI')
+        self.assertEqual(asi.current_price, Decimal('242675.3300'))
+        self.assertEqual(asi.percent_change, Decimal('0.1200'))
+        self.assertEqual(asi.point_change, Decimal('291.2104'))
+        self.assertEqual(MarketIndex.objects.get(symbol='NGXBNK').name, 'NGX BANKING')
+        # negative change preserved
+        self.assertLess(MarketIndex.objects.get(symbol='NGXOILGAS').point_change, 0)
+
+    def test_import_is_idempotent(self):
+        from .management.commands.ingest_ngx_indices import import_ngx_indices
+        first = import_ngx_indices(self.PAYLOAD)
+        second = import_ngx_indices(self.PAYLOAD)
+        self.assertEqual(first['created'], 3)
+        self.assertEqual(second['created'], 0)
+        self.assertEqual(second['updated'], 3)
+
+    def test_import_rejects_empty_payload(self):
+        from .management.commands.ingest_ngx_indices import import_ngx_indices
+        with self.assertRaises(ValueError):
+            import_ngx_indices({"success": True, "data": []})
+
+    def test_fetch_requires_api_key(self):
+        from .management.commands.ingest_ngx_indices import fetch_indices
+        with mock.patch.dict(os.environ, {'NGX_PULSE_API_KEY': ''}):
+            with self.assertRaises(ValueError):
+                fetch_indices()
+
+    @mock.patch('api.management.commands.ingest_ngx_indices.fetch_and_import')
+    def test_task_records_success(self, fetch):
+        fetch.return_value = {'created': 1, 'updated': 20, 'skipped': 0,
+                              'symbols': ['NGXASI'], 'count': 21}
+        from .tasks import run_ngx_index_ingest
+        out = run_ngx_index_ingest()
+        self.assertEqual(out['status'], 'SUCCESS')
+        self.assertEqual(out['rows_ingested'], 21)
+        run = DataIngestRun.objects.filter(source='NGX').order_by('-started_at').first()
+        self.assertEqual(run.status, 'SUCCESS')
+
+    @mock.patch('api.management.commands.ingest_ngx_indices.fetch_and_import')
+    def test_task_alerts_ops_on_failure(self, fetch):
+        from django.conf import settings
+        from .tasks import run_ngx_index_ingest, _NOTIFIED_INGEST_FAILURES
+        _NOTIFIED_INGEST_FAILURES.clear(); mail.outbox.clear()
+        fetch.side_effect = RuntimeError('401 API key required')
+        out = run_ngx_index_ingest()
+        self.assertEqual(out['status'], 'FAILED')
+        self.assertEqual(mail.outbox[-1].to, [settings.ALERT_OPS_EMAIL])
+
+    def test_beat_schedule_has_ngx_entry(self):
+        from django.conf import settings
+        entry = settings.CELERY_BEAT_SCHEDULE.get('ngx-index-ingest')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry['task'], 'api.tasks.run_ngx_index_ingest')

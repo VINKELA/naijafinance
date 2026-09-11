@@ -495,3 +495,52 @@ def run_cbn_fx_ingest():
     finally:
         run.finished_at = timezone.now()
         run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])
+
+
+@shared_task
+def run_ngx_index_ingest():
+    """Scheduled NGX index-level refresh via the Kobo Terminal (NGX Pulse) API (S3).
+
+    Mirrors the other ingest tasks: overlap guard, one DataIngestRun(source=
+    'NGX') per attempt, ops alert on failure. Keeps the public 'market_indexes'
+    dataset (api.freshness) fresh — it was previously seeded once and never
+    refreshed.
+    """
+    stale_cutoff = timezone.now() - timedelta(hours=env_int('NGX_RUN_STALE_HOURS', 1))
+    active = (
+        DataIngestRun.objects
+        .filter(source='NGX', status='RUNNING')
+        .order_by('-started_at')
+        .first()
+    )
+    if active:
+        if active.started_at < stale_cutoff:
+            active.status = 'FAILED'
+            active.error_message = 'Marked stale by the NGX index scheduler.'
+            active.finished_at = timezone.now()
+            active.save(update_fields=['status', 'error_message', 'finished_at'])
+        else:
+            return {"started": False, "reason": "An NGX index ingest run is already in progress."}
+
+    run = DataIngestRun.objects.create(source='NGX')
+    try:
+        from .management.commands.ingest_ngx_indices import fetch_and_import
+        result = fetch_and_import() or {}
+        run.rows_ingested = int(result.get('count', 0))
+        run.status = 'SUCCESS'
+        return {
+            "started": True,
+            "status": "SUCCESS",
+            "rows_ingested": run.rows_ingested,
+            "created": result.get('created', 0),
+            "updated": result.get('updated', 0),
+            "symbols": result.get('symbols', []),
+        }
+    except Exception as exc:
+        run.status = 'FAILED'
+        run.error_message = str(exc)[:2000]
+        _notify_ingest_failure(run)
+        return {"started": True, "status": "FAILED", "error": run.error_message}
+    finally:
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])

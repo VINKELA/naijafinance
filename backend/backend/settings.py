@@ -251,6 +251,16 @@ if env_bool('CBN_FX_DAILY_INGEST_ENABLED', True):
         ),
     }
 
+# S3 (2026-09-11): NGX index levels from the Kobo Terminal (ex-NGX Pulse) API.
+# The 'market_indexes' dataset had no live source at all before this; it was
+# seeded once. Runs every NGX_INDEX_UPDATE_MINUTES to stay inside the 6h
+# freshness threshold.
+if env_bool('NGX_INDEX_INGEST_ENABLED', True):
+    CELERY_BEAT_SCHEDULE['ngx-index-ingest'] = {
+        'task': 'api.tasks.run_ngx_index_ingest',
+        'schedule': crontab(minute=f"*/{env_int('NGX_INDEX_UPDATE_MINUTES', 30)}"),
+    }
+
 # P0 (2026-09-10): hourly data-freshness watchdog. run_sec_nav_ingest alerts
 # when a run FAILS; this alerts when data is stale even though nothing ran
 # (scheduler down, manual step skipped, upstream feed gone). It records a
