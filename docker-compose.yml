@@ -65,7 +65,6 @@ services:
              gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 1"
 
   worker:
-    profiles: ["legacy-celery"]
     build:
       context: ./backend
     restart: unless-stopped
@@ -94,7 +93,6 @@ services:
     command: celery -A backend worker --loglevel=info
 
   beat:
-    profiles: ["legacy-celery"]
     build:
       context: ./backend
     restart: unless-stopped

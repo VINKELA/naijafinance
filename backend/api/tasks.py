@@ -159,6 +159,79 @@ def run_sec_nav_ingest(csv_path=None):
         run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])
 
 
+# ==========================================
+# P0: hourly dataset-freshness watchdog
+# ==========================================
+
+# Dataset keys already escalated by email, so the watchdog alerts once per
+# staleness episode instead of every hour. Re-armed when the data recovers.
+_FRESHNESS_NOTIFIED_STALE = set()
+
+
+@shared_task
+def check_data_freshness():
+    """Hourly watchdog: alert ops when a public dataset has gone stale.
+
+    Complements ``run_sec_nav_ingest``: that task alerts when a run *fails*,
+    whereas this one alerts when data is stale even though nothing ran at all
+    (disabled scheduler, skipped manual update, missing upstream feed) —
+    the exact failure mode that let production sit ~2-5 weeks stale with no
+    signal. Every check is also logged as a DataIngestRun row (source
+    ``FRESHNESS``) so the watchdog itself is visible in Django admin and its
+    heartbeat can be surfaced on the public status endpoint.
+    """
+    from .freshness import freshness_summary
+
+    summary = freshness_summary()
+    stale = [d for d in summary['datasets'] if d.get('is_stale')]
+    stale_keys = [d['key'] for d in stale]
+
+    run = DataIngestRun.objects.create(source='FRESHNESS')
+
+    if not stale:
+        _FRESHNESS_NOTIFIED_STALE.clear()
+        run.status = 'SUCCESS'
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'finished_at'])
+        return {"status": "SUCCESS", "stale": []}
+
+    # Stale public data is an ops failure, not a success.
+    run.status = 'FAILED'
+    run.rows_ingested = len(stale)
+    run.error_message = '; '.join(
+        f"{d['label']} last updated {d['last_updated'] or 'never'} "
+        f"({d['age_hours']}h > {d['stale_after_hours']}h)"
+        for d in stale
+    )
+    run.finished_at = timezone.now()
+    run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])
+
+    newly_stale = [k for k in stale_keys if k not in _FRESHNESS_NOTIFIED_STALE]
+    if newly_stale:
+        try:
+            from django.conf import settings as dj_settings
+            from django.core.mail import send_mail
+            lines = [
+                f"- {d['label']}: last updated {d['last_updated'] or 'never'} "
+                f"({d['age_hours']}h old; threshold {d['stale_after_hours']}h)"
+                for d in stale if d['key'] in newly_stale
+            ]
+            send_mail(
+                f"[data-freshness] {len(newly_stale)} dataset(s) stale on naijafinancehub",
+                "Public datasets exceeded their freshness threshold:\n\n"
+                + "\n".join(lines)
+                + "\n\nDetail: /api/data-status-public/\n",
+                dj_settings.DEFAULT_FROM_EMAIL,
+                [dj_settings.ALERT_OPS_EMAIL or dj_settings.DEFAULT_FROM_EMAIL],
+                fail_silently=False,
+            )
+            _FRESHNESS_NOTIFIED_STALE.update(newly_stale)
+        except Exception:
+            logger.warning("Could not send data-freshness ops email", exc_info=True)
+
+    return {"status": "FAILED", "stale": stale_keys, "notified": newly_stale}
+
+
 def cscs_scraping_enabled():
     return env_bool('CSCS_SCRAPER_ENABLED', False)
 

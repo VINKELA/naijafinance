@@ -4,8 +4,8 @@ This project is packaged as a Docker Compose app:
 
 - `frontend`: Angular production build served by nginx
 - `backend`: Django API served by gunicorn
-- `worker`: Celery worker for the data update system
-- `beat`: Celery Beat scheduler for the daily CSCS update
+- `worker`: Celery worker for the data update system (starts by default)
+- `beat`: Celery Beat scheduler — daily SEC NAV ingest + hourly freshness watchdog
 - `redis`: Celery broker/result backend
 
 ## Local Docker Run
@@ -112,3 +112,35 @@ With `SEC_NAV_CSV_PATH` set, the task imports that CSV via the existing
 malformed rows fail the run and raise the alert; an unconfigured path only
 logs a SKIPPED run. Dev API base is
 `http://localhost:8000/api` (CORS enabled for `localhost:4200`).
+
+### P0: data freshness watchdog (2026-09-10)
+
+Production data went ~2-5 weeks stale with no signal because (a) `worker` and
+`beat` were gated behind the `legacy-celery` compose profile — plain
+`docker compose up -d` never started them — and (b) `/api/data-status-public/`
+reported `ready: true` for any row that merely existed. Both are fixed:
+
+- **Scheduler is on by default.** `worker` and `beat` no longer carry a compose
+  profile, so `docker compose up -d` starts them. Verify with
+  `docker compose ps` and by checking that `DataIngestRun` rows accumulate.
+- **Honest freshness.** `/api/data-status-public/` now returns per-dataset
+  `age_hours`, `stale_after_hours`, `is_stale`, a `stale_datasets` rollup and a
+  `watchdog` heartbeat, all from the single source of truth `api/freshness.py`.
+- **Hourly watchdog.** `api.tasks.check_data_freshness` (beat: `:15` past the
+  hour) records a `DataIngestRun(source='FRESHNESS')` every run and emails
+  `ALERT_OPS_EMAIL` once per staleness episode (re-armed on recovery).
+
+Env vars:
+
+```env
+DATA_FRESHNESS_WATCHDOG_ENABLED=True   # default True
+DATA_FRESHNESS_CHECK_MINUTE=15         # minute past each hour
+```
+
+Stale thresholds are cadence-based (`max(cadence * 2, 6h)`) with a dedicated
+30-day window for DMO auctions (a past auction is legitimately weeks old).
+
+Note: market indexes (NGX) and CBN FX have **no automated ingestion path** —
+they are populated by the one-off `seed_mock_market_data` / `seed_public_data`
+commands. The watchdog will accurately report them as stale until a licensed
+feed or a scheduled ingest job is added.

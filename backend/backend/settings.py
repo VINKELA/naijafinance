@@ -238,6 +238,17 @@ if env_bool('SEC_NAV_DAILY_INGEST_ENABLED', True):
         ),
     }
 
+# P0 (2026-09-10): hourly data-freshness watchdog. run_sec_nav_ingest alerts
+# when a run FAILS; this alerts when data is stale even though nothing ran
+# (scheduler down, manual step skipped, upstream feed gone). It records a
+# DataIngestRun(source='FRESHNESS') heartbeat and emails ALERT_OPS_EMAIL once
+# per staleness episode. See api.tasks.check_data_freshness.
+if env_bool('DATA_FRESHNESS_WATCHDOG_ENABLED', True):
+    CELERY_BEAT_SCHEDULE['data-freshness-watchdog'] = {
+        'task': 'api.tasks.check_data_freshness',
+        'schedule': crontab(minute=env_int('DATA_FRESHNESS_CHECK_MINUTE', 15)),
+    }
+
 # G3 COMPLIANCE (2026-08-03): Login-based scraping of CSCS is RETIRED.
 # The former `cscs-daily-data-update` beat entry has been removed. The
 # CSCS scraper tasks in api/tasks.py are gated off by default and return a

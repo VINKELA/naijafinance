@@ -18,7 +18,7 @@ from .models import (
 )
 from .tasks import (
     start_daily_cscs_update, run_stateful_scrape, run_sec_nav_ingest,
-    _notify_ingest_failure, CSCS_SCRAPER_RETIRED_MESSAGE,
+    _notify_ingest_failure, check_data_freshness, CSCS_SCRAPER_RETIRED_MESSAGE,
 )
 from .views import build_portfolio_value_series, build_mix_value_series
 
@@ -689,3 +689,93 @@ class MixInceptionSeriesTests(TestCase):
     def test_mix_series_plain_call_backwards_compatible(self):
         points = build_mix_value_series({"items": []}, 30)
         self.assertEqual(points, [])
+
+
+class DataFreshnessWatchdogTests(TestCase):
+    """P0: honest freshness flags on the status endpoint + hourly ops watchdog."""
+
+    def setUp(self):
+        from . import tasks as api_tasks
+        # Module-level episode guard persists across tests; reset it.
+        api_tasks._FRESHNESS_NOTIFIED_STALE.clear()
+
+    def _force_stale_market_index(self, days=10):
+        idx = MarketIndex.objects.create(
+            name='NGX All-Share Index', symbol='NGX-ASI',
+            current_price=Decimal('100000.0000'),
+        )
+        # updated_at is auto_now, so bypass the model to age the row.
+        MarketIndex.objects.filter(pk=idx.pk).update(
+            updated_at=timezone.now() - timedelta(days=days),
+        )
+        return idx
+
+    def test_status_endpoint_flags_stale_datasets(self):
+        self._force_stale_market_index()
+        FxRate.objects.create(
+            pair='USD/NGN', rate=Decimal('1500.0000'),
+            date=timezone.localdate() - timedelta(days=30),
+        )
+        resp = APIClient().get('/api/data-status-public/')
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        rows = {d['key']: d for d in payload['datasets']}
+        self.assertTrue(rows['market_indexes']['is_stale'])
+        self.assertGreater(rows['market_indexes']['age_hours'], 100)
+        self.assertTrue(rows['cbn_fx']['is_stale'])
+        self.assertIn('market_indexes', payload['stale_datasets'])
+        self.assertGreaterEqual(payload['stale_count'], 2)
+
+    def test_fresh_data_is_not_flagged_stale(self):
+        MarketIndex.objects.create(
+            name='NGX All-Share Index', symbol='NGX-ASI',
+            current_price=Decimal('100000.0000'),
+        )
+        FxRate.objects.create(
+            pair='USD/NGN', rate=Decimal('1500.0000'), date=timezone.localdate(),
+        )
+        payload = APIClient().get('/api/data-status-public/').json()
+        rows = {d['key']: d for d in payload['datasets']}
+        self.assertFalse(rows['market_indexes']['is_stale'])
+        self.assertFalse(rows['cbn_fx']['is_stale'])
+
+    def test_watchdog_records_run_without_email_when_fresh(self):
+        result = check_data_freshness()
+        self.assertEqual(result['status'], 'SUCCESS')
+        run = DataIngestRun.objects.get(source='FRESHNESS')
+        self.assertEqual(run.status, 'SUCCESS')
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_watchdog_emails_once_per_stale_episode(self):
+        from django.conf import settings
+        self._force_stale_market_index()
+
+        first = check_data_freshness()
+        self.assertEqual(first['status'], 'FAILED')
+        self.assertIn('market_indexes', first['stale'])
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [settings.ALERT_OPS_EMAIL])
+
+        run = DataIngestRun.objects.filter(source='FRESHNESS').latest('started_at')
+        self.assertEqual(run.status, 'FAILED')
+        self.assertIn('Market Indexes', run.error_message)
+
+        # A second hourly check must not re-spam ops for the same episode.
+        check_data_freshness()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_watchdog_rearms_after_recovery(self):
+        self._force_stale_market_index()
+        check_data_freshness()
+        self.assertEqual(len(mail.outbox), 1)
+
+        MarketIndex.objects.update(updated_at=timezone.now())  # recovered
+        result = check_data_freshness()
+        self.assertEqual(result['status'], 'SUCCESS')
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_beat_schedule_has_freshness_watchdog_entry(self):
+        from django.conf import settings
+        entry = settings.CELERY_BEAT_SCHEDULE.get('data-freshness-watchdog')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry['task'], 'api.tasks.check_data_freshness')
