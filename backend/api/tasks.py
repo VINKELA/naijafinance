@@ -446,3 +446,52 @@ def run_stateful_scrape(execution_id):
     finally:
         if driver:
             driver.quit()
+
+
+@shared_task
+def run_cbn_fx_ingest():
+    """Scheduled daily CBN FX update from the official CBN JSON API (S2).
+
+    Mirrors ``run_sec_nav_ingest``: overlap guard, one DataIngestRun(source=
+    'CBN_FX') per attempt, and an ops alert on failure. The dataset key in
+    ``api.freshness`` is 'cbn_fx'; this run log is what keeps it fresh.
+    """
+    stale_cutoff = timezone.now() - timedelta(hours=env_int('CBN_FX_RUN_STALE_HOURS', 2))
+    active = (
+        DataIngestRun.objects
+        .filter(source='CBN_FX', status='RUNNING')
+        .order_by('-started_at')
+        .first()
+    )
+    if active:
+        if active.started_at < stale_cutoff:
+            active.status = 'FAILED'
+            active.error_message = 'Marked stale by the daily CBN FX scheduler.'
+            active.finished_at = timezone.now()
+            active.save(update_fields=['status', 'error_message', 'finished_at'])
+        else:
+            return {"started": False, "reason": "A CBN FX ingest run is already in progress."}
+
+    run = DataIngestRun.objects.create(source='CBN_FX')
+    try:
+        from .management.commands.ingest_cbn_rates import fetch_and_import
+        result = fetch_and_import() or {}
+        run.rows_ingested = int(result.get('created', 0)) + int(result.get('updated', 0))
+        run.status = 'SUCCESS'
+        return {
+            "started": True,
+            "status": "SUCCESS",
+            "rows_ingested": run.rows_ingested,
+            "rate_date": result.get('rate_date'),
+            "pairs": result.get('pairs', []),
+            "retired": result.get('retired', 0),
+            "skipped": result.get('skipped', 0),
+        }
+    except Exception as exc:
+        run.status = 'FAILED'
+        run.error_message = str(exc)[:2000]
+        _notify_ingest_failure(run)
+        return {"started": True, "status": "FAILED", "error": run.error_message}
+    finally:
+        run.finished_at = timezone.now()
+        run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])

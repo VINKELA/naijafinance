@@ -238,6 +238,19 @@ if env_bool('SEC_NAV_DAILY_INGEST_ENABLED', True):
         ),
     }
 
+# S2 (2026-09-11): scheduled daily CBN FX ingestion from the official CBN
+# JSON API (cbn.gov.ng/api/GetAllExchangeRates). Records a DataIngestRun per
+# attempt and alerts ops on failure. This is the feed that keeps the public
+# 'cbn_fx' dataset fresh.
+if env_bool('CBN_FX_DAILY_INGEST_ENABLED', True):
+    CELERY_BEAT_SCHEDULE['cbn-fx-daily-ingest'] = {
+        'task': 'api.tasks.run_cbn_fx_ingest',
+        'schedule': crontab(
+            minute=env_int('CBN_FX_UPDATE_MINUTE', 45),
+            hour=env_int('CBN_FX_UPDATE_HOUR', 6),
+        ),
+    }
+
 # P0 (2026-09-10): hourly data-freshness watchdog. run_sec_nav_ingest alerts
 # when a run FAILS; this alerts when data is stale even though nothing ran
 # (scheduler down, manual step skipped, upstream feed gone). It records a

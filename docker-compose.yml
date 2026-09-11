@@ -46,7 +46,7 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-hello@naijafinancehub.com}"
       # CEO 2026-09-11: ops alerts go to a monitored mailbox (was DEFAULT_FROM_EMAIL,
       # which the OCI mail service suppresses as a recipient).
-      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-}"
+      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-atamatechinc@gmail.com}"
       STATIC_ROOT: "/app/staticfiles"
       CSCS_USERNAME: "${CSCS_USERNAME:-}"
       CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
@@ -95,6 +95,7 @@ services:
       CSCS_HEADLESS: "${CSCS_HEADLESS:-True}"
       SEC_NAV_CSV_PATH: "${SEC_NAV_CSV_PATH:-}"
       SEC_NAV_RUN_STALE_HOURS: "${SEC_NAV_RUN_STALE_HOURS:-2}"
+      CBN_FX_RUN_STALE_HOURS: "${CBN_FX_RUN_STALE_HOURS:-2}"
       # P0 fix (2026-09-11): the worker raises the ops alerts (ingest failures,
       # data-freshness watchdog) but had no SMTP config, so every send died with
       # '530 Authentication Required'. Mirror the backend's mail env.
@@ -104,7 +105,7 @@ services:
       EMAIL_HOST_USER: "${EMAIL_HOST_USER}"
       EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD}"
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-hello@naijafinancehub.com}"
-      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-}"
+      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-atamatechinc@gmail.com}"
       CHROME_BINARY_PATH: "/usr/bin/chromium"
       CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
     volumes:
@@ -138,6 +139,9 @@ services:
       SEC_NAV_DAILY_INGEST_ENABLED: "${SEC_NAV_DAILY_INGEST_ENABLED:-True}"
       SEC_NAV_DAILY_UPDATE_HOUR: "${SEC_NAV_DAILY_UPDATE_HOUR:-6}"
       SEC_NAV_DAILY_UPDATE_MINUTE: "${SEC_NAV_DAILY_UPDATE_MINUTE:-30}"
+      CBN_FX_DAILY_INGEST_ENABLED: "${CBN_FX_DAILY_INGEST_ENABLED:-True}"
+      CBN_FX_UPDATE_HOUR: "${CBN_FX_UPDATE_HOUR:-6}"
+      CBN_FX_UPDATE_MINUTE: "${CBN_FX_UPDATE_MINUTE:-45}"
     volumes:
       - celerybeat_data:/app/celerybeat
     depends_on:

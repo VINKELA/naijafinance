@@ -779,3 +779,93 @@ class DataFreshnessWatchdogTests(TestCase):
         entry = settings.CELERY_BEAT_SCHEDULE.get('data-freshness-watchdog')
         self.assertIsNotNone(entry)
         self.assertEqual(entry['task'], 'api.tasks.check_data_freshness')
+
+
+class CbnFxIngestTests(TestCase):
+    """S2 (2026-09-11): CBN FX ingestion from the official JSON API."""
+
+    PAYLOAD = [
+        {"id": 1, "currency": "US DOLLAR", "ratedate": "2026-09-10",
+         "buyingrate": "1500", "centralrate": "1505.4321", "sellingrate": "1510"},
+        {"id": 2, "currency": "EURO\t", "ratedate": "2026-09-10",
+         "buyingrate": "1600", "centralrate": "1605.1234", "sellingrate": "1610"},
+        {"id": 3, "currency": "POESO", "ratedate": "2026-09-10",
+         "buyingrate": "1", "centralrate": "2", "sellingrate": "3"},
+        {"id": 4, "currency": "US DOLLAR", "ratedate": "2026-09-09",
+         "buyingrate": "1490", "centralrate": "1495.0000", "sellingrate": "1500"},
+    ]
+
+    def _import(self):
+        from .management.commands.ingest_cbn_rates import import_cbn_rates
+        return import_cbn_rates(self.PAYLOAD)
+
+    def test_import_persists_central_rate_for_newest_date(self):
+        result = self._import()
+        self.assertEqual(result['rate_date'], '2026-09-10')
+        usd = FxRate.objects.get(pair='USD/NGN', date=date(2026, 9, 10))
+        self.assertEqual(usd.rate, Decimal('1505.4321'))
+        self.assertEqual(usd.source, 'CBN')
+        self.assertTrue(usd.is_active)
+        # Whitespace/tab variants still resolve.
+        eur = FxRate.objects.get(pair='EUR/NGN', date=date(2026, 9, 10))
+        self.assertEqual(eur.rate, Decimal('1605.1234'))
+        # Historical rows for a different date are not imported.
+        self.assertFalse(FxRate.objects.filter(date=date(2026, 9, 9)).exists())
+        # Unmapped currency is skipped, not fatal.
+        self.assertGreaterEqual(result['skipped'], 1)
+
+    def test_import_deactivates_superseded_rows(self):
+        FxRate.objects.create(pair='USD/NGN', rate=Decimal('1400.0000'),
+                              date=date(2026, 9, 1), source='CBN', is_active=True)
+        result = self._import()
+        self.assertEqual(result['retired'], 1)
+        self.assertFalse(FxRate.objects.get(
+            pair='USD/NGN', date=date(2026, 9, 1)).is_active)
+
+    def test_import_is_idempotent(self):
+        first = self._import()
+        self.assertGreater(first['created'], 0)
+        second = self._import()
+        self.assertEqual(second['created'], 0)
+        self.assertEqual(second['updated'], first['created'])
+
+    def test_import_rejects_unusable_payload(self):
+        from .management.commands.ingest_cbn_rates import import_cbn_rates
+        with self.assertRaises(ValueError):
+            import_cbn_rates([])
+        with self.assertRaises(ValueError):
+            import_cbn_rates([{"currency": "POESO", "ratedate": "2026-09-10",
+                               "centralrate": "2"}])
+
+    @mock.patch('api.management.commands.ingest_cbn_rates.fetch_and_import')
+    def test_task_records_success(self, fetch):
+        fetch.return_value = {'created': 3, 'updated': 1, 'retired': 0,
+                              'skipped': 0, 'rate_date': '2026-09-10',
+                              'pairs': ['USD/NGN']}
+        from .tasks import run_cbn_fx_ingest
+        out = run_cbn_fx_ingest()
+        self.assertEqual(out['status'], 'SUCCESS')
+        self.assertEqual(out['rows_ingested'], 4)
+        run = DataIngestRun.objects.filter(source='CBN_FX').order_by('-started_at').first()
+        self.assertEqual(run.status, 'SUCCESS')
+        self.assertEqual(run.rows_ingested, 4)
+
+    @mock.patch('api.management.commands.ingest_cbn_rates.fetch_and_import')
+    def test_task_alerts_ops_on_failure(self, fetch):
+        from django.conf import settings
+        from .tasks import run_cbn_fx_ingest, _NOTIFIED_INGEST_FAILURES
+        _NOTIFIED_INGEST_FAILURES.clear()
+        mail.outbox.clear()
+        fetch.side_effect = RuntimeError('cbn api down')
+        out = run_cbn_fx_ingest()
+        self.assertEqual(out['status'], 'FAILED')
+        run = DataIngestRun.objects.filter(source='CBN_FX').order_by('-started_at').first()
+        self.assertEqual(run.status, 'FAILED')
+        self.assertIn('cbn api down', run.error_message)
+        self.assertEqual(mail.outbox[-1].to, [settings.ALERT_OPS_EMAIL])
+
+    def test_beat_schedule_has_cbn_fx_entry(self):
+        from django.conf import settings
+        entry = settings.CELERY_BEAT_SCHEDULE.get('cbn-fx-daily-ingest')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry['task'], 'api.tasks.run_cbn_fx_ingest')
