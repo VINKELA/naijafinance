@@ -44,6 +44,9 @@ services:
       EMAIL_HOST_USER: "${EMAIL_HOST_USER}"
       EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD}"
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-hello@naijafinancehub.com}"
+      # CEO 2026-09-11: ops alerts go to a monitored mailbox (was DEFAULT_FROM_EMAIL,
+      # which the OCI mail service suppresses as a recipient).
+      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-}"
       STATIC_ROOT: "/app/staticfiles"
       CSCS_USERNAME: "${CSCS_USERNAME:-}"
       CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
