@@ -92,6 +92,16 @@ services:
       CSCS_HEADLESS: "${CSCS_HEADLESS:-True}"
       SEC_NAV_CSV_PATH: "${SEC_NAV_CSV_PATH:-}"
       SEC_NAV_RUN_STALE_HOURS: "${SEC_NAV_RUN_STALE_HOURS:-2}"
+      # P0 fix (2026-09-11): the worker raises the ops alerts (ingest failures,
+      # data-freshness watchdog) but had no SMTP config, so every send died with
+      # '530 Authentication Required'. Mirror the backend's mail env.
+      EMAIL_HOST: "${EMAIL_HOST:-smtp.gmail.com}"
+      EMAIL_PORT: "${EMAIL_PORT:-587}"
+      EMAIL_USE_TLS: "${EMAIL_USE_TLS:-True}"
+      EMAIL_HOST_USER: "${EMAIL_HOST_USER}"
+      EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD}"
+      DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-hello@naijafinancehub.com}"
+      ALERT_OPS_EMAIL: "${ALERT_OPS_EMAIL:-}"
       CHROME_BINARY_PATH: "/usr/bin/chromium"
       CHROMEDRIVER_PATH: "/usr/bin/chromedriver"
     volumes:
