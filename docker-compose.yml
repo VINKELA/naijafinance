@@ -75,6 +75,15 @@ services:
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      # P0 fix (2026-09-11): settings.py builds the Postgres connection from the
+      # POSTGRES_* vars, not DATABASE_URL. Without these the worker failed every
+      # task with 'fe_sendauth: no password supplied', so scheduled ingestion
+      # could never run even once the scheduler was enabled.
+      POSTGRES_DB: "${POSTGRES_DB:-naijafinance}"
+      POSTGRES_USER: "${POSTGRES_USER:-naijafinance}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_HOST: "db"
+      POSTGRES_PORT: "5432"
       SQLITE_PATH: "/app/data/db.sqlite3"
       CSCS_USERNAME: "${CSCS_USERNAME:-}"
       CSCS_PASSWORD: "${CSCS_PASSWORD:-}"
@@ -103,6 +112,12 @@ services:
       DJANGO_ALLOWED_HOSTS: "${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,frontend,backend,host.docker.internal}"
       CELERY_BROKER_URL: "redis://redis:6379/0"
       CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+      # Keep beat's DB config identical to worker/backend for parity.
+      POSTGRES_DB: "${POSTGRES_DB:-naijafinance}"
+      POSTGRES_USER: "${POSTGRES_USER:-naijafinance}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_HOST: "db"
+      POSTGRES_PORT: "5432"
       CSCS_DAILY_UPDATE_ENABLED: "${CSCS_DAILY_UPDATE_ENABLED:-False}"  # G3: CSCS login scraping retired
       CSCS_DAILY_UPDATE_HOUR: "${CSCS_DAILY_UPDATE_HOUR:-18}"
       CSCS_DAILY_UPDATE_MINUTE: "${CSCS_DAILY_UPDATE_MINUTE:-30}"
