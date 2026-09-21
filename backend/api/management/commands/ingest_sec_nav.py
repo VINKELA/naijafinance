@@ -17,6 +17,22 @@ from django.core.management.base import BaseCommand
 from api.models import Fund, NavSnapshot
 
 
+# SEC publishes drifting spellings for the same fund across weekly files, and
+# the Fund lookup matches name__iexact (sensitive to internal spacing and
+# trailing suffixes), so variant spellings were silently skipped. Keys are
+# whitespace-collapsed + lowercased; values are canonical Fund.name values.
+FUND_NAME_ALIASES = {
+    'gti money market fund': 'GTI Money Market Fund',
+    'first asset dollar fund (retail)': 'First Asset Dollar Fund',
+}
+
+
+def canonical_fund_name(name):
+    """Resolve known SEC spelling variants to the canonical Fund.name."""
+    return FUND_NAME_ALIASES.get(' '.join(name.split()).lower(), name)
+
+
+
 def import_nav_csv(filepath, warn=None):
     """Import NAV rows from a CSV file (fund_name,date,nav).
 
@@ -30,7 +46,7 @@ def import_nav_csv(filepath, warn=None):
     with open(filepath, newline='') as fh:
         reader = csv.DictReader(fh)
         for row in reader:
-            name = row.get('fund_name', '').strip()
+            name = canonical_fund_name(row.get('fund_name', '').strip())
             nav_date = date.fromisoformat(row['date'].strip())
             nav_value = row['nav'].strip()
 
