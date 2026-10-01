@@ -147,7 +147,11 @@ services:
       CBN_FX_DAILY_INGEST_ENABLED: "${CBN_FX_DAILY_INGEST_ENABLED:-True}"
       CBN_FX_UPDATE_HOUR: "${CBN_FX_UPDATE_HOUR:-6}"
       CBN_FX_UPDATE_MINUTE: "${CBN_FX_UPDATE_MINUTE:-45}"
-      NGX_INDEX_INGEST_ENABLED: "${NGX_INDEX_INGEST_ENABLED:-True}"
+      # PAUSED 2026-10-01 (CEO): Kobo Terminal (ex-NGX Pulse) subscription lapsed —
+      # the API returns 403 {"error":"API subscription is no longer active"}. While
+      # enabled this produced a failed run + ops email every 30 min (~48/day).
+      # Re-enable by setting NGX_INDEX_INGEST_ENABLED=True once the feed is restored.
+      NGX_INDEX_INGEST_ENABLED: "${NGX_INDEX_INGEST_ENABLED:-False}"
       NGX_INDEX_UPDATE_MINUTES: "${NGX_INDEX_UPDATE_MINUTES:-30}"
     volumes:
       - celerybeat_data:/app/celerybeat
