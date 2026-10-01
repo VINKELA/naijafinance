@@ -101,6 +101,11 @@ services:
       NGX_RUN_STALE_HOURS: "${NGX_RUN_STALE_HOURS:-1}"
       NGX_PULSE_API_KEY: "${NGX_PULSE_API_KEY:-}"
       NGX_PULSE_BASE_URL: "${NGX_PULSE_BASE_URL:-https://koboterminal.com}"
+      # PAUSED 2026-10-01 (CEO): mute freshness alert emails while the NGX feed
+      # is down and the staleness is known/deferred. The watchdog still runs and
+      # records DataIngestRun(FRESHNESS) + the public heartbeat. Re-enable by
+      # setting FRESHNESS_ALERTS_ENABLED=True (or unset).
+      FRESHNESS_ALERTS_ENABLED: "${FRESHNESS_ALERTS_ENABLED:-False}"
       # P0 fix (2026-09-11): the worker raises the ops alerts (ingest failures,
       # data-freshness watchdog) but had no SMTP config, so every send died with
       # '530 Authentication Required'. Mirror the backend's mail env.

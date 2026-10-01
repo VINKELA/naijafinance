@@ -207,7 +207,9 @@ def check_data_freshness():
     run.save(update_fields=['status', 'rows_ingested', 'error_message', 'finished_at'])
 
     newly_stale = [k for k in stale_keys if k not in _FRESHNESS_NOTIFIED_STALE]
-    if newly_stale:
+    # FRESHNESS_ALERTS_ENABLED=false mutes the email while the watchdog keeps
+    # running and recording runs (operational pause, see docker-compose).
+    if newly_stale and env_bool('FRESHNESS_ALERTS_ENABLED', True):
         try:
             from django.conf import settings as dj_settings
             from django.core.mail import send_mail
