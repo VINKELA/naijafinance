@@ -17,6 +17,7 @@ export class App implements OnInit, OnDestroy {
   themeLabel = '🌙';
   navMore = signal(false);
   asOf = signal('');
+  equitiesEnabled = signal(false);
   tape = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
   tapeLoop = signal<{ s: string; p: string; ch: string; up: boolean | null }[]>([]);
   private timer: any;
@@ -34,6 +35,10 @@ export class App implements OnInit, OnDestroy {
   ngOnInit() {
     track('visit', { path: location.pathname });
     this.initTheme();
+    this.api.config().subscribe({
+      next: (c) => this.equitiesEnabled.set(!!c?.equities_enabled),
+      error: () => this.equitiesEnabled.set(false),
+    });
     this.loadTape();
     this.timer = setInterval(() => this.loadTape(), 60000);
     // Demo stopgap: this Angular 22 zoneless build does not re-render on

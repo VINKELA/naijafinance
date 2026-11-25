@@ -24,6 +24,10 @@ from .models import (
 from .serializers import *
 from .tasks import run_stateful_scrape
 from .display import display_instrument_name, instrument_about_text
+from .features import (
+    equities_enabled, filter_visible_instruments, filter_visible_portfolio_items,
+    portfolio_item_visible, is_hidden_equity,
+)
 
 # --- Auth & Generic ViewSets ---
 class RegisterView(generics.CreateAPIView):
@@ -32,10 +36,14 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
 
 class InstrumentViewSet(viewsets.ReadOnlyModelViewSet):
-    """Publicly viewable instruments (Stocks, Bonds, Forex)"""
-    queryset = Instrument.objects.filter(is_active=True)
+    """Publicly viewable instruments (bonds/CP/FX; equities behind a gate)."""
     serializer_class = InstrumentSerializer
     permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return filter_visible_instruments(
+            Instrument.objects.filter(is_active=True)
+        ).select_related('issuer', 'exchange')
 
 class PortfolioViewSet(viewsets.ModelViewSet):
     serializer_class = PortfolioSerializer
@@ -52,12 +60,17 @@ class PortfolioItemViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        return PortfolioItem.objects.filter(portfolio__user=self.request.user)
+        return filter_visible_portfolio_items(
+            PortfolioItem.objects.filter(portfolio__user=self.request.user)
+        )
 
     def perform_create(self, serializer):
         portfolio = serializer.validated_data.get('portfolio')
         if portfolio.user != self.request.user:
             raise PermissionDenied("You can only add items to your own portfolios.")
+        instrument = serializer.validated_data.get('instrument')
+        if is_hidden_equity(instrument):
+            raise PermissionDenied("Equities are not available.")
         serializer.save()
 
 class WatchlistViewSet(viewsets.ModelViewSet):
@@ -158,6 +171,8 @@ def instrument_list_row(instrument, index=0):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_top_movers(request):
+    if not equities_enabled():
+        return Response([])
     category = request.GET.get('type', 'active').lower()
     limit = int(request.GET.get('limit', 8))
     instruments = list(
@@ -209,7 +224,7 @@ def get_portfolio_summary(request):
     for port in portfolios:
         portfolio_total = Decimal('0.00')
         for item in port.items.all():
-            if not item.instrument:
+            if not item.instrument or not portfolio_item_visible(item):
                 continue
             current_value = item.quantity * (item.instrument.last_price or Decimal('0.00'))
             portfolio_total += current_value
@@ -330,7 +345,7 @@ def get_portfolio_insights(request):
         holding_count = 0
 
         for item in portfolio.items.all():
-            if not item.instrument:
+            if not item.instrument or not portfolio_item_visible(item):
                 continue
 
             all_items.append(item)
@@ -426,7 +441,14 @@ def get_portfolio_insights(request):
 @permission_classes([AllowAny])
 def get_news(request):
     limit = int(request.GET.get('limit', 12))
-    articles = NewsArticle.objects.all()[:limit]
+    articles = NewsArticle.objects.all()
+    if not equities_enabled():
+        # Exclude clearly equity-specific headlines while allowing macro,
+        # bond, fund and FX news to remain.
+        equity_terms = ('equity', 'equities', 'stock', 'stocks', 'market capitalisation')
+        for term in equity_terms:
+            articles = articles.exclude(title__icontains=term)
+    articles = articles[:limit]
     data = []
     for article in articles:
         delta = timezone.now() - article.published_at
@@ -445,6 +467,8 @@ def get_news(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_earnings(request):
+    if not equities_enabled():
+        return Response([])
     limit = int(request.GET.get('limit', 12))
     upcoming = EarningsCalendar.objects.select_related('instrument').filter(report_date__gte=timezone.now())[:limit]
     data = []
@@ -464,7 +488,8 @@ def get_earnings(request):
 @permission_classes([AllowAny])
 def market_overview(request):
     indexes = MarketIndex.objects.all()
-    equities = list(Instrument.objects.filter(asset_class='EQUITY', is_active=True, last_price__gt=0))
+    equities = ([] if not equities_enabled() else
+                list(Instrument.objects.filter(asset_class='EQUITY', is_active=True, last_price__gt=0)))
     rows = [instrument_list_row(inst, i) for i, inst in enumerate(equities)]
     gainers = sorted(rows, key=lambda item: item['changePct'], reverse=True)[:3]
     losers = sorted(rows, key=lambda item: item['changePct'])[:3]
@@ -526,6 +551,8 @@ def _mix_card_rows(portfolio, item_ids=None):
     total = Decimal('0.00')
     rows = []
     for it in items:
+        if it.instrument_id and not portfolio_item_visible(it):
+            continue
         if it.fund_id:
             latest = it.fund.nav_snapshots.order_by('-date').first()
             price = latest.nav if latest else Decimal('0.00')
@@ -547,6 +574,22 @@ def _mix_card_rows(portfolio, item_ids=None):
 
 
 
+def _snapshot_without_equities(snap):
+    """Strip equity rows from a frozen Asset Mix snapshot and rebalance pct."""
+    if equities_enabled() or not snap:
+        return snap
+    out = dict(snap)
+    items = [it for it in (snap.get('items') or [])
+             if not str(it.get('class', '')).lower().startswith('equity')]
+    total = sum(float(it.get('value') or 0) for it in items)
+    out['items'] = [
+        dict(it, pct=round((float(it.get('value') or 0) / total * 100), 2) if total else 0)
+        for it in items
+    ]
+    out['totalValue'] = round(total, 2)
+    return out
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def mix_card(request, token):
@@ -558,7 +601,7 @@ def mix_card(request, token):
     share = get_object_or_404(MixShare, token=token)
     if share.visibility == 'private' and request.user != share.user:
         return Response({'detail': 'Mix not found.'}, status=404)
-    snap = share.snapshot or {}
+    snap = _snapshot_without_equities(share.snapshot or {})
     if snap.get('items'):
         return Response(snap)
     # Legacy shares (pre-snapshot): compute a sanitized view live.
@@ -592,7 +635,8 @@ def build_mix_value_series(snapshot, period_days=90, with_meta=False):
     """
     today = timezone.localdate()
     start = today - timedelta(days=period_days)
-    items = (snapshot or {}).get('items') or []
+    items = [it for it in ((snapshot or {}).get('items') or [])
+             if equities_enabled() or not str(it.get('class', '')).lower().startswith('equity')]
     if not items:
         return ([], []) if with_meta else []
 
@@ -730,7 +774,10 @@ def watchlist_history(request):
 
     series = defaultdict(list)  # date -> [pct changes]
 
-    for inst in watchlist.instruments.filter(is_active=True):
+    watched = watchlist.instruments.filter(is_active=True)
+    if not equities_enabled():
+        watched = watched.exclude(asset_class='EQUITY')
+    for inst in watched:
         rows = list(
             PriceHistory.objects.filter(instrument=inst, date__gte=start, date__lte=today)
             .order_by('date')
@@ -792,6 +839,8 @@ def toggle_watchlist(request):
         return Response({"detail": "symbol or fund_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
     instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
+    if is_hidden_equity(instrument):
+        return Response({"detail": "Equities are not available."}, status=status.HTTP_400_BAD_REQUEST)
     if watchlist.instruments.filter(id=instrument.id).exists():
         watchlist.instruments.remove(instrument)
         added = False
@@ -832,6 +881,8 @@ def add_portfolio_item_by_symbol(request):
         )
     else:
         instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
+        if is_hidden_equity(instrument):
+            return Response({"detail": "Equities are not available."}, status=status.HTTP_400_BAD_REQUEST)
         item = PortfolioItem.objects.create(
             portfolio=portfolio,
             instrument=instrument,
@@ -896,6 +947,8 @@ def check_scrape_status(request, job_id):
 def get_stock_detail(request, symbol):
     # Upgraded to use Instrument table
     instrument = get_object_or_404(Instrument, symbol__iexact=symbol)
+    if is_hidden_equity(instrument):
+        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
     
     history_rows = instrument_history_rows(instrument)
     
@@ -1048,6 +1101,8 @@ def get_fund_detail(request, pk):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_company_detail(request, symbol):
+    if not equities_enabled():
+        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
     company = get_object_or_404(CompanyProfile, symbol__iexact=symbol, is_active=True)
     revenue = [
         {"date": f"{r['year']}-01-01", "value": float(r['revenue_ngn'])}
@@ -1078,6 +1133,8 @@ def get_company_detail(request, symbol):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_stocks(request):
+    if not equities_enabled():
+        return Response([])
     query = request.GET.get('q', '').strip()
     if not query:
         return Response([])
@@ -1123,13 +1180,21 @@ def search_stocks(request):
 
 class MarketIndexListView(generics.ListAPIView):
     """Returns a list of all market indexes to populate the trend cards."""
-    queryset = MarketIndex.objects.all()
     serializer_class = MarketIndexSerializer
+
+    def get_queryset(self):
+        if not equities_enabled():
+            return MarketIndex.objects.none()
+        return MarketIndex.objects.all()
 
 class MarketIndexDetailView(generics.RetrieveAPIView):
     """Returns a single index for the detailed graph page."""
-    queryset = MarketIndex.objects.all()
     serializer_class = MarketIndexSerializer
+
+    def get_queryset(self):
+        if not equities_enabled():
+            return MarketIndex.objects.none()
+        return MarketIndex.objects.all()
     lookup_field = 'symbol'
 
 # ==========================================
@@ -1143,6 +1208,12 @@ DISCLAIMER = (
     "All data on this page is provided for information and education only "
     "and does not constitute investment advice."
 )
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def public_config(request):
+    """Client feature flags. Single source of truth for module visibility."""
+    return Response({"equities_enabled": equities_enabled()})
 
 
 class BondInstrumentViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1207,6 +1278,8 @@ class CompanyProfileViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (permissions.AllowAny,)
 
     def get_queryset(self):
+        if not equities_enabled():
+            return CompanyProfile.objects.none()
         return CompanyProfile.objects.filter(is_active=True)
 
 
@@ -1216,7 +1289,10 @@ class AlertViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        return Alert.objects.filter(user=self.request.user).select_related('instrument', 'fund')
+        qs = Alert.objects.filter(user=self.request.user).select_related('instrument', 'fund')
+        if not equities_enabled():
+            qs = qs.exclude(instrument__asset_class='EQUITY')
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1478,7 +1554,7 @@ def create_standalone_mix(request):
             rows.append({"symbol": fund.name, "class": f"Fund · {fund.get_asset_class_display()}", "value": float(value)})
         elif symbol:
             inst = Instrument.objects.filter(symbol__iexact=symbol, is_active=True).first()
-            if not inst:
+            if not inst or is_hidden_equity(inst):
                 continue
             rows.append({"symbol": inst.symbol, "class": inst.get_asset_class_display(), "value": float(value)})
         else:
@@ -1550,7 +1626,7 @@ def build_portfolio_value_series(portfolio, period_days=90, with_meta=False):
     """
     today = timezone.localdate()
     start = today - timedelta(days=period_days)
-    items = list(portfolio.items.all())
+    items = [it for it in portfolio.items.all() if portfolio_item_visible(it)]
     if not items:
         return ([], []) if with_meta else []
 

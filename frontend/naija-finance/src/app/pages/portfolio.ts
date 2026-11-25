@@ -68,10 +68,10 @@ const PERF_NOTE = 'Past performance ≠ future returns. Shown for information on
           <option *ngFor="let p of portfolios()" [ngValue]="p.id">{{ p.name }}</option>
         </select>
         <select [(ngModel)]="form.kind" name="kind">
-          <option value="instrument">Stock / Bond / CP</option>
+          <option value="instrument">Bond / CP</option>
           <option value="fund">Mutual fund</option>
         </select>
-        <input *ngIf="form.kind === 'instrument'" type="text" placeholder="Symbol (e.g. MTNN)" [(ngModel)]="form.symbol" name="symbol" required>
+        <input *ngIf="form.kind === 'instrument'" type="text" placeholder="Symbol (e.g. FGN-14.55-2029)" [(ngModel)]="form.symbol" name="symbol" required>
         <select *ngIf="form.kind === 'fund'" [(ngModel)]="form.fundId" name="fundId" required style="flex:1;min-width:200px;">
           <option [ngValue]="null" disabled>Select fund…</option>
           <option *ngFor="let f of funds()" [ngValue]="f.id">{{ f.name }} ({{ f.asset_class_display }})</option>

@@ -31,14 +31,14 @@ const PALETTE = ['#16c784', '#4e9bff', '#f59e0b', '#e0548b', '#a78bfa'];
   imports: [ChartImgShareButton, CommonModule, FormsModule, RouterLink, EduCard, ShareButton],
   template: `
     <h2>{{ t('Compare', 'Kompare') }}</h2>
-    <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers, FX &amp; stocks. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper, FX &amp; stoks. Pick 2–5 assets.') }}</p>
+    <p class="sub">{{ t('Side-by-side yield (%) over a selected period — funds, bonds, commercial papers &amp; FX. Pick 2–5 assets.', 'Yield (%) wey dey side-by-side for di period wey you pick — fands, bonds, commercial paper &amp; FX. Pick 2–5 assets.') }}</p>
     <p class="sub" *ngIf="defaultHint()" style="color:var(--accent);font-size:12px;">{{ t('Showing a default comparison — search above to add or swap assets.', 'De dey show default komparison — sarch above make you add or swap assets.') }}</p>
     <p class="disclaimer">{{ perfNote }}</p>
 
     <div class="card" style="margin-bottom: 20px;">
       <div class="form-row" style="margin-bottom: 10px; position:relative;">
         <label style="font-size:12px;color:var(--txt2);font-weight:700;">{{ t('Add asset', 'Add asset') }}:</label>
-        <input type="search" placeholder="{{ t('Type to search assets… e.g. Stanbic, FGN, USD/NGN, MTNN', 'Type make e search assets… e.g. Stanbic, FGN, USD/NGN, MTNN') }}" [(ngModel)]="q" name="cmpSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
+        <input type="search" placeholder="{{ t('Type to search assets… e.g. Stanbic, FGN, USD/NGN', 'Type make e search assets… e.g. Stanbic, FGN, USD/NGN') }}" [(ngModel)]="q" name="cmpSearch" style="flex:1;min-width:220px;" (input)="onQuery()" (keydown)="onKey($event)" autocomplete="off">
         <div class="sugg-dd" *ngIf="suggestions().length" style="position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2,#121a2e); border:1px solid var(--line); border-radius:8px; margin-top:2px; max-height:260px; overflow:auto;">
           <button type="button" class="sugg" *ngFor="let s of suggestions(); let i = index" [class.on]="i === activeIndex()" (mousedown)="add(s.key)" style="display:flex; width:100%; justify-content:space-between; gap:10px; padding:8px 12px; background:none; border:0; cursor:pointer; color:inherit; font:inherit; text-align:left;">
             <span style="font-weight:700;">{{ s.label }}</span><span class="muted" style="font-size:11px;">{{ s.sub }} · {{ s.kind }}</span>

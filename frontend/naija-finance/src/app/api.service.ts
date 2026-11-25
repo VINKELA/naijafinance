@@ -18,6 +18,9 @@ export interface Alert { id?: number; instrument: number | null; instrument_symb
 export class ApiService {
   constructor(private http: HttpClient) {}
 
+  // Product feature flags (server-driven module visibility)
+  config(): Observable<{ equities_enabled: boolean }> { return this.http.get<{ equities_enabled: boolean }>(`${API_BASE}/config/`); }
+
   // Bonds, commercial papers & auctions
   bonds(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/bonds/`); }
   commercialPapers(): Observable<Bond[]> { return this.http.get<Bond[]>(`${API_BASE}/commercial-papers/`); }

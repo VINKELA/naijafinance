@@ -6,7 +6,7 @@ from unittest import mock
 
 from django.core import mail
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -866,7 +866,7 @@ class CbnFxIngestTests(TestCase):
 
     def test_beat_schedule_has_cbn_fx_entry(self):
         from django.conf import settings
-        entry = settings.CELERY_BEAT_SCHEDULE.get('cbn-fx-daily-ingest')
+        entry = settings.CELERY_BEAT_SCHEDULE.get('cbn-fx-hourly-ingest')
         self.assertIsNotNone(entry)
         self.assertEqual(entry['task'], 'api.tasks.run_cbn_fx_ingest')
 
@@ -942,3 +942,65 @@ class NgxIndexIngestTests(TestCase):
         entry = settings.CELERY_BEAT_SCHEDULE.get('ngx-index-ingest')
         self.assertIsNotNone(entry)
         self.assertEqual(entry['task'], 'api.tasks.run_ngx_index_ingest')
+
+
+class EquityGateTests(TestCase):
+    """CEO 2026-11-25: stocks are excluded from every module by default.
+
+    The gate must hold at the API layer so a hidden nav link or a deep link
+    cannot expose equity data.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        currency, exchange, issuer = make_fixture()
+        self.equity = Instrument.objects.create(
+            symbol='TESTEQ', name='Test Equity', asset_class='EQUITY',
+            base_currency=currency, exchange=exchange, issuer=issuer,
+            last_price=Decimal('10.00'),
+        )
+        self.bond = make_bond(exchange, currency, issuer, symbol='FGN-TEST-2030')
+
+    @override_settings(EQUITIES_ENABLED=False)
+    def test_gate_off_hides_equities_everywhere(self):
+        self.assertEqual(self.client.get('/api/config/').json(),
+                         {'equities_enabled': False})
+
+        symbols = [r['symbol'] for r in self.client.get('/api/instruments/').json()]
+        self.assertNotIn('TESTEQ', symbols)
+        self.assertIn('FGN-TEST-2030', symbols)
+
+        self.assertEqual(self.client.get('/api/stocks/movers/').json(), [])
+        self.assertEqual(self.client.get('/api/stocks/search/?q=TESTEQ').json(), [])
+        self.assertEqual(self.client.get('/api/companies/').json(), [])
+        self.assertEqual(self.client.get('/api/earnings/').json(), [])
+        self.assertEqual(self.client.get('/api/indexes/').json(), [])
+        self.assertEqual(self.client.get('/api/stock/TESTEQ/').status_code, 404)
+
+        overview = self.client.get('/api/overview/').json()
+        self.assertEqual(overview['instrumentCount'], 0)
+        self.assertEqual(overview['topGainers'], [])
+
+    @override_settings(EQUITIES_ENABLED=True)
+    def test_gate_on_exposes_equities(self):
+        self.assertEqual(self.client.get('/api/config/').json(),
+                         {'equities_enabled': True})
+        symbols = [r['symbol'] for r in self.client.get('/api/instruments/').json()]
+        self.assertIn('TESTEQ', symbols)
+        self.assertEqual(self.client.get('/api/stock/TESTEQ/').status_code, 200)
+
+
+class HourlyFxScheduleTests(TestCase):
+    """Hourly CBN FX poll + honest freshness window."""
+
+    def test_beat_has_hourly_cbn_fx_entry(self):
+        from django.conf import settings
+        entry = settings.CELERY_BEAT_SCHEDULE.get('cbn-fx-hourly-ingest')
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry['task'], 'api.tasks.run_cbn_fx_ingest')
+        self.assertNotIn('cbn-fx-daily-ingest', settings.CELERY_BEAT_SCHEDULE)
+
+    def test_freshness_uses_publication_window(self):
+        from .freshness import DATASETS, stale_after_hours
+        self.assertEqual(DATASETS['cbn_fx'][2], 1)
+        self.assertEqual(stale_after_hours('cbn_fx'), 26)

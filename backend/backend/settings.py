@@ -238,18 +238,22 @@ if env_bool('SEC_NAV_DAILY_INGEST_ENABLED', True):
         ),
     }
 
-# S2 (2026-09-11): scheduled daily CBN FX ingestion from the official CBN
-# JSON API (cbn.gov.ng/api/GetAllExchangeRates). Records a DataIngestRun per
-# attempt and alerts ops on failure. This is the feed that keeps the public
-# 'cbn_fx' dataset fresh.
-if env_bool('CBN_FX_DAILY_INGEST_ENABLED', True):
-    CELERY_BEAT_SCHEDULE['cbn-fx-daily-ingest'] = {
+# S2 (2026-11-25, CEO): hourly CBN FX poll. The CBN publishes a new
+# official rate once per business day; polling hourly means a new
+# publication is picked up within the hour instead of waiting for the next
+# 06:45 run. The importer is idempotent (upsert by pair+date) and records a
+# DataIngestRun per attempt, so duplicate polls are cheap. Kept at minute 5
+# to stay clear of the freshness watchdog at :15.
+if env_bool('CBN_FX_INGEST_ENABLED', True):
+    CELERY_BEAT_SCHEDULE['cbn-fx-hourly-ingest'] = {
         'task': 'api.tasks.run_cbn_fx_ingest',
-        'schedule': crontab(
-            minute=env_int('CBN_FX_UPDATE_MINUTE', 45),
-            hour=env_int('CBN_FX_UPDATE_HOUR', 6),
-        ),
+        'schedule': crontab(minute=env_int('CBN_FX_UPDATE_MINUTE', 5)),
     }
+
+# Product gate (CEO 2026-11-25): equities are excluded from every module
+# until the NGX licence lands. Default OFF in production. Enforced in the
+# API (api.features) and in the Angular shell.
+EQUITIES_ENABLED = env_bool('EQUITIES_ENABLED', False)
 
 # S3 (2026-09-11): NGX index levels from the Kobo Terminal (ex-NGX Pulse) API.
 # The 'market_indexes' dataset had no live source at all before this; it was
