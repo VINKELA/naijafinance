@@ -52,6 +52,7 @@ urlpatterns = [
     path('stocks/movers/', views.get_top_movers, name='get_movers'),
     path('stocks/trends/', views.get_market_trends, name='get_trends'),
     path('overview/', views.market_overview, name='market_overview'),
+    path('config/', views.public_config, name='public_config'),
     path('news/', views.get_news, name='get_news'),
     path('portfolio-summary/', views.get_portfolio_summary, name='get_portfolio_summary'),
     path('portfolio-insights/', views.get_portfolio_insights, name='get_portfolio_insights'),

@@ -6,6 +6,7 @@ import { FxPage } from './pages/fx';
 import { AlertsPage } from './pages/alerts';
 import { MarketPage } from './pages/market';
 import { StocksPage } from './pages/stocks';
+import { EquitiesGuard } from './equities.guard';
 import { ComparePage } from './pages/compare';
 import { AssetMixPage } from './pages/asset-mix';
 import { AssetPage } from './pages/asset';
@@ -21,7 +22,7 @@ export const routes: Routes = [
   { path: 'funds', component: FundsPage, title: 'Mutual Funds' },
   { path: 'funds/:id', component: FundDetailPage, title: 'Fund Detail' },
   { path: 'fx', component: FxPage, title: 'CBN FX Rates' },
-  { path: 'stocks', component: StocksPage, title: 'Stocks & Prices' },
+  { path: 'stocks', component: StocksPage, title: 'Stocks & Prices', canActivate: [EquitiesGuard] },
   { path: 'compare', component: ComparePage, title: 'Compare' },
   { path: 'asset-mix', component: AssetMixPage, title: 'My Asset Mix' },
   { path: 'alerts', component: AlertsPage, title: 'Threshold Alerts' },

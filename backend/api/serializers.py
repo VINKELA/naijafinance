@@ -5,6 +5,7 @@ from .models import (
     Watchlist, MarketIndex, PriceHistory, Fund, NavSnapshot
 )
 from .display import display_instrument_name
+from .features import equities_enabled, portfolio_item_visible
 
 User = get_user_model()
 
@@ -113,16 +114,22 @@ class PortfolioItemSerializer(serializers.ModelSerializer):
         return ((price - obj.purchase_price) / obj.purchase_price) * 100
 
 class PortfolioSerializer(serializers.ModelSerializer):
-    items = PortfolioItemSerializer(many=True, read_only=True)
+    items = serializers.SerializerMethodField()
     total_value = serializers.SerializerMethodField()
 
     class Meta:
         model = Portfolio
         fields = ['id', 'name', 'items', 'total_value']
 
+    def get_items(self, obj):
+        rows = [item for item in obj.items.all() if portfolio_item_visible(item)]
+        return PortfolioItemSerializer(rows, many=True).data
+
     def get_total_value(self, obj):
         total = 0
         for item in obj.items.all():
+            if not portfolio_item_visible(item):
+                continue
             if item.fund_id:
                 latest = item.fund.nav_snapshots.order_by('-date').first()
                 total += (item.quantity * (latest.nav or 0)) if latest else 0
@@ -160,7 +167,7 @@ class FundSerializer(serializers.ModelSerializer):
 
 # --- Watchlist Serializer ---
 class WatchlistSerializer(serializers.ModelSerializer):
-    instruments = InstrumentSerializer(many=True, read_only=True)
+    instruments = serializers.SerializerMethodField()
     funds = FundSerializer(many=True, read_only=True)
 
     # Write-only fields to add instruments / funds by ID
@@ -174,6 +181,12 @@ class WatchlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Watchlist
         fields = ['id', 'name', 'instruments', 'funds', 'instrument_ids', 'fund_ids']
+
+    def get_instruments(self, obj):
+        qs = obj.instruments.all()
+        if not equities_enabled():
+            qs = qs.exclude(asset_class='EQUITY')
+        return InstrumentSerializer(qs, many=True).data
 
 # --- Index Serializers ---
 class MarketIndexSerializer(serializers.ModelSerializer):

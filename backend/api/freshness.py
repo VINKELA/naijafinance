@@ -19,7 +19,7 @@ from .models import AuctionCalendar, FxRate, Fund, MarketIndex, NavSnapshot
 # key -> (label, source, advertised cadence in hours)
 DATASETS = {
     'market_indexes': ('Market Indexes', 'NGX', 1),
-    'cbn_fx': ('CBN FX Rates', 'cbn.gov.ng', 24),
+    'cbn_fx': ('CBN FX Rates', 'cbn.gov.ng', 1),
     'dmo_auctions': ('DMO Auctions', 'dmo.gov.ng', 24),
     'sec_nav': ('SEC NAV', 'sec.gov.ng', 168),
 }
@@ -28,6 +28,10 @@ DATASETS = {
 STALE_OVERRIDES_HOURS = {
     # Sovereign auction cycle — the last *past* auction can be weeks old.
     'dmo_auctions': 720,
+    # CBN publishes once per business day (not hourly). A 26h window allows
+    # for a normal weekend/publication lag while still catching a dead feed
+    # within about a day.
+    'cbn_fx': 26,
 }
 
 DEFAULT_MULTIPLIER = 2.0
